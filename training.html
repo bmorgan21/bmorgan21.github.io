@@ -646,15 +646,87 @@
 
         function clearWeek() { if (confirm("Clear this week?")) { localStorage.removeItem(getStorageKey()); loadWeekData(); } }
 
+        
         async function shareData() {
-            const inputs = document.querySelectorAll('#trackerForm input, #trackerForm textarea, #trackerForm select');
-            let summary = `Workout Summary: ${document.getElementById('weekDate').value}\n`;
-            inputs.forEach(input => {
-                const val = input.type === 'checkbox' ? (input.checked ? "DONE" : "") : input.value;
-                const name = input.getAttribute('data-name') || input.id;
-                if (val && val !== "" && name !== "reps" && name !== "lb x rep") summary += `\n${name}: ${val}`;
+            const week = document.getElementById('weekDate').value;
+            let out = `Workout Summary: ${week}\n\n(Assumed completed as prescribed unless Actuals/Notes say otherwise)\n`;
+
+            const sections = document.querySelectorAll('#trackerForm details');
+            sections.forEach(sec => {
+                const title = sec.querySelector('summary')?.innerText?.trim() || "Session";
+                out += `\n\n${title}\n`;
+
+                // --- Targets ---
+                const targetLines = [];
+
+                // Target RPE tags
+                const rpeTags = Array.from(sec.querySelectorAll('.target-rpe-tag'))
+                    .map(el => el.textContent.trim())
+                    .filter(Boolean);
+                if (rpeTags.length) {
+                    const seen = new Set();
+                    rpeTags.forEach(t => { if (!seen.has(t)) { seen.add(t); targetLines.push(t); } });
+                }
+
+                // Treadmill segments: Sub-title + treadmill setting
+                const subTitles = Array.from(sec.querySelectorAll('.sub-title'));
+                subTitles.forEach(st => {
+                    const nxt = st.nextElementSibling;
+                    if (nxt && nxt.classList.contains('treadmill-setting')) {
+                        const parts = Array.from(nxt.querySelectorAll('span')).map(s => s.textContent.trim()).filter(Boolean);
+                        if (parts.length) targetLines.push(`${st.textContent.trim()}: ${parts.join(', ')}`);
+                    }
+                });
+
+                // Strength exercises (labels contain target details)
+                const labels = Array.from(sec.querySelectorAll('.exercise-label')).map(el => {
+                    const clone = el.cloneNode(true);
+                    clone.querySelectorAll('span[id^="prev_"]').forEach(s => s.remove());
+                    return clone.textContent.replace(/\s+/g, ' ').trim();
+                }).filter(Boolean);
+
+                if (labels.length) {
+                    labels.forEach(t => targetLines.push(t));
+                } else {
+                    // Fallback: include visible exercise rows if present
+                    const rows = Array.from(sec.querySelectorAll('.exercise-row'));
+                    if (rows.length) {
+                        rows.forEach(r => {
+                            const label = r.querySelector('.exercise-name')?.textContent?.trim();
+                            const target = r.querySelector('.exercise-target')?.textContent?.trim();
+                            if (label && target) targetLines.push(`${label}: ${target}`);
+                        });
+                    }
+                }
+
+                if (targetLines.length) {
+                    out += `Targets:\n- ${targetLines.join('\n- ')}\n`;
+                }
+
+                // --- Actuals / Notes (only if user entered something) ---
+                const inputs = sec.querySelectorAll('input, textarea, select');
+                const actualLines = [];
+                inputs.forEach(input => {
+                    const name = input.getAttribute('data-name') || input.id;
+                    let val = "";
+                    if (input.type === 'checkbox') val = input.checked ? "DONE" : "";
+                    else val = (input.value || "").trim();
+
+                    if (!val) return;
+                    if (name === "reps" || name === "lb x rep") return;
+
+                    actualLines.push(`${name}: ${val}`);
+                });
+
+                if (actualLines.length) {
+                    out += `Actuals/Notes:\n- ${actualLines.join('\n- ')}\n`;
+                }
             });
-            await navigator.clipboard.writeText(summary);
+
+            const wk = (document.getElementById('Weekly_Commentary')?.value || "").trim();
+            if (wk) out += `\n\nWEEKLY SUMMARY:\n${wk}\n`;
+
+            await navigator.clipboard.writeText(out.trim());
             alert("Summary copied to clipboard!");
         }
     </script>
