@@ -1,0 +1,1662 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Vehicle Remote Operator Console (Mockup)</title>
+    <style>
+        :root {
+            --bg: #0b0f14;
+            --panel: #101823;
+            --panel2: #0f1620;
+            --text: #e6eefb;
+            --muted: #92a4bd;
+            --ok: #2ecc71;
+            --warn: #f1c40f;
+            --bad: #e74c3c;
+            --accent: #4aa3ff;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+            --radius: 16px;
+            --gap: 14px;
+            --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--font);
+            background: radial-gradient(1200px 900px at 25% -10%, #14233a 0%, var(--bg) 50%) fixed;
+            color: var(--text);
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: rgba(11, 15, 20, .75);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            max-width: 1500px;
+            margin: 0 auto;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.1;
+            margin-right: auto;
+        }
+
+        .brand .title {
+            font-weight: 900;
+            letter-spacing: .2px
+        }
+
+        .brand .subtitle {
+            color: var(--muted);
+            font-size: 12px
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .05);
+            border: 1px solid rgba(255, 255, 255, .08);
+            font-size: 13px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, .15);
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: var(--warn);
+            box-shadow: 0 0 0 4px rgba(241, 196, 15, .15);
+        }
+
+        .dot.ok {
+            background: var(--ok);
+            box-shadow: 0 0 0 4px rgba(46, 204, 113, .15);
+        }
+
+        .dot.bad {
+            background: var(--bad);
+            box-shadow: 0 0 0 4px rgba(231, 76, 60, .15);
+        }
+
+        .btn {
+            appearance: none;
+            border: 0;
+            cursor: pointer;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, .06);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, .10);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, .18);
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, .10);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn.primary {
+            background: linear-gradient(180deg, rgba(74, 163, 255, .25), rgba(74, 163, 255, .10));
+            border-color: rgba(74, 163, 255, .35);
+        }
+
+        .btn.danger {
+            background: linear-gradient(180deg, rgba(231, 76, 60, .25), rgba(231, 76, 60, .10));
+            border-color: rgba(231, 76, 60, .35);
+        }
+
+        .btn[disabled] {
+            opacity: .45;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .layout {
+            max-width: 1500px;
+            margin: 16px auto;
+            padding: 0 16px 18px;
+            display: grid;
+            grid-template-columns: 1.85fr 1fr;
+            gap: var(--gap);
+        }
+
+        @media (max-width: 1100px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(16, 24, 35, .72);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card .hd {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: rgba(255, 255, 255, .02);
+            flex-wrap: wrap;
+        }
+
+        .card .hd .h {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card .hd .h b {
+            font-size: 14px;
+            letter-spacing: .2px;
+        }
+
+        .card .hd .h span {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .card .bd {
+            padding: 14px;
+        }
+
+        /* Video wall */
+        .videoWall {
+            display: grid;
+            gap: var(--gap);
+        }
+
+        .primaryVideo {
+            position: relative;
+            border-radius: 18px;
+            overflow: hidden;
+            background: #000;
+            border: 1px solid rgba(255, 255, 255, .10);
+            aspect-ratio: 16/9;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #000;
+        }
+
+        .hud {
+            pointer-events: none;
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 14px;
+        }
+
+        .hudTop {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .hudBox {
+            background: rgba(0, 0, 0, .38);
+            border: 1px solid rgba(255, 255, 255, .14);
+            border-radius: 14px;
+            padding: 10px 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .25);
+        }
+
+        .hudBox .row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .kpi {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .kpi span {
+            font-size: 11px;
+            color: rgba(230, 238, 251, .75);
+        }
+
+        .kpi b {
+            font-size: 16px;
+            letter-spacing: .2px;
+        }
+
+        .hudBottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 10px;
+        }
+
+        .bar {
+            width: 240px;
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .14);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, .18);
+        }
+
+        .bar>i {
+            display: block;
+            height: 100%;
+            width: 50%;
+            background: linear-gradient(90deg, rgba(74, 163, 255, .95), rgba(74, 163, 255, .35));
+            border-radius: 999px;
+        }
+
+        .barLabel {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 11px;
+            color: rgba(230, 238, 251, .75);
+            margin-top: 6px;
+        }
+
+        .thumbs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--gap);
+        }
+
+        @media (max-width: 1100px) {
+            .thumbs {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .thumb {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #000;
+            border: 1px solid rgba(255, 255, 255, .10);
+            aspect-ratio: 16/9;
+            cursor: pointer;
+        }
+
+        .badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: .2px;
+            background: rgba(0, 0, 0, .45);
+            border: 1px solid rgba(255, 255, 255, .16);
+            backdrop-filter: blur(10px);
+        }
+
+        .badge.primary {
+            border-color: rgba(74, 163, 255, .35);
+        }
+
+        /* Controls */
+        .grid2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--gap);
+        }
+
+        .grid3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: var(--gap);
+        }
+
+        @media (max-width: 1100px) {
+
+            .grid2,
+            .grid3 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: rgba(15, 22, 32, .55);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 14px;
+            padding: 10px 10px 12px;
+        }
+
+        .field label {
+            font-size: 12px;
+            color: rgba(230, 238, 251, .82);
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .field label small {
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        .value {
+            font-variant-numeric: tabular-nums;
+            font-weight: 900;
+        }
+
+        .kbd {
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .key {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 26px;
+            padding: 4px 7px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .07);
+            border: 1px solid rgba(255, 255, 255, .10);
+            font-weight: 900;
+            color: rgba(230, 238, 251, .9);
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .log {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            font-size: 12px;
+            background: rgba(0, 0, 0, .30);
+            border: 1px solid rgba(255, 255, 255, .10);
+            border-radius: 14px;
+            padding: 10px;
+            max-height: 220px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+
+        .rowBtns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .split {
+            display: flex;
+            gap: var(--gap);
+            align-items: stretch;
+        }
+
+        .split>* {
+            flex: 1;
+        }
+
+        @media (max-width: 1100px) {
+            .split {
+                flex-direction: column;
+            }
+        }
+
+        .dangerZone {
+            border: 1px solid rgba(231, 76, 60, .30);
+            background: linear-gradient(180deg, rgba(231, 76, 60, .10), rgba(0, 0, 0, .15));
+        }
+
+        .callout {
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .04);
+            font-size: 12px;
+            color: rgba(230, 238, 251, .86);
+            line-height: 1.45;
+        }
+
+        /* Repeat-rate control */
+        .pillSmall {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .05);
+            border: 1px solid rgba(255, 255, 255, .10);
+            font-size: 12px;
+            color: rgba(230, 238, 251, .88);
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .btnTiny {
+            appearance: none;
+            border: 0;
+            cursor: pointer;
+            padding: 8px 10px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, .06);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, .10);
+            font-weight: 900;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .btnTiny:hover {
+            background: rgba(255, 255, 255, .10);
+        }
+
+        .btnTiny:active {
+            transform: translateY(1px);
+        }
+
+        /* Telemetry tables */
+        .table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            overflow: hidden;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .22);
+        }
+
+        .table th,
+        .table td {
+            padding: 10px 10px;
+            font-size: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            vertical-align: middle;
+        }
+
+        .table th {
+            text-align: left;
+            color: rgba(230, 238, 251, .80);
+            background: rgba(255, 255, 255, .04);
+            font-weight: 900;
+        }
+
+        .table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .miniBtn {
+            appearance: none;
+            border: 0;
+            cursor: pointer;
+            padding: 7px 10px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .06);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, .10);
+            font-weight: 900;
+            margin-left: 6px;
+            white-space: nowrap;
+        }
+
+        .miniBtn:hover {
+            background: rgba(255, 255, 255, .10);
+        }
+
+        .miniBtn.primary {
+            border-color: rgba(74, 163, 255, .35);
+            background: rgba(74, 163, 255, .12);
+        }
+
+        .miniBtn.danger {
+            border-color: rgba(231, 76, 60, .35);
+            background: rgba(231, 76, 60, .10);
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            background: rgba(255, 255, 255, .05);
+            color: rgba(230, 238, 251, .88);
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .tag.ok {
+            border-color: rgba(46, 204, 113, .35);
+            background: rgba(46, 204, 113, .10);
+        }
+
+        .tag.warn {
+            border-color: rgba(241, 196, 15, .35);
+            background: rgba(241, 196, 15, .10);
+        }
+
+        .tag.bad {
+            border-color: rgba(231, 76, 60, .35);
+            background: rgba(231, 76, 60, .10);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="topbar">
+            <div class="brand">
+                <div class="title">Operator Console</div>
+                <div class="subtitle">Multi-cam • Single-controller • Bucket hold-repeat for lift/dump</div>
+            </div>
+
+            <div class="pill" title="Backend command channel status">
+                <span class="dot" id="wsDot"></span>
+                <span id="wsText">Disconnected</span>
+            </div>
+
+            <div class="pill" title="Control owner (as determined by backend)">
+                <span style="color:var(--muted);font-weight:800">Control:</span>
+                <span id="controlOwner" style="font-weight:900">View-only</span>
+            </div>
+
+            <button class="btn primary" id="btnConnect">Connect</button>
+            <button class="btn" id="btnRequest">Request Control</button>
+            <button class="btn danger" id="btnRelease" disabled>Release Control</button>
+            <button class="btn danger" id="btnEstop">E-STOP</button>
+        </div>
+    </header>
+
+    <main class="layout">
+        <!-- LEFT: Video -->
+        <section class="card">
+            <div class="hd">
+                <div class="h">
+                    <b>Video</b>
+                    <span>Click a small view to make it primary • Hotkeys: 1/2/3</span>
+                </div>
+                <div class="pill" title="Streaming mode placeholder">
+                    <span style="color:var(--muted);font-weight:800">Mode:</span>
+                    <span style="font-weight:900">WebRTC (placeholder)</span>
+                </div>
+            </div>
+
+            <div class="bd">
+                <div class="videoWall">
+                    <div class="primaryVideo">
+                        <video id="videoPrimary" autoplay playsinline muted></video>
+                        <div class="hud">
+                            <div class="hudTop">
+                                <div class="hudBox">
+                                    <div class="row">
+                                        <div class="kpi">
+                                            <span>Speed (est.)</span>
+                                            <b id="hudSpeed">0.0 mph</b>
+                                        </div>
+                                        <div class="kpi">
+                                            <span>Bucket Lift</span>
+                                            <b><span id="hudLift">0</span>%</b>
+                                        </div>
+                                        <div class="kpi">
+                                            <span>Dump</span>
+                                            <b><span id="hudDump">0</span>%</b>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="hudBox">
+                                    <div class="kpi">
+                                        <span>Cmd Rate</span>
+                                        <b><span id="hudHz">0</span> Hz</b>
+                                    </div>
+                                    <div class="kpi" style="margin-top:8px">
+                                        <span>RTT (mock)</span>
+                                        <b><span id="hudRtt">—</span> ms</b>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="hudBottom">
+                                <div class="hudBox">
+                                    <div style="display:flex; gap:12px; align-items:center;">
+                                        <div style="min-width:90px;">
+                                            <div style="font-size:11px;color:rgba(230,238,251,.75)">Steer</div>
+                                            <b class="value" id="hudSteer">0.00</b>
+                                        </div>
+                                        <div>
+                                            <div class="bar"><i id="barSteer"></i></div>
+                                            <div class="barLabel"><span>Left</span><span>Right</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="hudBox">
+                                    <div style="display:flex; gap:12px; align-items:center;">
+                                        <div style="min-width:90px;">
+                                            <div style="font-size:11px;color:rgba(230,238,251,.75)">Throttle</div>
+                                            <b class="value" id="hudThrottle">0.00</b>
+                                        </div>
+                                        <div>
+                                            <div class="bar"><i id="barThrottle"></i></div>
+                                            <div class="barLabel"><span>Brake</span><span>Go</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="thumbs">
+                        <div class="thumb" data-view="front" title="Front camera">
+                            <span class="badge" id="badgeFront">Front</span>
+                            <video id="videoFront" autoplay playsinline muted></video>
+                        </div>
+                        <div class="thumb" data-view="rear" title="Rear camera">
+                            <span class="badge" id="badgeRear">Rear</span>
+                            <video id="videoRear" autoplay playsinline muted></video>
+                        </div>
+                        <div class="thumb" data-view="site" title="Site overview camera">
+                            <span class="badge" id="badgeSite">Site</span>
+                            <video id="videoSite" autoplay playsinline muted></video>
+                        </div>
+                    </div>
+
+                    <div class="callout">
+                        <b>Bucket controls:</b> hold the on-screen lift/dump buttons to continuously change the
+                        setpoint.
+                        Keyboard already “hold repeats” via R/F and T/G.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT: Controls & Admin -->
+        <aside class="card">
+            <div class="hd">
+                <div class="h">
+                    <b>Controls & Session</b>
+                    <span>Deadman required for motion • Bucket hold-repeat buttons added • Keyboard maps
+                        unchanged</span>
+                </div>
+                <div class="pill" title="Local input capture status">
+                    <span style="color:var(--muted);font-weight:800">Input:</span>
+                    <span id="inputText" style="font-weight:900">Idle</span>
+                </div>
+            </div>
+
+            <div class="bd">
+                <div class="rowBtns" style="margin-bottom: var(--gap);">
+                    <button class="btn primary" id="btnDeadman"
+                        title="Hold to drive (or hold SHIFT)">Hold-to-Drive</button>
+                    <button class="btn" id="btnPrimaryFront">Make Front Primary</button>
+                    <button class="btn" id="btnPrimaryRear">Make Rear Primary</button>
+                    <button class="btn" id="btnPrimarySite">Make Site Primary</button>
+                </div>
+
+                <div class="grid2" style="margin-bottom: var(--gap);">
+                    <div class="field">
+                        <label>
+                            Steering <small class="kbd">Keys: <span class="key">A</span>/<span class="key">D</span> or
+                                <span class="key">←</span>/<span class="key">→</span></small>
+                            <span class="value" id="valSteer">0.00</span>
+                        </label>
+                        <input id="rngSteer" type="range" min="-1" max="1" value="0" step="0.01" />
+                        <div class="hint">Steer ramps to target and back to center smoothly.</div>
+                    </div>
+
+                    <div class="field">
+                        <label>
+                            Throttle / Brake <small class="kbd">Keys: <span class="key">W</span>/<span
+                                    class="key">S</span> or <span class="key">↑</span>/<span
+                                    class="key">↓</span></small>
+                            <span class="value" id="valThrottle">0.00</span>
+                        </label>
+                        <input id="rngThrottle" type="range" min="-1" max="1" value="0" step="0.01" />
+                        <div class="hint">Throttle ramps for controllable starts/stops.</div>
+                    </div>
+                </div>
+
+                <!-- Bucket with hold-repeat buttons -->
+                <div class="field" style="margin-bottom: var(--gap);">
+                    <label>
+                        Bucket Controls
+                        <small class="kbd">
+                            Lift: <span class="key">R</span>/<span class="key">F</span> • Dump: <span
+                                class="key">T</span>/<span class="key">G</span> • Hold buttons to repeat
+                        </small>
+                    </label>
+
+                    <div class="rowBtns">
+                        <button class="btnTiny" id="btnLiftUp">Lift ▲</button>
+                        <button class="btnTiny" id="btnLiftDown">Lift ▼</button>
+                        <button class="btnTiny" id="btnDumpUp">Dump ▲</button>
+                        <button class="btnTiny" id="btnDumpDown">Dump ▼</button>
+
+                        <span class="pillSmall" title="How fast bucket changes while holding buttons">
+                            Repeat:
+                            <span class="value" id="valBucketRate">30</span>%/s
+                        </span>
+                        <input id="rngBucketRate" type="range" min="5" max="80" value="30" step="1"
+                            style="max-width:220px" />
+                    </div>
+
+                    <div class="grid2" style="margin-top: 10px;">
+                        <div class="field" style="margin:0;">
+                            <label>
+                                Lift Setpoint
+                                <small>0–100%</small>
+                                <span class="value" id="valLift">0</span>%
+                            </label>
+                            <input id="rngLift" type="range" min="0" max="100" value="0" step="1" />
+                        </div>
+
+                        <div class="field" style="margin:0;">
+                            <label>
+                                Dump Setpoint
+                                <small>0–100%</small>
+                                <span class="value" id="valDump">0</span>%
+                            </label>
+                            <input id="rngDump" type="range" min="0" max="100" value="0" step="1" />
+                        </div>
+                    </div>
+
+                    <div class="hint">
+                        Hold-repeat applies to the on-screen buttons. Keyboard already repeats naturally by holding
+                        keys.
+                        Later you can map lift/dump setpoints to Modbus registers when the spec is ready.
+                    </div>
+                </div>
+
+                <div class="grid3" style="margin-bottom: var(--gap);">
+                    <div class="field">
+                        <label>Max Speed <small>cap</small><span class="value" id="valMaxSpeed">3.0</span> mph</label>
+                        <input id="rngMaxSpeed" type="range" min="0.5" max="10" value="3.0" step="0.1" />
+                    </div>
+                    <div class="field">
+                        <label>Steer Slew <small>limit</small><span class="value" id="valSteerSlew">2.0</span>/s</label>
+                        <input id="rngSteerSlew" type="range" min="0.5" max="6" value="2.0" step="0.1" />
+                    </div>
+                    <div class="field">
+                        <label>Cmd Rate <small>Hz</small><span class="value" id="valCmdHz">20</span></label>
+                        <input id="rngCmdHz" type="range" min="10" max="50" value="20" step="1" />
+                    </div>
+                </div>
+
+                <div class="split" style="margin-bottom: var(--gap);">
+                    <div class="field dangerZone">
+                        <label>
+                            Safety
+                            <small class="kbd">Deadman: hold <span class="key">Shift</span> or button • STOP: <span
+                                    class="key">Space</span></small>
+                        </label>
+                        <div class="rowBtns">
+                            <button class="btn danger" id="btnStop">STOP (soft)</button>
+                            <button class="btn danger" id="btnResetNeutral">Neutralize</button>
+                        </div>
+                        <div class="hint">STOP neutralizes motion targets (steer/throttle → 0). E-STOP also revokes
+                            backend session.</div>
+                    </div>
+
+                    <div class="field">
+                        <label>Keyboard Map <small>quick reference</small></label>
+                        <div class="kbd" style="margin-top:2px">
+                            <span class="key">W</span> forward
+                            <span class="key">S</span> brake/rev
+                            <span class="key">A</span>/<span class="key">D</span> steer
+                            <span class="key">R</span>/<span class="key">F</span> lift
+                            <span class="key">T</span>/<span class="key">G</span> dump
+                            <span class="key">Shift</span> deadman
+                            <span class="key">Space</span> STOP
+                            <span class="key">1</span>/<span class="key">2</span>/<span class="key">3</span> primary cam
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Queue + Telemetry (kept from previous version) -->
+                <div class="field" style="margin-bottom: var(--gap);">
+                    <label>Control Queue <small>grant / revoke / override (mock)</small></label>
+                    <div class="rowBtns">
+                        <button class="btn" id="btnJoinAsViewer">Join as Viewer</button>
+                        <button class="btn" id="btnSimRequest">Simulate Request</button>
+                        <button class="btn danger" id="btnForceTakeover">Sales Force Takeover</button>
+                    </div>
+                    <table class="table" style="margin-top:10px">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th class="right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="queueBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="field">
+                    <label>Telemetry & Health <small>network + vehicle link + faults</small></label>
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <th style="width:45%">Backend RTT</th>
+                                <td><span class="value" id="telRtt">—</span> ms</td>
+                                <td class="right"><span class="tag" id="tagRtt">unknown</span></td>
+                            </tr>
+                            <tr>
+                                <th>Cmd Ack Rate</th>
+                                <td><span class="value" id="telAck">—</span>%</td>
+                                <td class="right"><span class="tag" id="tagAck">unknown</span></td>
+                            </tr>
+                            <tr>
+                                <th>Cmd Jitter</th>
+                                <td><span class="value" id="telJitter">—</span> ms</td>
+                                <td class="right"><span class="tag" id="tagJitter">unknown</span></td>
+                            </tr>
+                            <tr>
+                                <th>LTE Signal</th>
+                                <td><span class="value" id="telSignal">—</span> dBm</td>
+                                <td class="right"><span class="tag" id="tagSignal">unknown</span></td>
+                            </tr>
+                            <tr>
+                                <th>ESP32 Online</th>
+                                <td><span class="value" id="telEsp">—</span></td>
+                                <td class="right"><span class="tag" id="tagEsp">unknown</span></td>
+                            </tr>
+                            <tr>
+                                <th>Modbus Link</th>
+                                <td><span class="value" id="telModbus">—</span></td>
+                                <td class="right"><span class="tag" id="tagModbus">unknown</span></td>
+                            </tr>
+                            <tr>
+                                <th>Vehicle Faults</th>
+                                <td colspan="2"><span class="value" id="telFaults">none</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="log" id="log" style="margin-top:10px"></div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        (() => {
+            // =============================
+            // Replace with your real backend
+            // =============================
+            let ws = null;
+            const WS_URL = "wss://example.com/operator"; // TODO replace
+
+            // =============================
+            // Video placeholders
+            // =============================
+            const vids = {
+                primary: document.getElementById("videoPrimary"),
+                front: document.getElementById("videoFront"),
+                rear: document.getElementById("videoRear"),
+                site: document.getElementById("videoSite"),
+            };
+
+            // =============================
+            // UI refs
+            // =============================
+            const wsDot = document.getElementById("wsDot");
+            const wsText = document.getElementById("wsText");
+            const controlOwner = document.getElementById("controlOwner");
+
+            const btnConnect = document.getElementById("btnConnect");
+            const btnRequest = document.getElementById("btnRequest");
+            const btnRelease = document.getElementById("btnRelease");
+            const btnEstop = document.getElementById("btnEstop");
+
+            const btnDeadman = document.getElementById("btnDeadman");
+            const btnStop = document.getElementById("btnStop");
+            const btnResetNeutral = document.getElementById("btnResetNeutral");
+
+            const rngSteer = document.getElementById("rngSteer");
+            const rngThrottle = document.getElementById("rngThrottle");
+            const rngLift = document.getElementById("rngLift");
+            const rngDump = document.getElementById("rngDump");
+
+            const rngMaxSpeed = document.getElementById("rngMaxSpeed");
+            const rngSteerSlew = document.getElementById("rngSteerSlew");
+            const rngCmdHz = document.getElementById("rngCmdHz");
+
+            const valSteer = document.getElementById("valSteer");
+            const valThrottle = document.getElementById("valThrottle");
+            const valLift = document.getElementById("valLift");
+            const valDump = document.getElementById("valDump");
+            const valMaxSpeed = document.getElementById("valMaxSpeed");
+            const valSteerSlew = document.getElementById("valSteerSlew");
+            const valCmdHz = document.getElementById("valCmdHz");
+
+            const inputText = document.getElementById("inputText");
+            const logEl = document.getElementById("log");
+
+            // Bucket repeat controls
+            const btnLiftUp = document.getElementById("btnLiftUp");
+            const btnLiftDown = document.getElementById("btnLiftDown");
+            const btnDumpUp = document.getElementById("btnDumpUp");
+            const btnDumpDown = document.getElementById("btnDumpDown");
+            const rngBucketRate = document.getElementById("rngBucketRate");
+            const valBucketRate = document.getElementById("valBucketRate");
+
+            // HUD
+            const hudSpeed = document.getElementById("hudSpeed");
+            const hudLift = document.getElementById("hudLift");
+            const hudDump = document.getElementById("hudDump");
+            const hudHz = document.getElementById("hudHz");
+            const hudRtt = document.getElementById("hudRtt");
+            const hudSteer = document.getElementById("hudSteer");
+            const hudThrottle = document.getElementById("hudThrottle");
+            const barSteer = document.getElementById("barSteer");
+            const barThrottle = document.getElementById("barThrottle");
+
+            // Primary
+            const btnPrimaryFront = document.getElementById("btnPrimaryFront");
+            const btnPrimaryRear = document.getElementById("btnPrimaryRear");
+            const btnPrimarySite = document.getElementById("btnPrimarySite");
+            const badgeFront = document.getElementById("badgeFront");
+            const badgeRear = document.getElementById("badgeRear");
+            const badgeSite = document.getElementById("badgeSite");
+
+            // Queue
+            const queueBody = document.getElementById("queueBody");
+            const btnJoinAsViewer = document.getElementById("btnJoinAsViewer");
+            const btnSimRequest = document.getElementById("btnSimRequest");
+            const btnForceTakeover = document.getElementById("btnForceTakeover");
+
+            // Telemetry
+            const telRtt = document.getElementById("telRtt");
+            const telAck = document.getElementById("telAck");
+            const telJitter = document.getElementById("telJitter");
+            const telSignal = document.getElementById("telSignal");
+            const telEsp = document.getElementById("telEsp");
+            const telModbus = document.getElementById("telModbus");
+            const telFaults = document.getElementById("telFaults");
+
+            const tagRtt = document.getElementById("tagRtt");
+            const tagAck = document.getElementById("tagAck");
+            const tagJitter = document.getElementById("tagJitter");
+            const tagSignal = document.getElementById("tagSignal");
+            const tagEsp = document.getElementById("tagEsp");
+            const tagModbus = document.getElementById("tagModbus");
+
+            // =============================
+            // State
+            // =============================
+            const state = {
+                connected: false,
+                hasControl: false,
+                deadman: false,
+
+                // applied (smoothed)
+                steer: 0,
+                throttle: 0,
+
+                // targets
+                steerTarget: 0,
+                throttleTarget: 0,
+
+                // bucket targets
+                lift: 0,
+                dump: 0,
+
+                // session controls
+                maxSpeed: 3.0,
+                steerSlew: 2.0,
+                throttleSlew: 2.0,
+                throttleReturn: 2.5,
+                cmdHz: 20,
+
+                // bucket hold-repeat rate (%/s)
+                bucketRate: 30,
+
+                // hold-repeat intents (set by button holds)
+                bucketHold: { liftDir: 0, dumpDir: 0 }, // -1,0,+1
+
+                // internal
+                seq: 0,
+                lastTickMs: performance.now(),
+                keys: new Set(),
+
+                // "feel" estimator
+                estSpeed: 0,
+
+                // telemetry (mock)
+                rttMs: null,
+                ackPct: null,
+                jitterMs: null,
+                lteDbm: null,
+                espOnline: false,
+                modbusUp: false,
+                faults: [],
+            };
+
+            // Queue (mock)
+            const participants = [
+                { id: "you", name: "You", role: "operator", status: "viewer", pending: false },
+                { id: "sales", name: "Sales", role: "sales", status: "viewer", pending: false },
+                { id: "rider", name: "Rider", role: "rider", status: "viewer", pending: false },
+            ];
+            let controlHolderId = null;
+            let isSalesMode = true;
+
+            // =============================
+            // Helpers
+            // =============================
+            function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+            function fmt(n, d = 2) { return Number(n).toFixed(d); }
+            function setConnStatus(kind, text) {
+                wsDot.classList.remove("ok", "bad");
+                if (kind === "ok") wsDot.classList.add("ok");
+                if (kind === "bad") wsDot.classList.add("bad");
+                wsText.textContent = text;
+            }
+            function appendLog(line) {
+                const ts = new Date().toLocaleTimeString();
+                logEl.textContent += `[${ts}] ${line}\n`;
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+            function setTag(el, level, text) {
+                el.classList.remove("ok", "warn", "bad");
+                if (level) el.classList.add(level);
+                el.textContent = text;
+            }
+
+            // =============================
+            // Primary video selection
+            // =============================
+            function setPrimary(which) {
+                const src = vids[which].srcObject;
+                if (src) vids.primary.srcObject = src;
+
+                badgeFront.classList.remove("primary");
+                badgeRear.classList.remove("primary");
+                badgeSite.classList.remove("primary");
+                if (which === "front") badgeFront.classList.add("primary");
+                if (which === "rear") badgeRear.classList.add("primary");
+                if (which === "site") badgeSite.classList.add("primary");
+            }
+            document.querySelectorAll(".thumb").forEach(el => el.addEventListener("click", () => setPrimary(el.dataset.view)));
+            btnPrimaryFront.addEventListener("click", () => setPrimary("front"));
+            btnPrimaryRear.addEventListener("click", () => setPrimary("rear"));
+            btnPrimarySite.addEventListener("click", () => setPrimary("site"));
+
+            // Mock cams
+            async function attachMockCams() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    vids.front.srcObject = stream;
+                    vids.rear.srcObject = stream;
+                    vids.site.srcObject = stream;
+                    vids.primary.srcObject = stream;
+                    setPrimary("front");
+                } catch (e) {
+                    appendLog(`Camera access blocked (ok for mock): ${e.message}`);
+                }
+            }
+            attachMockCams();
+
+            // =============================
+            // WebSocket skeleton
+            // =============================
+            function connectWS() {
+                if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+
+                appendLog(`Connecting WS -> ${WS_URL}`);
+                setConnStatus("bad", "Connecting…");
+
+                try { ws = new WebSocket(WS_URL); }
+                catch (e) {
+                    appendLog(`WS init failed: ${e.message}`);
+                    setConnStatus("bad", "Disconnected");
+                    return;
+                }
+
+                ws.onopen = () => {
+                    state.connected = true;
+                    setConnStatus("ok", "Connected");
+                    btnConnect.textContent = "Connected";
+                    btnConnect.disabled = true;
+                    ws.send(JSON.stringify({ type: "hello", client: "browser", ts: Date.now() }));
+                    appendLog("WS open");
+
+                    state.espOnline = true;
+                    state.modbusUp = true;
+                    updateUI();
+                };
+
+                ws.onclose = () => {
+                    state.connected = false;
+                    state.hasControl = false;
+                    state.deadman = false;
+                    controlHolderId = null;
+                    setConnStatus("bad", "Disconnected");
+                    btnConnect.textContent = "Connect";
+                    btnConnect.disabled = false;
+
+                    state.espOnline = false;
+                    state.modbusUp = false;
+                    appendLog("WS closed");
+                    updateUI();
+                };
+
+                ws.onerror = () => appendLog("WS error");
+            }
+
+            btnConnect.addEventListener("click", connectWS);
+
+            btnRequest.addEventListener("click", () => {
+                if (!state.connected) { appendLog("Not connected"); return; }
+                ws?.send(JSON.stringify({ type: "request_control", ts: Date.now() }));
+                const you = participants.find(p => p.id === "you");
+                if (you) you.pending = true;
+                appendLog("Requested control");
+                updateUI();
+            });
+
+            btnRelease.addEventListener("click", () => {
+                if (!state.connected) return;
+                ws?.send(JSON.stringify({ type: "release_control", ts: Date.now() }));
+                if (controlHolderId === "you") controlHolderId = null;
+                state.hasControl = false;
+                state.deadman = false;
+                neutralizeMotion();
+                appendLog("Released control");
+                updateUI();
+            });
+
+            btnEstop.addEventListener("click", () => {
+                if (state.connected) ws?.send(JSON.stringify({ type: "estop", ts: Date.now() }));
+                state.hasControl = false;
+                state.deadman = false;
+                neutralizeMotion();
+                state.modbusUp = false;
+                state.faults = ["E-STOP (UI)"];
+                appendLog("E-STOP sent (UI). Ensure hardware E-STOP exists too.");
+                updateUI();
+            });
+
+            // =============================
+            // Motion + bucket basics
+            // =============================
+            function neutralizeMotion() {
+                state.steerTarget = 0;
+                state.throttleTarget = 0;
+            }
+
+            function updateUI() {
+                valSteer.textContent = fmt(state.steer);
+                valThrottle.textContent = fmt(state.throttle);
+                valLift.textContent = String(state.lift | 0);
+                valDump.textContent = String(state.dump | 0);
+
+                valMaxSpeed.textContent = fmt(state.maxSpeed, 1);
+                valSteerSlew.textContent = fmt(state.steerSlew, 1);
+                valCmdHz.textContent = String(state.cmdHz | 0);
+
+                valBucketRate.textContent = String(state.bucketRate | 0);
+
+                hudSteer.textContent = fmt(state.steer);
+                hudThrottle.textContent = fmt(state.throttle);
+                hudLift.textContent = String(state.lift | 0);
+                hudDump.textContent = String(state.dump | 0);
+                hudHz.textContent = String(state.cmdHz | 0);
+                hudSpeed.textContent = `${fmt(state.estSpeed, 1)} mph`;
+                hudRtt.textContent = state.rttMs == null ? "—" : String(Math.round(state.rttMs));
+
+                const steer01 = (state.steer + 1) / 2;
+                const thr01 = (state.throttle + 1) / 2;
+                barSteer.style.width = `${steer01 * 100}%`;
+                barThrottle.style.width = `${thr01 * 100}%`;
+
+                btnRelease.disabled = !state.hasControl;
+                btnDeadman.style.outline = state.deadman ? "2px solid rgba(74,163,255,.75)" : "none";
+                btnDeadman.textContent = state.deadman ? "Driving Enabled (hold)" : "Hold-to-Drive";
+
+                const holder = participants.find(p => p.id === controlHolderId);
+                controlOwner.textContent = state.hasControl ? "You" : (holder ? holder.name : "View-only");
+
+                // Sync sliders
+                rngSteer.value = String(state.steer);
+                rngThrottle.value = String(state.throttle);
+                rngLift.value = String(state.lift);
+                rngDump.value = String(state.dump);
+
+                // Telemetry tags (kept minimal)
+                telRtt.textContent = state.rttMs == null ? "—" : String(Math.round(state.rttMs));
+                telAck.textContent = state.ackPct == null ? "—" : String(Math.round(state.ackPct));
+                telJitter.textContent = state.jitterMs == null ? "—" : String(Math.round(state.jitterMs));
+                telSignal.textContent = state.lteDbm == null ? "—" : String(Math.round(state.lteDbm));
+                telEsp.textContent = state.espOnline ? "online" : "offline";
+                telModbus.textContent = state.modbusUp ? "up" : "down";
+                telFaults.textContent = state.faults.length ? state.faults.join(", ") : "none";
+
+                if (state.rttMs == null) setTag(tagRtt, null, "unknown");
+                else if (state.rttMs < 120) setTag(tagRtt, "ok", "good");
+                else if (state.rttMs < 250) setTag(tagRtt, "warn", "degraded");
+                else setTag(tagRtt, "bad", "poor");
+
+                renderQueue();
+            }
+
+            // Sliders
+            function onSliders() {
+                state.lift = parseInt(rngLift.value, 10);
+                state.dump = parseInt(rngDump.value, 10);
+                state.maxSpeed = parseFloat(rngMaxSpeed.value);
+                state.steerSlew = parseFloat(rngSteerSlew.value);
+                state.cmdHz = parseInt(rngCmdHz.value, 10);
+                updateUI();
+            }
+            [rngLift, rngDump, rngMaxSpeed, rngSteerSlew, rngCmdHz].forEach(el => el.addEventListener("input", onSliders));
+
+            // Steer/throttle sliders set targets (still smoothed)
+            rngSteer.addEventListener("input", () => {
+                state.steerTarget = parseFloat(rngSteer.value);
+                inputText.textContent = "Slider";
+            });
+            rngThrottle.addEventListener("input", () => {
+                state.throttleTarget = parseFloat(rngThrottle.value);
+                inputText.textContent = "Slider";
+            });
+
+            // Bucket rate slider
+            rngBucketRate.addEventListener("input", () => {
+                state.bucketRate = parseInt(rngBucketRate.value, 10);
+                updateUI();
+            });
+
+            // Deadman
+            function setDeadman(on) {
+                state.deadman = !!on;
+                updateUI();
+            }
+            btnDeadman.addEventListener("pointerdown", () => setDeadman(true));
+            btnDeadman.addEventListener("pointerup", () => setDeadman(false));
+            btnDeadman.addEventListener("pointerleave", () => setDeadman(false));
+
+            btnStop.addEventListener("click", () => {
+                neutralizeMotion();
+                appendLog("STOP (soft) — motion targets neutralized");
+                updateUI();
+            });
+
+            btnResetNeutral.addEventListener("click", () => {
+                neutralizeMotion();
+                state.lift = 0;
+                state.dump = 0;
+                rngLift.value = "0";
+                rngDump.value = "0";
+                appendLog("Neutralize — steer/throttle targets + bucket reset");
+                updateUI();
+            });
+
+            // =============================
+            // Bucket hold-repeat (buttons)
+            // =============================
+            function setBucketHold(kind, dir) {
+                // kind: 'lift'|'dump'; dir: -1|0|+1
+                if (kind === "lift") state.bucketHold.liftDir = dir;
+                if (kind === "dump") state.bucketHold.dumpDir = dir;
+                inputText.textContent = "Buttons";
+            }
+
+            function bindHoldButton(btn, onDown, onUp) {
+                const up = () => onUp();
+                btn.addEventListener("pointerdown", (e) => { e.preventDefault(); btn.setPointerCapture?.(e.pointerId); onDown(); });
+                btn.addEventListener("pointerup", (e) => { e.preventDefault(); up(); });
+                btn.addEventListener("pointercancel", up);
+                btn.addEventListener("pointerleave", up);
+                // For mouse users that don't trigger pointer events properly in some envs:
+                btn.addEventListener("mousedown", (e) => { e.preventDefault(); onDown(); });
+                btn.addEventListener("mouseup", (e) => { e.preventDefault(); up(); });
+                btn.addEventListener("mouseleave", up);
+                // Touch:
+                btn.addEventListener("touchstart", (e) => { e.preventDefault(); onDown(); }, { passive: false });
+                btn.addEventListener("touchend", (e) => { e.preventDefault(); up(); }, { passive: false });
+            }
+
+            bindHoldButton(btnLiftUp, () => setBucketHold("lift", +1), () => setBucketHold("lift", 0));
+            bindHoldButton(btnLiftDown, () => setBucketHold("lift", -1), () => setBucketHold("lift", 0));
+            bindHoldButton(btnDumpUp, () => setBucketHold("dump", +1), () => setBucketHold("dump", 0));
+            bindHoldButton(btnDumpDown, () => setBucketHold("dump", -1), () => setBucketHold("dump", 0));
+
+            // =============================
+            // Keyboard mappings (unchanged)
+            // =============================
+            const KEY = {
+                W: "KeyW", A: "KeyA", S: "KeyS", D: "KeyD",
+                UP: "ArrowUp", LEFT: "ArrowLeft", DOWN: "ArrowDown", RIGHT: "ArrowRight",
+                R: "KeyR", F: "KeyF", T: "KeyT", G: "KeyG",
+                SHIFT_L: "ShiftLeft", SHIFT_R: "ShiftRight",
+                SPACE: "Space",
+                ONE: "Digit1", TWO: "Digit2", THREE: "Digit3",
+            };
+
+            function keyDown(e) {
+                if (e.repeat) return;
+                state.keys.add(e.code);
+
+                if (e.code === KEY.ONE) setPrimary("front");
+                if (e.code === KEY.TWO) setPrimary("rear");
+                if (e.code === KEY.THREE) setPrimary("site");
+
+                if (e.code === KEY.SHIFT_L || e.code === KEY.SHIFT_R) setDeadman(true);
+
+                if (e.code === KEY.SPACE) {
+                    neutralizeMotion();
+                    appendLog("SPACE => STOP");
+                }
+
+                inputText.textContent = "Keyboard";
+                applyKeyTargets();
+            }
+
+            function keyUp(e) {
+                state.keys.delete(e.code);
+
+                if (e.code === KEY.SHIFT_L || e.code === KEY.SHIFT_R) {
+                    if (!(state.keys.has(KEY.SHIFT_L) || state.keys.has(KEY.SHIFT_R))) {
+                        setDeadman(false);
+                    }
+                }
+
+                applyKeyTargets();
+                if (state.keys.size === 0) inputText.textContent = "Idle";
+            }
+
+            function applyKeyTargets() {
+                const left = state.keys.has(KEY.A) || state.keys.has(KEY.LEFT);
+                const right = state.keys.has(KEY.D) || state.keys.has(KEY.RIGHT);
+                const fwd = state.keys.has(KEY.W) || state.keys.has(KEY.UP);
+                const back = state.keys.has(KEY.S) || state.keys.has(KEY.DOWN);
+
+                let steerT = 0, thrT = 0;
+                if (left && !right) steerT = -1;
+                if (right && !left) steerT = 1;
+                if (fwd && !back) thrT = 1;
+                if (back && !fwd) thrT = -1;
+
+                state.steerTarget = steerT;
+                state.throttleTarget = thrT;
+            }
+
+            window.addEventListener("keydown", keyDown);
+            window.addEventListener("keyup", keyUp);
+
+            // =============================
+            // Smooth tick loop (adds bucket hold-repeat)
+            // =============================
+            function approach(current, target, ratePerSec, dt) {
+                const delta = target - current;
+                const maxStep = ratePerSec * dt;
+                if (Math.abs(delta) <= maxStep) return target;
+                return current + Math.sign(delta) * maxStep;
+            }
+
+            function tick() {
+                const now = performance.now();
+                const dt = Math.min(0.05, Math.max(0.0, (now - state.lastTickMs) / 1000));
+                state.lastTickMs = now;
+
+                // Smooth steer/throttle
+                state.steer = approach(state.steer, state.steerTarget, state.steerSlew, dt);
+                const thrRate = (Math.abs(state.throttleTarget) < 1e-6) ? state.throttleReturn : state.throttleSlew;
+                state.throttle = approach(state.throttle, state.throttleTarget, thrRate, dt);
+
+                // Bucket keyboard hold rate (existing behavior)
+                const liftUpK = state.keys.has(KEY.R);
+                const liftDnK = state.keys.has(KEY.F);
+                const dumpUpK = state.keys.has(KEY.T);
+                const dumpDnK = state.keys.has(KEY.G);
+
+                // Combine keyboard + button holds (if both pressed, they add; clamp handles)
+                const liftDir = (liftUpK ? 1 : 0) + (liftDnK ? -1 : 0) + state.bucketHold.liftDir;
+                const dumpDir = (dumpUpK ? 1 : 0) + (dumpDnK ? -1 : 0) + state.bucketHold.dumpDir;
+
+                // Apply hold-repeat rate (% per second)
+                const rate = state.bucketRate;
+                if (liftDir !== 0) state.lift = clamp(state.lift + liftDir * rate * dt, 0, 100);
+                if (dumpDir !== 0) state.dump = clamp(state.dump + dumpDir * rate * dt, 0, 100);
+
+                state.lift = Math.round(state.lift);
+                state.dump = Math.round(state.dump);
+
+                // Speed estimate
+                const targetSpeed = state.throttle * state.maxSpeed;
+                state.estSpeed += (targetSpeed - state.estSpeed) * clamp(6 * dt, 0, 1);
+                if (Math.abs(state.throttle) < 0.03) state.estSpeed *= (1 - clamp(1.2 * dt, 0, 0.2));
+
+                // Telemetry mock drift
+                if (state.connected) {
+                    const base = 110 + (Math.random() - 0.5) * 60;
+                    const spike = (Math.random() < 0.02) ? 250 + Math.random() * 250 : 0;
+                    state.rttMs = clamp(base + spike, 40, 700);
+                    state.lteDbm = clamp(-90 + (Math.random() - 0.5) * 18, -120, -65);
+                    state.ackPct = clamp((state.ackPct ?? 100) + (Math.random() < 0.01 ? -3 : 0.05), 85, 100);
+                    state.jitterMs = clamp((state.jitterMs ?? 12) + (Math.random() - 0.5) * 2, 5, 120);
+                }
+
+                updateUI();
+                requestAnimationFrame(tick);
+            }
+            requestAnimationFrame(tick);
+
+            // =============================
+            // Command sending loop (mock)
+            // =============================
+            function buildCommandFrame() {
+                return {
+                    type: "command",
+                    session_id: "demo-session",
+                    seq: ++state.seq,
+                    timestamp_ms: Date.now(),
+                    deadman: !!state.deadman,
+                    axes: { steer: state.steer, throttle: state.throttle },
+                    actuators: { bucket_lift_pct: state.lift, bucket_dump_pct: state.dump },
+                    limits: { max_speed_mph: state.maxSpeed, steer_slew_per_s: state.steerSlew }
+                };
+            }
+
+            function sendCommandFrame() {
+                if (!state.connected || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+                // In real app: backend decides if you have control
+                if (!state.hasControl) return;
+
+                const frame = buildCommandFrame();
+
+                // Deadman gates motion
+                const motionRequested = Math.abs(frame.axes.steer) > 1e-3 || Math.abs(frame.axes.throttle) > 1e-3;
+                if (motionRequested && !state.deadman) {
+                    frame.axes.steer = 0;
+                    frame.axes.throttle = 0;
+                }
+
+                ws.send(JSON.stringify(frame));
+                appendLog(`tx seq=${frame.seq} steer=${fmt(frame.axes.steer)} thr=${fmt(frame.axes.throttle)} lift=${frame.actuators.bucket_lift_pct} dump=${frame.actuators.bucket_dump_pct} deadman=${frame.deadman}`);
+            }
+
+            let sendTimer = null;
+            function startSendLoop() {
+                if (sendTimer) clearInterval(sendTimer);
+                const periodMs = Math.round(1000 / clamp(state.cmdHz, 10, 50));
+                sendTimer = setInterval(sendCommandFrame, periodMs);
+            }
+            rngCmdHz.addEventListener("input", () => {
+                state.cmdHz = parseInt(rngCmdHz.value, 10);
+                startSendLoop();
+                updateUI();
+            });
+            startSendLoop();
+
+            // =============================
+            // Queue (mock) - minimal to keep focus
+            // =============================
+            function renderQueue() {
+                queueBody.innerHTML = "";
+                participants.forEach(p => {
+                    if (p.id === controlHolderId) p.status = "controller";
+                    else if (p.pending) p.status = "requested";
+                    else p.status = "viewer";
+                });
+
+                for (const p of participants) {
+                    const tr = document.createElement("tr");
+                    const tdUser = document.createElement("td");
+                    tdUser.innerHTML = `<b>${p.name}</b><div style="color:var(--muted);font-size:11px;margin-top:2px">${p.id}</div>`;
+                    const tdRole = document.createElement("td"); tdRole.textContent = p.role;
+                    const tdStatus = document.createElement("td");
+                    const tag = document.createElement("span"); tag.className = "tag";
+                    if (p.status === "controller") { tag.classList.add("ok"); tag.textContent = "controller"; }
+                    else if (p.status === "requested") { tag.classList.add("warn"); tag.textContent = "requested"; }
+                    else tag.textContent = "viewer";
+                    tdStatus.appendChild(tag);
+
+                    const tdActions = document.createElement("td"); tdActions.className = "right";
+
+                    const canGrant = (p.status === "requested" && isSalesMode);
+                    const canRevoke = (p.status === "controller" && isSalesMode);
+                    const canForce = (p.id !== controlHolderId && isSalesMode);
+
+                    if (canGrant) {
+                        const b = document.createElement("button");
+                        b.className = "miniBtn primary";
+                        b.textContent = "Grant";
+                        b.onclick = () => grantControl(p.id);
+                        tdActions.appendChild(b);
+                    }
+                    if (canRevoke) {
+                        const b = document.createElement("button");
+                        b.className = "miniBtn danger";
+                        b.textContent = "Revoke";
+                        b.onclick = () => revokeControl(p.id);
+                        tdActions.appendChild(b);
+                    }
+                    if (canForce && p.role !== "operator") {
+                        const b = document.createElement("button");
+                        b.className = "miniBtn";
+                        b.textContent = "Make Controller";
+                        b.onclick = () => forceControl(p.id);
+                        tdActions.appendChild(b);
+                    }
+
+                    tr.appendChild(tdUser);
+                    tr.appendChild(tdRole);
+                    tr.appendChild(tdStatus);
+                    tr.appendChild(tdActions);
+                    queueBody.appendChild(tr);
+                }
+            }
+
+            function grantControl(userId) {
+                participants.forEach(p => p.pending = false);
+                controlHolderId = userId;
+                state.hasControl = (controlHolderId === "you");
+                state.deadman = false;
+                neutralizeMotion();
+                appendLog(`SALES: granted control to ${userId}`);
+                updateUI();
+            }
+            function revokeControl(userId) {
+                if (controlHolderId !== userId) return;
+                controlHolderId = null;
+                state.hasControl = false;
+                state.deadman = false;
+                neutralizeMotion();
+                appendLog(`SALES: revoked control from ${userId}`);
+                updateUI();
+            }
+            function forceControl(userId) {
+                participants.forEach(p => p.pending = false);
+                controlHolderId = userId;
+                state.hasControl = (controlHolderId === "you");
+                state.deadman = false;
+                neutralizeMotion();
+                appendLog(`SALES: force takeover -> ${userId}`);
+                updateUI();
+            }
+
+            btnForceTakeover.addEventListener("click", () => forceControl("sales"));
+            btnJoinAsViewer.addEventListener("click", () => { appendLog("Joined session as viewer (mock)"); });
+            btnSimRequest.addEventListener("click", () => {
+                const rider = participants.find(p => p.id === "rider");
+                if (rider) rider.pending = true;
+                appendLog("Simulated: Rider requested control");
+                updateUI();
+            });
+
+            // =============================
+            // Init
+            // =============================
+            setConnStatus("bad", "Disconnected");
+            updateUI();
+        })();
+    </script>
+</body>
+
+</html>
