@@ -341,6 +341,20 @@
   </div>
   <div id="authStatus" style="margin-bottom:10px; font-size:0.85rem; color:var(--secondary); text-align:center;"></div>
 
+  <div id="recoveryBox" class="card" style="display:none; margin-bottom:12px;">
+    <div style="font-weight:800; margin-bottom:6px;">Set a new password</div>
+    <div style="font-size:0.9rem; color:var(--secondary); margin-bottom:10px;">
+      You opened a password recovery link. Choose a new password below.
+    </div>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <input id="newPassword" type="password" placeholder="New password" style="flex:1; min-width:220px; padding:10px; border-radius:10px; border:1px solid var(--border);">
+      <input id="newPassword2" type="password" placeholder="Confirm password" style="flex:1; min-width:220px; padding:10px; border-radius:10px; border:1px solid var(--border);">
+      <button id="setPasswordBtn" type="button" class="btn btn-share" style="padding:12px; border-radius:10px;">Set Password</button>
+    </div>
+    <div id="recoveryStatus" style="margin-top:8px; font-size:0.85rem; color:var(--secondary);"></div>
+  </div>
+
+
   <div class="date-selector">
     <label>LOG WEEK STARTING</label>
     <input type="date" id="weekDate" onchange="loadWeekData()">
@@ -684,6 +698,63 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
       await refreshAuthUI();
       setStatus('Logged out. Local-only.');
     }
+    
+    // ===== Password recovery flow (GitHub Pages) =====
+    // Supabase recovery links redirect back with tokens in the URL hash.
+    async function handleRecoveryFromUrl(){
+      const hash = window.location.hash || "";
+
+      // If the URL contains an error (e.g., otp_expired), show it for clarity.
+      if (hash.includes("error=")){
+        const params = new URLSearchParams(hash.replace(/^#/, ""));
+        const err = params.get("error_description") || params.get("error_code") || params.get("error") || "Unknown error";
+        const box = document.getElementById('recoveryBox');
+        const status = document.getElementById('recoveryStatus');
+        box.style.display = 'block';
+        status.textContent = "Recovery link error: " + decodeURIComponent((err || "").replace(/\+/g, " "));
+        return;
+      }
+
+      // Try to extract and store session from the URL (supports recovery links).
+      try {
+        const { data, error } = await supabaseClient.auth.getSessionFromUrl({ storeSession: true });
+        if (error) return;
+        if (data?.session){
+          document.getElementById('recoveryBox').style.display = 'block';
+          document.getElementById('recoveryStatus').textContent = "Recovery session detected. Set your new password.";
+        }
+      } catch (e){
+        console.warn("handleRecoveryFromUrl error:", e);
+      }
+    }
+
+    async function setNewPassword(){
+      const p1 = document.getElementById('newPassword').value;
+      const p2 = document.getElementById('newPassword2').value;
+      const status = document.getElementById('recoveryStatus');
+
+      if (!p1 || p1.length < 8){
+        status.textContent = "Password must be at least 8 characters.";
+        return;
+      }
+      if (p1 !== p2){
+        status.textContent = "Passwords do not match.";
+        return;
+      }
+
+      status.textContent = "Setting password...";
+      const { error } = await supabaseClient.auth.updateUser({ password: p1 });
+      if (error){
+        status.textContent = "Failed: " + error.message;
+        return;
+      }
+
+      status.textContent = "Password updated. You can now log in.";
+      // Remove tokens from URL
+      history.replaceState(null, document.title, window.location.pathname + window.location.search);
+      await refreshAuthUI();
+    }
+
 
     function collectActualsFromUI(){
       const data = {};
@@ -1031,12 +1102,16 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
       document.getElementById('loginBtn').addEventListener('click', login);
       document.getElementById('logoutBtn').addEventListener('click', logout);
 
-      supabaseClient.auth.onAuthStateChange(async () => {
+      
+      document.getElementById('setPasswordBtn').addEventListener('click', setNewPassword);
+supabaseClient.auth.onAuthStateChange(async () => {
         await refreshAuthUI();
         if (currentUser) await syncFromServerForWeek();
       });
 
       await refreshAuthUI();
+
+      await handleRecoveryFromUrl();
 
       loadWeekData();
       loadTargetsLocal();
