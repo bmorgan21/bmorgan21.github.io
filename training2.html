@@ -341,6 +341,12 @@
   </div>
   <div id="authStatus" style="margin-bottom:10px; font-size:0.85rem; color:var(--secondary); text-align:center;"></div>
 
+  <div id="authLinks" style="display:flex; justify-content:center; gap:12px; margin:6px 0 12px; font-size:0.85rem;">
+    <button id="magicLinkBtn" type="button" class="btn btn-clear" style="padding:8px 10px; border-radius:10px;">Email me a magic link</button>
+    <button id="forgotPwBtn" type="button" class="btn btn-clear" style="padding:8px 10px; border-radius:10px;">Forgot password</button>
+  </div>
+
+
   <div id="recoveryBox" class="card" style="display:none; margin-bottom:12px;">
     <div style="font-weight:800; margin-bottom:6px;">Set a new password</div>
     <div style="font-size:0.9rem; color:var(--secondary); margin-bottom:10px;">
@@ -678,6 +684,8 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
       document.getElementById('authStatus').textContent = currentUser
         ? `Signed in as ${currentUser.email} (sync on)`
         : 'Not signed in (local-only).';
+
+      document.getElementById('authLinks').style.display = currentUser ? 'none' : 'flex';
     }
 
     async function login(){
@@ -688,15 +696,60 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
       const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) return alert(error.message);
 
+      sessionStorage.removeItem('pw_recovery_pending');
       await refreshAuthUI();
       await syncFromServerForWeek();
       setStatus('Logged in. Synced.');
     }
+    
+    async function sendMagicLink(){
+      const email = document.getElementById('email').value.trim();
+      if (!email) return alert('Enter your email first.');
+
+      const redirectTo = window.location.origin + '/training2.html';
+      setStatus('Sending magic link...');
+
+      const { error } = await supabaseClient.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: redirectTo }
+      });
+
+      if (error) {
+        console.warn('magic link error:', error.message);
+        setStatus('Magic link error.');
+        return alert(error.message);
+      }
+
+      setStatus('Magic link sent. Check your email.');
+      alert('Magic link sent. Check your email and open the link in this browser.');
+    }
+
+    async function forgotPassword(){
+      const email = document.getElementById('email').value.trim();
+      if (!email) return alert('Enter your email first.');
+
+      const redirectTo = window.location.origin + '/training2.html';
+      setStatus('Sending reset link...');
+
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+
+      if (error) {
+        console.warn('reset password error:', error.message);
+        setStatus('Reset link error.');
+        return alert(error.message);
+      }
+
+      setStatus('Reset link sent. Check your email.');
+      alert('Password reset link sent. Check your email and open the link in this browser.');
+    }
+
 
     async function logout(){
       await supabaseClient.auth.signOut();
       await refreshAuthUI();
       setStatus('Logged out. Local-only.');
+      // Hard refresh so the UI is unmistakably logged out
+      location.reload();
     }
     
     // ===== Password recovery flow (GitHub Pages) =====
@@ -704,7 +757,13 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
     async function handleRecoveryFromUrl(){
       const hash = window.location.hash || "";
 
-      // If the URL contains an error (e.g., otp_expired), show it for clarity.
+      // If a prior auth-state callback marked recovery pending, show the UI even if the URL hash is bare '#'
+      if (sessionStorage.getItem('pw_recovery_pending') === '1') {
+        document.getElementById('recoveryBox').style.display = 'block';
+        document.getElementById('recoveryStatus').textContent = "Password recovery session detected. Set your new password.";
+        return;
+      }
+// If the URL contains an error (e.g., otp_expired), show it for clarity.
       if (hash.includes("error=")){
         const params = new URLSearchParams(hash.replace(/^#/, ""));
         const err = params.get("error_description") || params.get("error_code") || params.get("error") || "Unknown error";
@@ -1104,12 +1163,23 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
 
       
       document.getElementById('setPasswordBtn').addEventListener('click', setNewPassword);
-supabaseClient.auth.onAuthStateChange(async () => {
+
+      document.getElementById('magicLinkBtn').addEventListener('click', sendMagicLink);
+      document.getElementById('forgotPwBtn').addEventListener('click', forgotPassword);
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        // event can be: SIGNED_IN, SIGNED_OUT, PASSWORD_RECOVERY, TOKEN_REFRESHED, USER_UPDATED, etc.
         await refreshAuthUI();
+
+        if (event === 'PASSWORD_RECOVERY') {
+          // Some clients arrive with a bare '#', but Supabase still sets a session.
+          sessionStorage.setItem('pw_recovery_pending', '1');
+          document.getElementById('recoveryBox').style.display = 'block';
+          document.getElementById('recoveryStatus').textContent = "Password recovery session detected. Set your new password below.";
+        }
+
         if (currentUser) await syncFromServerForWeek();
       });
-
-      await refreshAuthUI();
+await refreshAuthUI();
 
       await handleRecoveryFromUrl();
 
