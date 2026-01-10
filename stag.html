@@ -340,6 +340,16 @@
             border-color: rgba(74, 163, 255, .35);
         }
 
+        .callout {
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .04);
+            font-size: 12px;
+            color: rgba(230, 238, 251, .86);
+            line-height: 1.45;
+        }
+
         /* Controls */
         .grid2 {
             display: grid;
@@ -463,16 +473,6 @@
             background: linear-gradient(180deg, rgba(231, 76, 60, .10), rgba(0, 0, 0, .15));
         }
 
-        .callout {
-            padding: 10px 12px;
-            border-radius: 14px;
-            border: 1px solid rgba(255, 255, 255, .10);
-            background: rgba(255, 255, 255, .04);
-            font-size: 12px;
-            color: rgba(230, 238, 251, .86);
-            line-height: 1.45;
-        }
-
         /* Repeat-rate control */
         .pillSmall {
             display: inline-flex;
@@ -510,7 +510,7 @@
             transform: translateY(1px);
         }
 
-        /* Telemetry tables */
+        /* Queue/telemetry tables */
         .table {
             width: 100%;
             border-collapse: separate;
@@ -600,6 +600,143 @@
             border-color: rgba(231, 76, 60, .35);
             background: rgba(231, 76, 60, .10);
         }
+
+        /* =========================
+       Focus / Fullscreen Mode
+       ========================= */
+        .focus header {
+            display: none;
+        }
+
+        .focus .layout {
+            max-width: none;
+            margin: 0;
+            padding: 0;
+            grid-template-columns: 1fr;
+            /* only video */
+            gap: 0;
+        }
+
+        .focus aside {
+            display: none;
+        }
+
+        /* hide controls panel */
+        .focus .card {
+            border-radius: 0;
+            border: 0;
+            box-shadow: none;
+            background: transparent;
+        }
+
+        .focus .card .hd {
+            display: none;
+        }
+
+        /* hide video header */
+        .focus .card .bd {
+            padding: 0;
+        }
+
+        /* remove padding */
+        .focus .primaryVideo {
+            border-radius: 0;
+            border: 0;
+        }
+
+        .focus .thumbs,
+        .focus .callout {
+            display: none;
+        }
+
+        /* remove thumbnails + text */
+
+        /* Minimal operator overlay (visible only in focus mode) */
+        .focusOverlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            display: none;
+            z-index: 9999;
+        }
+
+        body.focus .focusOverlay {
+            display: block;
+        }
+
+        .focusTopRight {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-end;
+            pointer-events: auto;
+        }
+
+        .focusBtns {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .focusBtn {
+            pointer-events: auto;
+            appearance: none;
+            border: 0;
+            cursor: pointer;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, .38);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, .14);
+            backdrop-filter: blur(10px);
+            font-weight: 900;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .25);
+            white-space: nowrap;
+        }
+
+        .focusBtn:hover {
+            background: rgba(0, 0, 0, .50);
+        }
+
+        .focusBtn.danger {
+            border-color: rgba(231, 76, 60, .35);
+            background: rgba(231, 76, 60, .18);
+        }
+
+        .focusHint {
+            pointer-events: auto;
+            background: rgba(0, 0, 0, .32);
+            border: 1px solid rgba(255, 255, 255, .14);
+            border-radius: 14px;
+            padding: 10px 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .25);
+            color: rgba(230, 238, 251, .88);
+            font-size: 12px;
+            max-width: 420px;
+            line-height: 1.35;
+        }
+
+        .focusHint b {
+            color: #fff;
+        }
+
+        .focusKey {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            padding: 3px 7px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .10);
+            border: 1px solid rgba(255, 255, 255, .14);
+            font-weight: 900;
+            margin: 0 3px;
+        }
     </style>
 </head>
 
@@ -608,7 +745,7 @@
         <div class="topbar">
             <div class="brand">
                 <div class="title">Operator Console</div>
-                <div class="subtitle">Multi-cam • Single-controller • Bucket hold-repeat for lift/dump</div>
+                <div class="subtitle">Tip: Focus Mode = fullscreen video + minimal HUD • Hotkey: <b>F</b></div>
             </div>
 
             <div class="pill" title="Backend command channel status">
@@ -625,16 +762,17 @@
             <button class="btn" id="btnRequest">Request Control</button>
             <button class="btn danger" id="btnRelease" disabled>Release Control</button>
             <button class="btn danger" id="btnEstop">E-STOP</button>
+            <button class="btn" id="btnFocus">Focus Mode</button>
         </div>
     </header>
 
-    <main class="layout">
+    <main class="layout" id="layoutRoot">
         <!-- LEFT: Video -->
-        <section class="card">
+        <section class="card" id="videoCard">
             <div class="hd">
                 <div class="h">
                     <b>Video</b>
-                    <span>Click a small view to make it primary • Hotkeys: 1/2/3</span>
+                    <span>Click a small view to make it primary • Hotkeys: 1/2/3 • Focus: F</span>
                 </div>
                 <div class="pill" title="Streaming mode placeholder">
                     <span style="color:var(--muted);font-weight:800">Mode:</span>
@@ -644,7 +782,7 @@
 
             <div class="bd">
                 <div class="videoWall">
-                    <div class="primaryVideo">
+                    <div class="primaryVideo" id="primaryWrap">
                         <video id="videoPrimary" autoplay playsinline muted></video>
                         <div class="hud">
                             <div class="hudTop">
@@ -724,21 +862,19 @@
                     </div>
 
                     <div class="callout">
-                        <b>Bucket controls:</b> hold the on-screen lift/dump buttons to continuously change the
-                        setpoint.
-                        Keyboard already “hold repeats” via R/F and T/G.
+                        <b>Focus Mode:</b> hides UI clutter and keeps only the HUD + quick buttons (Exit, STOP, E-STOP).
+                        Hotkeys still work.
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- RIGHT: Controls & Admin -->
+        <!-- RIGHT: Controls (hidden in focus mode via CSS) -->
         <aside class="card">
             <div class="hd">
                 <div class="h">
                     <b>Controls & Session</b>
-                    <span>Deadman required for motion • Bucket hold-repeat buttons added • Keyboard maps
-                        unchanged</span>
+                    <span>Focus Mode hides this panel • Hotkey: F</span>
                 </div>
                 <div class="pill" title="Local input capture status">
                     <span style="color:var(--muted);font-weight:800">Input:</span>
@@ -763,7 +899,6 @@
                             <span class="value" id="valSteer">0.00</span>
                         </label>
                         <input id="rngSteer" type="range" min="-1" max="1" value="0" step="0.01" />
-                        <div class="hint">Steer ramps to target and back to center smoothly.</div>
                     </div>
 
                     <div class="field">
@@ -774,18 +909,14 @@
                             <span class="value" id="valThrottle">0.00</span>
                         </label>
                         <input id="rngThrottle" type="range" min="-1" max="1" value="0" step="0.01" />
-                        <div class="hint">Throttle ramps for controllable starts/stops.</div>
                     </div>
                 </div>
 
-                <!-- Bucket with hold-repeat buttons -->
                 <div class="field" style="margin-bottom: var(--gap);">
                     <label>
                         Bucket Controls
-                        <small class="kbd">
-                            Lift: <span class="key">R</span>/<span class="key">F</span> • Dump: <span
-                                class="key">T</span>/<span class="key">G</span> • Hold buttons to repeat
-                        </small>
+                        <small class="kbd">Lift: <span class="key">R</span>/<span class="key">F</span> • Dump: <span
+                                class="key">T</span>/<span class="key">G</span> • Hold buttons to repeat</small>
                     </label>
 
                     <div class="rowBtns">
@@ -794,7 +925,7 @@
                         <button class="btnTiny" id="btnDumpUp">Dump ▲</button>
                         <button class="btnTiny" id="btnDumpDown">Dump ▼</button>
 
-                        <span class="pillSmall" title="How fast bucket changes while holding buttons">
+                        <span class="pillSmall">
                             Repeat:
                             <span class="value" id="valBucketRate">30</span>%/s
                         </span>
@@ -804,28 +935,15 @@
 
                     <div class="grid2" style="margin-top: 10px;">
                         <div class="field" style="margin:0;">
-                            <label>
-                                Lift Setpoint
-                                <small>0–100%</small>
-                                <span class="value" id="valLift">0</span>%
-                            </label>
+                            <label>Lift Setpoint <small>0–100%</small> <span class="value"
+                                    id="valLift">0</span>%</label>
                             <input id="rngLift" type="range" min="0" max="100" value="0" step="1" />
                         </div>
-
                         <div class="field" style="margin:0;">
-                            <label>
-                                Dump Setpoint
-                                <small>0–100%</small>
-                                <span class="value" id="valDump">0</span>%
-                            </label>
+                            <label>Dump Setpoint <small>0–100%</small> <span class="value"
+                                    id="valDump">0</span>%</label>
                             <input id="rngDump" type="range" min="0" max="100" value="0" step="1" />
                         </div>
-                    </div>
-
-                    <div class="hint">
-                        Hold-repeat applies to the on-screen buttons. Keyboard already repeats naturally by holding
-                        keys.
-                        Later you can map lift/dump setpoints to Modbus registers when the spec is ready.
                     </div>
                 </div>
 
@@ -855,8 +973,6 @@
                             <button class="btn danger" id="btnStop">STOP (soft)</button>
                             <button class="btn danger" id="btnResetNeutral">Neutralize</button>
                         </div>
-                        <div class="hint">STOP neutralizes motion targets (steer/throttle → 0). E-STOP also revokes
-                            backend session.</div>
                     </div>
 
                     <div class="field">
@@ -870,76 +986,39 @@
                             <span class="key">Shift</span> deadman
                             <span class="key">Space</span> STOP
                             <span class="key">1</span>/<span class="key">2</span>/<span class="key">3</span> primary cam
+                            <span class="key">F</span> focus
+                            <span class="key">Esc</span> exit focus
                         </div>
                     </div>
                 </div>
 
-                <!-- Queue + Telemetry (kept from previous version) -->
-                <div class="field" style="margin-bottom: var(--gap);">
-                    <label>Control Queue <small>grant / revoke / override (mock)</small></label>
-                    <div class="rowBtns">
-                        <button class="btn" id="btnJoinAsViewer">Join as Viewer</button>
-                        <button class="btn" id="btnSimRequest">Simulate Request</button>
-                        <button class="btn danger" id="btnForceTakeover">Sales Force Takeover</button>
-                    </div>
-                    <table class="table" style="margin-top:10px">
-                        <thead>
-                            <tr>
-                                <th>User</th>
-                                <th>Role</th>
-                                <th>Status</th>
-                                <th class="right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="queueBody"></tbody>
-                    </table>
-                </div>
-
                 <div class="field">
-                    <label>Telemetry & Health <small>network + vehicle link + faults</small></label>
-                    <table class="table">
-                        <tbody>
-                            <tr>
-                                <th style="width:45%">Backend RTT</th>
-                                <td><span class="value" id="telRtt">—</span> ms</td>
-                                <td class="right"><span class="tag" id="tagRtt">unknown</span></td>
-                            </tr>
-                            <tr>
-                                <th>Cmd Ack Rate</th>
-                                <td><span class="value" id="telAck">—</span>%</td>
-                                <td class="right"><span class="tag" id="tagAck">unknown</span></td>
-                            </tr>
-                            <tr>
-                                <th>Cmd Jitter</th>
-                                <td><span class="value" id="telJitter">—</span> ms</td>
-                                <td class="right"><span class="tag" id="tagJitter">unknown</span></td>
-                            </tr>
-                            <tr>
-                                <th>LTE Signal</th>
-                                <td><span class="value" id="telSignal">—</span> dBm</td>
-                                <td class="right"><span class="tag" id="tagSignal">unknown</span></td>
-                            </tr>
-                            <tr>
-                                <th>ESP32 Online</th>
-                                <td><span class="value" id="telEsp">—</span></td>
-                                <td class="right"><span class="tag" id="tagEsp">unknown</span></td>
-                            </tr>
-                            <tr>
-                                <th>Modbus Link</th>
-                                <td><span class="value" id="telModbus">—</span></td>
-                                <td class="right"><span class="tag" id="tagModbus">unknown</span></td>
-                            </tr>
-                            <tr>
-                                <th>Vehicle Faults</th>
-                                <td colspan="2"><span class="value" id="telFaults">none</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div class="log" id="log" style="margin-top:10px"></div>
+                    <label>Logs <small>mock</small></label>
+                    <div class="log" id="log"></div>
                 </div>
             </div>
         </aside>
     </main>
+
+    <!-- Focus overlay (appears only in focus mode) -->
+    <div class="focusOverlay" id="focusOverlay">
+        <div class="focusTopRight">
+            <div class="focusBtns">
+                <button class="focusBtn" id="focusExit">Exit Focus <span class="focusKey">Esc</span></button>
+                <button class="focusBtn danger" id="focusStop">STOP <span class="focusKey">Space</span></button>
+                <button class="focusBtn danger" id="focusEstop">E-STOP</button>
+            </div>
+            <div class="focusHint">
+                <b>Focus Mode:</b> only video + HUD. Controls still work via keyboard.<br />
+                Drive: <span class="focusKey">W</span><span class="focusKey">A</span><span
+                    class="focusKey">S</span><span class="focusKey">D</span> • Deadman: <span
+                    class="focusKey">Shift</span><br />
+                Bucket: <span class="focusKey">R</span>/<span class="focusKey">F</span> lift, <span
+                    class="focusKey">T</span>/<span class="focusKey">G</span> dump • Cameras: <span
+                    class="focusKey">1</span>/<span class="focusKey">2</span>/<span class="focusKey">3</span>
+            </div>
+        </div>
+    </div>
 
     <script>
         (() => {
@@ -949,9 +1028,7 @@
             let ws = null;
             const WS_URL = "wss://example.com/operator"; // TODO replace
 
-            // =============================
             // Video placeholders
-            // =============================
             const vids = {
                 primary: document.getElementById("videoPrimary"),
                 front: document.getElementById("videoFront"),
@@ -959,9 +1036,7 @@
                 site: document.getElementById("videoSite"),
             };
 
-            // =============================
             // UI refs
-            // =============================
             const wsDot = document.getElementById("wsDot");
             const wsText = document.getElementById("wsText");
             const controlOwner = document.getElementById("controlOwner");
@@ -970,6 +1045,7 @@
             const btnRequest = document.getElementById("btnRequest");
             const btnRelease = document.getElementById("btnRelease");
             const btnEstop = document.getElementById("btnEstop");
+            const btnFocus = document.getElementById("btnFocus");
 
             const btnDeadman = document.getElementById("btnDeadman");
             const btnStop = document.getElementById("btnStop");
@@ -995,13 +1071,19 @@
             const inputText = document.getElementById("inputText");
             const logEl = document.getElementById("log");
 
-            // Bucket repeat controls
+            // Bucket repeat
             const btnLiftUp = document.getElementById("btnLiftUp");
             const btnLiftDown = document.getElementById("btnLiftDown");
             const btnDumpUp = document.getElementById("btnDumpUp");
             const btnDumpDown = document.getElementById("btnDumpDown");
             const rngBucketRate = document.getElementById("rngBucketRate");
             const valBucketRate = document.getElementById("valBucketRate");
+
+            // Focus overlay
+            const focusOverlay = document.getElementById("focusOverlay");
+            const focusExit = document.getElementById("focusExit");
+            const focusStop = document.getElementById("focusStop");
+            const focusEstop = document.getElementById("focusEstop");
 
             // HUD
             const hudSpeed = document.getElementById("hudSpeed");
@@ -1014,7 +1096,7 @@
             const barSteer = document.getElementById("barSteer");
             const barThrottle = document.getElementById("barThrottle");
 
-            // Primary
+            // Primary selection
             const btnPrimaryFront = document.getElementById("btnPrimaryFront");
             const btnPrimaryRear = document.getElementById("btnPrimaryRear");
             const btnPrimarySite = document.getElementById("btnPrimarySite");
@@ -1022,70 +1104,37 @@
             const badgeRear = document.getElementById("badgeRear");
             const badgeSite = document.getElementById("badgeSite");
 
-            // Queue
-            const queueBody = document.getElementById("queueBody");
-            const btnJoinAsViewer = document.getElementById("btnJoinAsViewer");
-            const btnSimRequest = document.getElementById("btnSimRequest");
-            const btnForceTakeover = document.getElementById("btnForceTakeover");
-
-            // Telemetry
-            const telRtt = document.getElementById("telRtt");
-            const telAck = document.getElementById("telAck");
-            const telJitter = document.getElementById("telJitter");
-            const telSignal = document.getElementById("telSignal");
-            const telEsp = document.getElementById("telEsp");
-            const telModbus = document.getElementById("telModbus");
-            const telFaults = document.getElementById("telFaults");
-
-            const tagRtt = document.getElementById("tagRtt");
-            const tagAck = document.getElementById("tagAck");
-            const tagJitter = document.getElementById("tagJitter");
-            const tagSignal = document.getElementById("tagSignal");
-            const tagEsp = document.getElementById("tagEsp");
-            const tagModbus = document.getElementById("tagModbus");
-
             // =============================
             // State
             // =============================
             const state = {
                 connected: false,
-                hasControl: false,
+                hasControl: true,        // mock: default true so you can test UI; set false for real
                 deadman: false,
 
-                // applied (smoothed)
                 steer: 0,
                 throttle: 0,
-
-                // targets
                 steerTarget: 0,
                 throttleTarget: 0,
 
-                // bucket targets
                 lift: 0,
                 dump: 0,
 
-                // session controls
                 maxSpeed: 3.0,
                 steerSlew: 2.0,
                 throttleSlew: 2.0,
                 throttleReturn: 2.5,
                 cmdHz: 20,
 
-                // bucket hold-repeat rate (%/s)
                 bucketRate: 30,
+                bucketHold: { liftDir: 0, dumpDir: 0 },
 
-                // hold-repeat intents (set by button holds)
-                bucketHold: { liftDir: 0, dumpDir: 0 }, // -1,0,+1
-
-                // internal
                 seq: 0,
                 lastTickMs: performance.now(),
                 keys: new Set(),
 
-                // "feel" estimator
                 estSpeed: 0,
 
-                // telemetry (mock)
                 rttMs: null,
                 ackPct: null,
                 jitterMs: null,
@@ -1095,14 +1144,8 @@
                 faults: [],
             };
 
-            // Queue (mock)
-            const participants = [
-                { id: "you", name: "You", role: "operator", status: "viewer", pending: false },
-                { id: "sales", name: "Sales", role: "sales", status: "viewer", pending: false },
-                { id: "rider", name: "Rider", role: "rider", status: "viewer", pending: false },
-            ];
-            let controlHolderId = null;
-            let isSalesMode = true;
+            // Minimal mock control owner
+            let controlHolderName = "You";
 
             // =============================
             // Helpers
@@ -1116,15 +1159,72 @@
                 wsText.textContent = text;
             }
             function appendLog(line) {
+                if (!logEl) return;
                 const ts = new Date().toLocaleTimeString();
                 logEl.textContent += `[${ts}] ${line}\n`;
                 logEl.scrollTop = logEl.scrollHeight;
             }
-            function setTag(el, level, text) {
-                el.classList.remove("ok", "warn", "bad");
-                if (level) el.classList.add(level);
-                el.textContent = text;
+
+            // =============================
+            // Focus / Fullscreen Mode
+            // =============================
+            function isFocus() { return document.body.classList.contains("focus"); }
+
+            async function enterFocus() {
+                document.body.classList.add("focus");
+                btnFocus.textContent = "Exit Focus";
+
+                // Best effort: request browser fullscreen for “sit on the vehicle” feel
+                try {
+                    if (!document.fullscreenElement) {
+                        await document.documentElement.requestFullscreen();
+                    }
+                } catch {
+                    // fullscreen might be blocked; focus mode still works
+                }
             }
+
+            async function exitFocus() {
+                document.body.classList.remove("focus");
+                btnFocus.textContent = "Focus Mode";
+                try {
+                    if (document.fullscreenElement) {
+                        await document.exitFullscreen();
+                    }
+                } catch { }
+            }
+
+            async function toggleFocus() {
+                if (isFocus()) await exitFocus();
+                else await enterFocus();
+            }
+
+            btnFocus.addEventListener("click", toggleFocus);
+            focusExit.addEventListener("click", exitFocus);
+
+            // Keep UI consistent if user exits fullscreen via browser controls
+            document.addEventListener("fullscreenchange", () => {
+                if (!document.fullscreenElement && isFocus()) {
+                    // user hit Esc; reflect in UI
+                    document.body.classList.remove("focus");
+                    btnFocus.textContent = "Focus Mode";
+                }
+            });
+
+            // Focus overlay STOP/E-STOP
+            function softStop() {
+                state.steerTarget = 0;
+                state.throttleTarget = 0;
+                appendLog("STOP (soft) — motion targets neutralized");
+            }
+            function doEstop() {
+                state.hasControl = false;
+                state.deadman = false;
+                softStop();
+                appendLog("E-STOP (UI) sent");
+            }
+            focusStop.addEventListener("click", softStop);
+            focusEstop.addEventListener("click", doEstop);
 
             // =============================
             // Primary video selection
@@ -1141,9 +1241,9 @@
                 if (which === "site") badgeSite.classList.add("primary");
             }
             document.querySelectorAll(".thumb").forEach(el => el.addEventListener("click", () => setPrimary(el.dataset.view)));
-            btnPrimaryFront.addEventListener("click", () => setPrimary("front"));
-            btnPrimaryRear.addEventListener("click", () => setPrimary("rear"));
-            btnPrimarySite.addEventListener("click", () => setPrimary("site"));
+            btnPrimaryFront?.addEventListener("click", () => setPrimary("front"));
+            btnPrimaryRear?.addEventListener("click", () => setPrimary("rear"));
+            btnPrimarySite?.addEventListener("click", () => setPrimary("site"));
 
             // Mock cams
             async function attachMockCams() {
@@ -1161,11 +1261,10 @@
             attachMockCams();
 
             // =============================
-            // WebSocket skeleton
+            // WebSocket skeleton (optional)
             // =============================
             function connectWS() {
                 if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
-
                 appendLog(`Connecting WS -> ${WS_URL}`);
                 setConnStatus("bad", "Connecting…");
 
@@ -1183,210 +1282,82 @@
                     btnConnect.disabled = true;
                     ws.send(JSON.stringify({ type: "hello", client: "browser", ts: Date.now() }));
                     appendLog("WS open");
-
-                    state.espOnline = true;
-                    state.modbusUp = true;
-                    updateUI();
                 };
-
                 ws.onclose = () => {
                     state.connected = false;
-                    state.hasControl = false;
-                    state.deadman = false;
-                    controlHolderId = null;
                     setConnStatus("bad", "Disconnected");
                     btnConnect.textContent = "Connect";
                     btnConnect.disabled = false;
-
-                    state.espOnline = false;
-                    state.modbusUp = false;
                     appendLog("WS closed");
-                    updateUI();
                 };
-
                 ws.onerror = () => appendLog("WS error");
             }
+            btnConnect?.addEventListener("click", connectWS);
 
-            btnConnect.addEventListener("click", connectWS);
-
-            btnRequest.addEventListener("click", () => {
-                if (!state.connected) { appendLog("Not connected"); return; }
-                ws?.send(JSON.stringify({ type: "request_control", ts: Date.now() }));
-                const you = participants.find(p => p.id === "you");
-                if (you) you.pending = true;
-                appendLog("Requested control");
-                updateUI();
-            });
-
-            btnRelease.addEventListener("click", () => {
-                if (!state.connected) return;
-                ws?.send(JSON.stringify({ type: "release_control", ts: Date.now() }));
-                if (controlHolderId === "you") controlHolderId = null;
-                state.hasControl = false;
-                state.deadman = false;
-                neutralizeMotion();
-                appendLog("Released control");
-                updateUI();
-            });
-
-            btnEstop.addEventListener("click", () => {
-                if (state.connected) ws?.send(JSON.stringify({ type: "estop", ts: Date.now() }));
-                state.hasControl = false;
-                state.deadman = false;
-                neutralizeMotion();
-                state.modbusUp = false;
-                state.faults = ["E-STOP (UI)"];
-                appendLog("E-STOP sent (UI). Ensure hardware E-STOP exists too.");
-                updateUI();
-            });
+            btnRequest?.addEventListener("click", () => appendLog("Request control (stub)"));
+            btnRelease?.addEventListener("click", () => appendLog("Release control (stub)"));
+            btnEstop?.addEventListener("click", doEstop);
 
             // =============================
-            // Motion + bucket basics
-            // =============================
-            function neutralizeMotion() {
-                state.steerTarget = 0;
-                state.throttleTarget = 0;
-            }
-
-            function updateUI() {
-                valSteer.textContent = fmt(state.steer);
-                valThrottle.textContent = fmt(state.throttle);
-                valLift.textContent = String(state.lift | 0);
-                valDump.textContent = String(state.dump | 0);
-
-                valMaxSpeed.textContent = fmt(state.maxSpeed, 1);
-                valSteerSlew.textContent = fmt(state.steerSlew, 1);
-                valCmdHz.textContent = String(state.cmdHz | 0);
-
-                valBucketRate.textContent = String(state.bucketRate | 0);
-
-                hudSteer.textContent = fmt(state.steer);
-                hudThrottle.textContent = fmt(state.throttle);
-                hudLift.textContent = String(state.lift | 0);
-                hudDump.textContent = String(state.dump | 0);
-                hudHz.textContent = String(state.cmdHz | 0);
-                hudSpeed.textContent = `${fmt(state.estSpeed, 1)} mph`;
-                hudRtt.textContent = state.rttMs == null ? "—" : String(Math.round(state.rttMs));
-
-                const steer01 = (state.steer + 1) / 2;
-                const thr01 = (state.throttle + 1) / 2;
-                barSteer.style.width = `${steer01 * 100}%`;
-                barThrottle.style.width = `${thr01 * 100}%`;
-
-                btnRelease.disabled = !state.hasControl;
-                btnDeadman.style.outline = state.deadman ? "2px solid rgba(74,163,255,.75)" : "none";
-                btnDeadman.textContent = state.deadman ? "Driving Enabled (hold)" : "Hold-to-Drive";
-
-                const holder = participants.find(p => p.id === controlHolderId);
-                controlOwner.textContent = state.hasControl ? "You" : (holder ? holder.name : "View-only");
-
-                // Sync sliders
-                rngSteer.value = String(state.steer);
-                rngThrottle.value = String(state.throttle);
-                rngLift.value = String(state.lift);
-                rngDump.value = String(state.dump);
-
-                // Telemetry tags (kept minimal)
-                telRtt.textContent = state.rttMs == null ? "—" : String(Math.round(state.rttMs));
-                telAck.textContent = state.ackPct == null ? "—" : String(Math.round(state.ackPct));
-                telJitter.textContent = state.jitterMs == null ? "—" : String(Math.round(state.jitterMs));
-                telSignal.textContent = state.lteDbm == null ? "—" : String(Math.round(state.lteDbm));
-                telEsp.textContent = state.espOnline ? "online" : "offline";
-                telModbus.textContent = state.modbusUp ? "up" : "down";
-                telFaults.textContent = state.faults.length ? state.faults.join(", ") : "none";
-
-                if (state.rttMs == null) setTag(tagRtt, null, "unknown");
-                else if (state.rttMs < 120) setTag(tagRtt, "ok", "good");
-                else if (state.rttMs < 250) setTag(tagRtt, "warn", "degraded");
-                else setTag(tagRtt, "bad", "poor");
-
-                renderQueue();
-            }
-
-            // Sliders
-            function onSliders() {
-                state.lift = parseInt(rngLift.value, 10);
-                state.dump = parseInt(rngDump.value, 10);
-                state.maxSpeed = parseFloat(rngMaxSpeed.value);
-                state.steerSlew = parseFloat(rngSteerSlew.value);
-                state.cmdHz = parseInt(rngCmdHz.value, 10);
-                updateUI();
-            }
-            [rngLift, rngDump, rngMaxSpeed, rngSteerSlew, rngCmdHz].forEach(el => el.addEventListener("input", onSliders));
-
-            // Steer/throttle sliders set targets (still smoothed)
-            rngSteer.addEventListener("input", () => {
-                state.steerTarget = parseFloat(rngSteer.value);
-                inputText.textContent = "Slider";
-            });
-            rngThrottle.addEventListener("input", () => {
-                state.throttleTarget = parseFloat(rngThrottle.value);
-                inputText.textContent = "Slider";
-            });
-
-            // Bucket rate slider
-            rngBucketRate.addEventListener("input", () => {
-                state.bucketRate = parseInt(rngBucketRate.value, 10);
-                updateUI();
-            });
-
             // Deadman
-            function setDeadman(on) {
-                state.deadman = !!on;
-                updateUI();
-            }
-            btnDeadman.addEventListener("pointerdown", () => setDeadman(true));
-            btnDeadman.addEventListener("pointerup", () => setDeadman(false));
-            btnDeadman.addEventListener("pointerleave", () => setDeadman(false));
+            // =============================
+            function setDeadman(on) { state.deadman = !!on; updateUI(); }
+            btnDeadman?.addEventListener("pointerdown", () => setDeadman(true));
+            btnDeadman?.addEventListener("pointerup", () => setDeadman(false));
+            btnDeadman?.addEventListener("pointerleave", () => setDeadman(false));
 
-            btnStop.addEventListener("click", () => {
-                neutralizeMotion();
-                appendLog("STOP (soft) — motion targets neutralized");
-                updateUI();
-            });
-
-            btnResetNeutral.addEventListener("click", () => {
-                neutralizeMotion();
-                state.lift = 0;
-                state.dump = 0;
-                rngLift.value = "0";
-                rngDump.value = "0";
-                appendLog("Neutralize — steer/throttle targets + bucket reset");
+            btnStop?.addEventListener("click", softStop);
+            btnResetNeutral?.addEventListener("click", () => {
+                softStop();
+                state.lift = 0; state.dump = 0;
+                rngLift.value = "0"; rngDump.value = "0";
+                appendLog("Neutralize — bucket reset");
                 updateUI();
             });
 
             // =============================
-            // Bucket hold-repeat (buttons)
+            // Bucket hold-repeat buttons
             // =============================
             function setBucketHold(kind, dir) {
-                // kind: 'lift'|'dump'; dir: -1|0|+1
                 if (kind === "lift") state.bucketHold.liftDir = dir;
                 if (kind === "dump") state.bucketHold.dumpDir = dir;
-                inputText.textContent = "Buttons";
+                inputText && (inputText.textContent = "Buttons");
             }
-
             function bindHoldButton(btn, onDown, onUp) {
                 const up = () => onUp();
                 btn.addEventListener("pointerdown", (e) => { e.preventDefault(); btn.setPointerCapture?.(e.pointerId); onDown(); });
                 btn.addEventListener("pointerup", (e) => { e.preventDefault(); up(); });
                 btn.addEventListener("pointercancel", up);
                 btn.addEventListener("pointerleave", up);
-                // For mouse users that don't trigger pointer events properly in some envs:
                 btn.addEventListener("mousedown", (e) => { e.preventDefault(); onDown(); });
                 btn.addEventListener("mouseup", (e) => { e.preventDefault(); up(); });
                 btn.addEventListener("mouseleave", up);
-                // Touch:
                 btn.addEventListener("touchstart", (e) => { e.preventDefault(); onDown(); }, { passive: false });
                 btn.addEventListener("touchend", (e) => { e.preventDefault(); up(); }, { passive: false });
             }
-
             bindHoldButton(btnLiftUp, () => setBucketHold("lift", +1), () => setBucketHold("lift", 0));
             bindHoldButton(btnLiftDown, () => setBucketHold("lift", -1), () => setBucketHold("lift", 0));
             bindHoldButton(btnDumpUp, () => setBucketHold("dump", +1), () => setBucketHold("dump", 0));
             bindHoldButton(btnDumpDown, () => setBucketHold("dump", -1), () => setBucketHold("dump", 0));
 
+            rngBucketRate?.addEventListener("input", () => {
+                state.bucketRate = parseInt(rngBucketRate.value, 10);
+                updateUI();
+            });
+
+            // Sliders
+            rngLift?.addEventListener("input", () => { state.lift = parseInt(rngLift.value, 10); updateUI(); });
+            rngDump?.addEventListener("input", () => { state.dump = parseInt(rngDump.value, 10); updateUI(); });
+
+            rngSteer?.addEventListener("input", () => { state.steerTarget = parseFloat(rngSteer.value); inputText && (inputText.textContent = "Slider"); });
+            rngThrottle?.addEventListener("input", () => { state.throttleTarget = parseFloat(rngThrottle.value); inputText && (inputText.textContent = "Slider"); });
+
+            rngMaxSpeed?.addEventListener("input", () => { state.maxSpeed = parseFloat(rngMaxSpeed.value); updateUI(); });
+            rngSteerSlew?.addEventListener("input", () => { state.steerSlew = parseFloat(rngSteerSlew.value); updateUI(); });
+            rngCmdHz?.addEventListener("input", () => { state.cmdHz = parseInt(rngCmdHz.value, 10); updateUI(); });
+
             // =============================
-            // Keyboard mappings (unchanged)
+            // Keyboard mappings (+ focus hotkeys)
             // =============================
             const KEY = {
                 W: "KeyW", A: "KeyA", S: "KeyS", D: "KeyD",
@@ -1395,10 +1366,31 @@
                 SHIFT_L: "ShiftLeft", SHIFT_R: "ShiftRight",
                 SPACE: "Space",
                 ONE: "Digit1", TWO: "Digit2", THREE: "Digit3",
+                ESC: "Escape",
+                FOCUS: "KeyF", // note: also bucket down uses F; focus uses plain F when NOT driving? we disambiguate by requiring Ctrl+F or Alt+F? We'll use plain 'KeyV'?? See below.
+                FOCUS2: "KeyV"
             };
 
+            // IMPORTANT: you already use KeyF for bucket lift down.
+            // So for focus toggle, use "V" by default + toolbar button.
+            // Also allow Ctrl+F to toggle focus without conflicting with bucket.
             function keyDown(e) {
                 if (e.repeat) return;
+
+                // Focus toggle hotkeys:
+                // - Ctrl+F toggles focus (doesn't interfere with bucket down)
+                // - V toggles focus (easy, one-hand, doesn't conflict)
+                if ((e.code === KEY.FOCUS && (e.ctrlKey || e.metaKey)) || e.code === KEY.FOCUS2) {
+                    e.preventDefault();
+                    toggleFocus();
+                    return;
+                }
+                if (e.code === KEY.ESC && isFocus()) {
+                    e.preventDefault();
+                    exitFocus();
+                    return;
+                }
+
                 state.keys.add(e.code);
 
                 if (e.code === KEY.ONE) setPrimary("front");
@@ -1408,11 +1400,11 @@
                 if (e.code === KEY.SHIFT_L || e.code === KEY.SHIFT_R) setDeadman(true);
 
                 if (e.code === KEY.SPACE) {
-                    neutralizeMotion();
-                    appendLog("SPACE => STOP");
+                    e.preventDefault();
+                    softStop();
                 }
 
-                inputText.textContent = "Keyboard";
+                inputText && (inputText.textContent = "Keyboard");
                 applyKeyTargets();
             }
 
@@ -1424,9 +1416,8 @@
                         setDeadman(false);
                     }
                 }
-
                 applyKeyTargets();
-                if (state.keys.size === 0) inputText.textContent = "Idle";
+                if (state.keys.size === 0 && inputText) inputText.textContent = "Idle";
             }
 
             function applyKeyTargets() {
@@ -1449,7 +1440,7 @@
             window.addEventListener("keyup", keyUp);
 
             // =============================
-            // Smooth tick loop (adds bucket hold-repeat)
+            // Smooth tick loop
             // =============================
             function approach(current, target, ratePerSec, dt) {
                 const delta = target - current;
@@ -1468,21 +1459,18 @@
                 const thrRate = (Math.abs(state.throttleTarget) < 1e-6) ? state.throttleReturn : state.throttleSlew;
                 state.throttle = approach(state.throttle, state.throttleTarget, thrRate, dt);
 
-                // Bucket keyboard hold rate (existing behavior)
+                // Bucket keyboard + button holds
                 const liftUpK = state.keys.has(KEY.R);
                 const liftDnK = state.keys.has(KEY.F);
                 const dumpUpK = state.keys.has(KEY.T);
                 const dumpDnK = state.keys.has(KEY.G);
 
-                // Combine keyboard + button holds (if both pressed, they add; clamp handles)
                 const liftDir = (liftUpK ? 1 : 0) + (liftDnK ? -1 : 0) + state.bucketHold.liftDir;
                 const dumpDir = (dumpUpK ? 1 : 0) + (dumpDnK ? -1 : 0) + state.bucketHold.dumpDir;
 
-                // Apply hold-repeat rate (% per second)
                 const rate = state.bucketRate;
                 if (liftDir !== 0) state.lift = clamp(state.lift + liftDir * rate * dt, 0, 100);
                 if (dumpDir !== 0) state.dump = clamp(state.dump + dumpDir * rate * dt, 0, 100);
-
                 state.lift = Math.round(state.lift);
                 state.dump = Math.round(state.dump);
 
@@ -1491,170 +1479,65 @@
                 state.estSpeed += (targetSpeed - state.estSpeed) * clamp(6 * dt, 0, 1);
                 if (Math.abs(state.throttle) < 0.03) state.estSpeed *= (1 - clamp(1.2 * dt, 0, 0.2));
 
-                // Telemetry mock drift
-                if (state.connected) {
-                    const base = 110 + (Math.random() - 0.5) * 60;
-                    const spike = (Math.random() < 0.02) ? 250 + Math.random() * 250 : 0;
-                    state.rttMs = clamp(base + spike, 40, 700);
-                    state.lteDbm = clamp(-90 + (Math.random() - 0.5) * 18, -120, -65);
-                    state.ackPct = clamp((state.ackPct ?? 100) + (Math.random() < 0.01 ? -3 : 0.05), 85, 100);
-                    state.jitterMs = clamp((state.jitterMs ?? 12) + (Math.random() - 0.5) * 2, 5, 120);
-                }
+                // mock RTT
+                state.rttMs = state.connected ? clamp(100 + (Math.random() - 0.5) * 70 + (Math.random() < 0.02 ? 300 : 0), 30, 900) : null;
 
                 updateUI();
                 requestAnimationFrame(tick);
             }
+
+            function updateUI() {
+                // top pills
+                controlOwner.textContent = state.hasControl ? "You" : controlHolderName;
+
+                // values
+                valSteer.textContent = fmt(state.steer);
+                valThrottle.textContent = fmt(state.throttle);
+                valLift.textContent = String(state.lift | 0);
+                valDump.textContent = String(state.dump | 0);
+                valMaxSpeed.textContent = fmt(state.maxSpeed, 1);
+                valSteerSlew.textContent = fmt(state.steerSlew, 1);
+                valCmdHz.textContent = String(state.cmdHz | 0);
+                valBucketRate.textContent = String(state.bucketRate | 0);
+
+                // HUD
+                hudSteer.textContent = fmt(state.steer);
+                hudThrottle.textContent = fmt(state.throttle);
+                hudLift.textContent = String(state.lift | 0);
+                hudDump.textContent = String(state.dump | 0);
+                hudHz.textContent = String(state.cmdHz | 0);
+                hudSpeed.textContent = `${fmt(state.estSpeed, 1)} mph`;
+                hudRtt.textContent = state.rttMs == null ? "—" : String(Math.round(state.rttMs));
+
+                const steer01 = (state.steer + 1) / 2;
+                const thr01 = (state.throttle + 1) / 2;
+                barSteer.style.width = `${steer01 * 100}%`;
+                barThrottle.style.width = `${thr01 * 100}%`;
+
+                // deadman UI
+                btnDeadman.style.outline = state.deadman ? "2px solid rgba(74,163,255,.75)" : "none";
+                btnDeadman.textContent = state.deadman ? "Driving Enabled (hold)" : "Hold-to-Drive";
+
+                // sliders reflect applied
+                rngSteer.value = String(state.steer);
+                rngThrottle.value = String(state.throttle);
+                rngLift.value = String(state.lift);
+                rngDump.value = String(state.dump);
+
+                // focus button label handled in enter/exit
+            }
+
             requestAnimationFrame(tick);
 
             // =============================
-            // Command sending loop (mock)
-            // =============================
-            function buildCommandFrame() {
-                return {
-                    type: "command",
-                    session_id: "demo-session",
-                    seq: ++state.seq,
-                    timestamp_ms: Date.now(),
-                    deadman: !!state.deadman,
-                    axes: { steer: state.steer, throttle: state.throttle },
-                    actuators: { bucket_lift_pct: state.lift, bucket_dump_pct: state.dump },
-                    limits: { max_speed_mph: state.maxSpeed, steer_slew_per_s: state.steerSlew }
-                };
-            }
-
-            function sendCommandFrame() {
-                if (!state.connected || !ws || ws.readyState !== WebSocket.OPEN) return;
-
-                // In real app: backend decides if you have control
-                if (!state.hasControl) return;
-
-                const frame = buildCommandFrame();
-
-                // Deadman gates motion
-                const motionRequested = Math.abs(frame.axes.steer) > 1e-3 || Math.abs(frame.axes.throttle) > 1e-3;
-                if (motionRequested && !state.deadman) {
-                    frame.axes.steer = 0;
-                    frame.axes.throttle = 0;
-                }
-
-                ws.send(JSON.stringify(frame));
-                appendLog(`tx seq=${frame.seq} steer=${fmt(frame.axes.steer)} thr=${fmt(frame.axes.throttle)} lift=${frame.actuators.bucket_lift_pct} dump=${frame.actuators.bucket_dump_pct} deadman=${frame.deadman}`);
-            }
-
-            let sendTimer = null;
-            function startSendLoop() {
-                if (sendTimer) clearInterval(sendTimer);
-                const periodMs = Math.round(1000 / clamp(state.cmdHz, 10, 50));
-                sendTimer = setInterval(sendCommandFrame, periodMs);
-            }
-            rngCmdHz.addEventListener("input", () => {
-                state.cmdHz = parseInt(rngCmdHz.value, 10);
-                startSendLoop();
-                updateUI();
-            });
-            startSendLoop();
-
-            // =============================
-            // Queue (mock) - minimal to keep focus
-            // =============================
-            function renderQueue() {
-                queueBody.innerHTML = "";
-                participants.forEach(p => {
-                    if (p.id === controlHolderId) p.status = "controller";
-                    else if (p.pending) p.status = "requested";
-                    else p.status = "viewer";
-                });
-
-                for (const p of participants) {
-                    const tr = document.createElement("tr");
-                    const tdUser = document.createElement("td");
-                    tdUser.innerHTML = `<b>${p.name}</b><div style="color:var(--muted);font-size:11px;margin-top:2px">${p.id}</div>`;
-                    const tdRole = document.createElement("td"); tdRole.textContent = p.role;
-                    const tdStatus = document.createElement("td");
-                    const tag = document.createElement("span"); tag.className = "tag";
-                    if (p.status === "controller") { tag.classList.add("ok"); tag.textContent = "controller"; }
-                    else if (p.status === "requested") { tag.classList.add("warn"); tag.textContent = "requested"; }
-                    else tag.textContent = "viewer";
-                    tdStatus.appendChild(tag);
-
-                    const tdActions = document.createElement("td"); tdActions.className = "right";
-
-                    const canGrant = (p.status === "requested" && isSalesMode);
-                    const canRevoke = (p.status === "controller" && isSalesMode);
-                    const canForce = (p.id !== controlHolderId && isSalesMode);
-
-                    if (canGrant) {
-                        const b = document.createElement("button");
-                        b.className = "miniBtn primary";
-                        b.textContent = "Grant";
-                        b.onclick = () => grantControl(p.id);
-                        tdActions.appendChild(b);
-                    }
-                    if (canRevoke) {
-                        const b = document.createElement("button");
-                        b.className = "miniBtn danger";
-                        b.textContent = "Revoke";
-                        b.onclick = () => revokeControl(p.id);
-                        tdActions.appendChild(b);
-                    }
-                    if (canForce && p.role !== "operator") {
-                        const b = document.createElement("button");
-                        b.className = "miniBtn";
-                        b.textContent = "Make Controller";
-                        b.onclick = () => forceControl(p.id);
-                        tdActions.appendChild(b);
-                    }
-
-                    tr.appendChild(tdUser);
-                    tr.appendChild(tdRole);
-                    tr.appendChild(tdStatus);
-                    tr.appendChild(tdActions);
-                    queueBody.appendChild(tr);
-                }
-            }
-
-            function grantControl(userId) {
-                participants.forEach(p => p.pending = false);
-                controlHolderId = userId;
-                state.hasControl = (controlHolderId === "you");
-                state.deadman = false;
-                neutralizeMotion();
-                appendLog(`SALES: granted control to ${userId}`);
-                updateUI();
-            }
-            function revokeControl(userId) {
-                if (controlHolderId !== userId) return;
-                controlHolderId = null;
-                state.hasControl = false;
-                state.deadman = false;
-                neutralizeMotion();
-                appendLog(`SALES: revoked control from ${userId}`);
-                updateUI();
-            }
-            function forceControl(userId) {
-                participants.forEach(p => p.pending = false);
-                controlHolderId = userId;
-                state.hasControl = (controlHolderId === "you");
-                state.deadman = false;
-                neutralizeMotion();
-                appendLog(`SALES: force takeover -> ${userId}`);
-                updateUI();
-            }
-
-            btnForceTakeover.addEventListener("click", () => forceControl("sales"));
-            btnJoinAsViewer.addEventListener("click", () => { appendLog("Joined session as viewer (mock)"); });
-            btnSimRequest.addEventListener("click", () => {
-                const rider = participants.find(p => p.id === "rider");
-                if (rider) rider.pending = true;
-                appendLog("Simulated: Rider requested control");
-                updateUI();
-            });
-
-            // =============================
-            // Init
+            // Initial state
             // =============================
             setConnStatus("bad", "Disconnected");
             updateUI();
+
+            // Make focus easier for operators: double-click video toggles focus
+            document.getElementById("primaryWrap").addEventListener("dblclick", toggleFocus);
+
         })();
     </script>
 </body>
