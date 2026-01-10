@@ -325,7 +325,46 @@
     }
     .hidden{ display:none !important; }
 
-  </style>
+  
+/* ===== Auth UI responsiveness ===== */
+.auth-bar{
+  display:grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  gap:8px;
+  align-items:center;
+  margin-bottom:8px;
+}
+.auth-bar input, .auth-bar button{
+  padding:12px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  font-size:16px;
+}
+.auth-links{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  margin:6px 0 12px;
+  font-size:0.85rem;
+}
+.auth-links .btn{
+  padding:10px 12px;
+  border-radius:10px;
+}
+.auth-status{
+  margin-bottom:12px;
+  font-size:0.85rem;
+  color:var(--secondary);
+  text-align:center;
+}
+@media (max-width: 640px){
+  .auth-bar{ grid-template-columns: 1fr; }
+  .auth-bar input, .auth-bar button{ width:100%; }
+  .auth-links{ flex-direction:column; gap:8px; }
+  .auth-links button{ width:100%; }
+}
+
+</style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -333,15 +372,15 @@
   <header><h1>Training Log</h1></header>
 
 
-  <div id="authBar" style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
-    <input id="email" type="email" placeholder="email" style="flex:1; padding:10px; border-radius:10px; border:1px solid var(--border);">
-    <input id="password" type="password" placeholder="password" style="flex:1; padding:10px; border-radius:10px; border:1px solid var(--border);">
-    <button id="loginBtn" type="button" class="btn btn-share" style="padding:12px; border-radius:10px;">Login</button>
-    <button id="logoutBtn" type="button" class="btn btn-clear" style="padding:12px; border-radius:10px; display:none;">Logout</button>
+  <div id="authBar" class="auth-bar">
+    <input id="email" type="email" placeholder="email">
+    <input id="password" type="password" placeholder="password">
+    <button id="loginBtn" type="button" class="btn btn-share">Login</button>
+    <button id="logoutBtn" type="button" class="btn btn-clear">Logout</button>
   </div>
-  <div id="authStatus" style="margin-bottom:10px; font-size:0.85rem; color:var(--secondary); text-align:center;"></div>
+  <div id="authStatus" class="auth-status"></div>
 
-  <div id="authLinks" style="display:flex; justify-content:center; gap:12px; margin:6px 0 12px; font-size:0.85rem;">
+  <div id="authLinks" class="auth-links">
     <button id="magicLinkBtn" type="button" class="btn btn-clear" style="padding:8px 10px; border-radius:10px;">Email me a magic link</button>
     <button id="forgotPwBtn" type="button" class="btn btn-clear" style="padding:8px 10px; border-radius:10px;">Forgot password</button>
   </div>
@@ -686,7 +725,15 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
         : 'Not signed in (local-only).';
 
       document.getElementById('authLinks').style.display = currentUser ? 'none' : 'flex';
-    }
+    
+      
+      // Hide recovery UI unless we're actively in a recovery session
+      const recoveryActive = (sessionStorage.getItem('pw_recovery_pending') === '1');
+      if (!recoveryActive){
+        const rb = document.getElementById('recoveryBox');
+        if (rb) rb.style.display = 'none';
+      }
+}
 
     async function login(){
       const email = document.getElementById('email').value.trim();
@@ -745,17 +792,24 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
 
 
     async function logout(){
-      await supabaseClient.auth.signOut();
-      await refreshAuthUI();
-      setStatus('Logged out. Local-only.');
-      // Hard refresh so the UI is unmistakably logged out
-      location.reload();
+      try {
+        await supabaseClient.auth.signOut();
+      } finally {
+        // Clear any recovery state
+        sessionStorage.removeItem('pw_recovery_pending');
+        // Reset UI and force refresh so it's obvious you're logged out
+        await refreshAuthUI();
+        setStatus('Logged out. Local-only.');
+        // Hard refresh (works reliably even if cached UI state lingers)
+        window.location.replace(window.location.pathname + window.location.search);
+      }
     }
     
     // ===== Password recovery flow (GitHub Pages) =====
     // Supabase recovery links redirect back with tokens in the URL hash.
     async function handleRecoveryFromUrl(){
       const hash = window.location.hash || "";
+      const search = window.location.search || "";
 
       // If a prior auth-state callback marked recovery pending, show the UI even if the URL hash is bare '#'
       if (sessionStorage.getItem('pw_recovery_pending') === '1') {
@@ -763,6 +817,68 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
         document.getElementById('recoveryStatus').textContent = "Password recovery session detected. Set your new password.";
         return;
       }
+
+      // If the URL contains an error (e.g., otp_expired), show it for clarity.
+      if (hash.includes("error=")){
+        const params = new URLSearchParams(hash.replace(/^#/, ""));
+        const err = params.get("error_description") || params.get("error_code") || params.get("error") || "Unknown error";
+        const box = document.getElementById('recoveryBox');
+        const status = document.getElementById('recoveryStatus');
+        box.style.display = 'block';
+        status.textContent = "Recovery link error: " + decodeURIComponent((err || "").replace(/\+/g, " "));
+        return;
+      }
+
+      // ---- FLOW 1: Implicit hash tokens (#access_token=...&refresh_token=...&type=recovery)
+      // Some Supabase emails (especially recovery) use the hash token flow.
+      try {
+        if (hash.includes("access_token=") && hash.includes("refresh_token=")){
+          const params = new URLSearchParams(hash.replace(/^#/, ""));
+          const access_token = params.get("access_token");
+          const refresh_token = params.get("refresh_token");
+          const type = params.get("type"); // "recovery" for reset-password flows
+
+          if (access_token && refresh_token){
+            const { error } = await supabaseClient.auth.setSession({ access_token, refresh_token });
+            if (error){
+              console.warn("setSession error:", error.message);
+            } else {
+              if (type === "recovery"){
+                sessionStorage.setItem('pw_recovery_pending', '1');
+                document.getElementById('recoveryBox').style.display = 'block';
+                document.getElementById('recoveryStatus').textContent = "Password recovery session detected. Set your new password below.";
+              }
+              // Clean URL hash
+              history.replaceState(null, document.title, window.location.pathname + window.location.search);
+              await refreshAuthUI();
+              return;
+            }
+          }
+        }
+      } catch (e){
+        console.warn("handleRecoveryFromUrl hash flow error:", e);
+      }
+
+      // ---- FLOW 2: PKCE code flow (?code=...)
+      // Magic links often come back with a 'code' query parameter.
+      try {
+        const qs = new URLSearchParams(search.replace(/^\?/, ""));
+        const code = qs.get("code");
+        if (code){
+          const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
+          if (error){
+            console.warn("exchangeCodeForSession error:", error.message);
+          } else {
+            // Clean URL query
+            history.replaceState(null, document.title, window.location.pathname);
+            await refreshAuthUI();
+            return;
+          }
+        }
+      } catch (e){
+        console.warn("handleRecoveryFromUrl code flow error:", e);
+      }
+    }
 // If the URL contains an error (e.g., otp_expired), show it for clarity.
       if (hash.includes("error=")){
         const params = new URLSearchParams(hash.replace(/^#/, ""));
@@ -1175,6 +1291,19 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
           sessionStorage.setItem('pw_recovery_pending', '1');
           document.getElementById('recoveryBox').style.display = 'block';
           document.getElementById('recoveryStatus').textContent = "Password recovery session detected. Set your new password below.";
+        }
+
+        if (event === 'SIGNED_OUT') {
+          sessionStorage.removeItem('pw_recovery_pending');
+          const rb = document.getElementById('recoveryBox');
+          if (rb) rb.style.display = 'none';
+        }
+
+        if (event === 'USER_UPDATED') {
+          // Often fired after password update; clear recovery state
+          sessionStorage.removeItem('pw_recovery_pending');
+          const rb = document.getElementById('recoveryBox');
+          if (rb) rb.style.display = 'none';
         }
 
         if (currentUser) await syncFromServerForWeek();
