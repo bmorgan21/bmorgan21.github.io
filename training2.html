@@ -308,7 +308,6 @@
       margin-bottom:12px;
       font-size:0.9rem;
       line-height:1.25rem;
-      white-space:pre-wrap;
     }
     .coach-note .title{
       display:block;
@@ -318,6 +317,9 @@
       margin-bottom:6px;
       text-transform:uppercase;
       letter-spacing:0.02em;
+    }
+    .coach-note #coachNoteText{
+      white-space:pre-wrap;
     }
     .coach-controls{
       display:none;
@@ -364,6 +366,179 @@
   .auth-links button{ width:100%; }
 }
 
+
+/* ===== Desktop auth polish (logged-in) ===== */
+@media (min-width: 900px){
+  body.authed .auth-bar{
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    gap:10px;
+    margin-bottom:6px;
+  }
+  body.authed .auth-status{
+    text-align:right;
+    margin-top:-2px;
+    margin-bottom:12px;
+  }
+  body.authed #logoutBtn{
+    padding:10px 14px;
+    border-radius:999px;
+  }
+}
+/* Keep mobile behavior the same */
+
+
+/* ===== Week navigator ===== */
+.week-nav{
+  background: var(--card); opacity: 1;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 12px 10px;
+  margin: 10px 0 10px;
+}
+.week-nav-header{
+  text-align:center;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--secondary);
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+}
+.week-nav-controls{
+  display:grid;
+  grid-template-columns: 52px 1fr 52px;
+  gap: 10px;
+  align-items:center;
+}
+.week-nav-label{
+  text-align:center;
+  font-weight: 900;
+  font-size: 1.15rem;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.week-btn{
+  height: 46px;
+  border-radius: 12px;
+  font-size: 1.15rem;
+  font-weight: 900;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.week-nav-actions{
+  display:flex;
+  justify-content:center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.week-jump{
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+@media (min-width: 900px){
+  /* Desktop: keep it compact */
+  .week-nav{
+    padding: 10px 14px 10px;
+  }
+  .week-nav-controls{
+    grid-template-columns: 44px 360px 44px;
+    justify-content:center;
+  }
+  .week-nav-label{
+    font-size: 1.05rem;
+  }
+}
+
+
+/* ===== Modal (Jump to week) ===== */
+body.modal-open{ overflow:hidden; }
+
+.modal{ display:none; position:fixed; inset:0; z-index:9999; }
+.modal.show{ display:block; }
+.modal-backdrop{ position:absolute; inset:0; background: rgba(0,0,0,0.55); backdrop-filter: blur(2px); }
+
+.modal-card{
+  position:relative;
+  background-color: #ffffff !important;
+  width:min(520px, calc(100% - 24px));
+  margin: 12vh auto 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  padding: 14px;
+}
+
+.modal-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.modal-title{ font-weight: 900; font-size: 1.1rem; }
+.modal-close{
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 12px;
+  width: 40px; height: 40px;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.modal-sub{ margin-top:6px; color: var(--secondary); font-size: 0.92rem; }
+
+.cal-head{
+  display:grid;
+  grid-template-columns: 44px 1fr 44px;
+  gap: 10px;
+  align-items:center;
+  margin-top: 12px;
+}
+.cal-title{ text-align:center; font-weight: 900; }
+.cal-nav{ border-radius: 12px; font-size: 1.2rem; font-weight: 900; }
+
+.cal-dow{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: var(--secondary);
+  text-align:center;
+}
+.cal-grid{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cal-day{
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 12px;
+  height: 44px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.cal-day.cal-out{ opacity: 0.55; }
+.cal-day.cal-disabled{ opacity: 0.35; cursor:not-allowed; }
+.cal-day.cal-mon{ background: var(--card); }
+.cal-day.cal-selected{
+  outline: 2px solid rgba(0,0,0,0.5);
+}
+
+.modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin-top: 12px;
+}
+
+@media (max-width: 640px){
+  .modal-card{ margin-top: 8vh; }
+  .cal-day{ height: 42px; }
+}
+
 </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -400,10 +575,18 @@
   </div>
 
 
-  <div class="date-selector">
-    <label>LOG WEEK STARTING</label>
-    <input type="date" id="weekDate" onchange="loadWeekData()">
+  
+  <div class="week-nav">
+    <div class="week-nav-header">LOG WEEK STARTING</div>
+    <div class="week-nav-controls">
+      <button type="button" id="prevWeekBtn" class="btn btn-clear week-btn" aria-label="Previous week">←</button>
+      <button type="button" class="week-nav-label week-nav-label-btn" id="weekLabel" aria-label="Jump to week">—</button>
+      <button type="button" id="nextWeekBtn" class="btn btn-clear week-btn" aria-label="Next week">→</button>
+    </div>
+<!-- Keep the underlying date input for storage/keying; always set to Monday (YYYY-MM-DD) -->
+    <input id="weekDate" type="date" style="display:none;">
   </div>
+
 
   <div class="rpe-bar">
     <span><b>6:</b> Aerobic</span>
@@ -711,9 +894,143 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
       return 'training_targets_v1_' + (dateStr || getWeekStart());
     }
 
+
+    function parseISODate(s){
+      // expects YYYY-MM-DD
+      const parts = (s || '').split('-').map(Number);
+      if (parts.length !== 3) return null;
+      const d = new Date(parts[0], parts[1]-1, parts[2]);
+      if (isNaN(d.getTime())) return null;
+      return d;
+    }
+
+    function toISODate(d){
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const day = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function mondayOfDate(d){
+      // Monday as start of week; JS getDay(): 0 Sun .. 6 Sat
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      return new Date(d.getFullYear(), d.getMonth(), diff);
+    }
+
+    function formatWeekLabel(isoMonday){
+      const d = parseISODate(isoMonday);
+      if (!d) return isoMonday || '—';
+      const opts = { month: 'short', day: 'numeric', year: 'numeric' };
+      // Example: "Jan 5, 2026 (Mon)"
+      const pretty = d.toLocaleDateString(undefined, opts);
+      return pretty;
+    }
+
+    function setWeek(isoMonday, { sync=true } = {}){
+      const input = document.getElementById('weekDate');
+      input.value = isoMonday;
+      document.getElementById('weekLabel').textContent = formatWeekLabel(isoMonday);
+      loadWeekData();
+      if (sync && currentUser) syncFromServerForWeek().then(() => setStatus('Loaded (synced).'));
+    }
+
+    function shiftWeek(deltaWeeks){
+      const cur = parseISODate(getWeekStart());
+      if (!cur) return;
+      const next = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + (deltaWeeks*7));
+      setWeek(toISODate(next));
+    }
+
+    
+    // ===== Jump-to-week modal (Mondays only) =====
+    let jumpModalMonth = null; // Date set to 1st of visible month
+
+    function openJumpModal(){
+      const modal = document.getElementById('jumpModal');
+      if (!modal) return;
+
+      // Start calendar on the currently selected week (or today)
+      const cur = parseISODate(getWeekStart()) || new Date();
+      jumpModalMonth = new Date(cur.getFullYear(), cur.getMonth(), 1);
+
+      renderJumpCalendar();
+      modal.classList.add('show');
+      document.body.classList.add('modal-open');
+    }
+
+    function closeJumpModal(){
+      const modal = document.getElementById('jumpModal');
+      if (!modal) return;
+      modal.classList.remove('show');
+      document.body.classList.remove('modal-open');
+    }
+
+    function changeJumpMonth(delta){
+      if (!jumpModalMonth) jumpModalMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      jumpModalMonth = new Date(jumpModalMonth.getFullYear(), jumpModalMonth.getMonth() + delta, 1);
+      renderJumpCalendar();
+    }
+
+    function renderJumpCalendar(){
+      const title = document.getElementById('jumpMonthTitle');
+      const grid = document.getElementById('jumpCalendarGrid');
+      if (!title || !grid || !jumpModalMonth) return;
+
+      const y = jumpModalMonth.getFullYear();
+      const m = jumpModalMonth.getMonth();
+
+      const monthName = jumpModalMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      title.textContent = monthName;
+
+      // Determine first visible date in grid (start on Sunday)
+      const firstOfMonth = new Date(y, m, 1);
+      const startDay = firstOfMonth.getDay(); // 0=Sun
+      const gridStart = new Date(y, m, 1 - startDay);
+
+      // 6 weeks x 7 days = 42 cells
+      grid.innerHTML = "";
+      for (let i=0; i<42; i++){
+        const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i);
+        const isThisMonth = d.getMonth() === m;
+        const isMonday = d.getDay() === 1;
+        const iso = toISODate(d);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cal-day' + (isThisMonth ? '' : ' cal-out') + (isMonday ? ' cal-mon' : ' cal-disabled');
+
+        btn.textContent = String(d.getDate());
+        btn.setAttribute('data-iso', iso);
+
+        // Highlight current selected week
+        if (getWeekStart() === iso) btn.classList.add('cal-selected');
+
+        if (isMonday){
+          btn.addEventListener('click', () => {
+            setWeek(iso);
+            closeJumpModal();
+          });
+        } else {
+          btn.disabled = true;
+          btn.tabIndex = -1;
+        }
+
+        grid.appendChild(btn);
+      }
+    }
+
+    function setThisWeek(){
+      const now = new Date();
+      const mon = mondayOfDate(now);
+      setWeek(toISODate(mon));
+    }
+
     async function refreshAuthUI(){
       const { data } = await supabaseClient.auth.getUser();
       currentUser = data?.user ?? null;
+
+      document.body.classList.toggle('authed', !!currentUser);
 
       document.getElementById('logoutBtn').style.display = currentUser ? 'inline-block' : 'none';
       document.getElementById('loginBtn').style.display = currentUser ? 'none' : 'inline-block';
@@ -971,13 +1288,19 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
       }
     }
 
-    function applyTargetsToUI(targets){
+    
+    function normalizeNewlines(s){
+      // Handles both real newlines and literal "\n" sequences that can show up from pasted/serialized data
+      return (s || '').replace(/\\n/g, '\n').replace(/\r\n/g, '\n');
+    }
+
+function applyTargetsToUI(targets){
       document.querySelectorAll('[data-target]').forEach(el => {
         const key = el.getAttribute('data-target');
         if (targets[key]) el.textContent = targets[key];
       });
 
-      const note = (targets['Coach_Week_Notes'] || '').trim();
+      const note = normalizeNewlines((targets['Coach_Week_Notes'] || '').trim());
       if (note){
         document.getElementById('coachNoteText').textContent = note;
         document.getElementById('coachNote').style.display = 'block';
@@ -1044,6 +1367,15 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
         if (plan?.targets) {
           localStorage.setItem(getTargetsKey(weekStart), JSON.stringify(plan.targets));
           applyTargetsToUI(plan.targets);
+          // Prefer dedicated coach_notes field if present (keeps formatting clean)
+          if (plan?.coach_notes){
+            const n = normalizeNewlines(plan.coach_notes);
+            if (n.trim()){
+              document.getElementById('coachNoteText').textContent = n;
+              document.getElementById('coachNote').style.display = 'block';
+            }
+          }
+
           document.getElementById('coachBadge').style.display = 'block';
           document.getElementById('coachControls').style.display = 'block';
           document.getElementById('coachBox').classList.add('hidden');
@@ -1071,7 +1403,7 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
         week_start: weekStart,
         program_code: 'run_strength_12wk_v1',
         week_number: 0,
-        coach_notes: (targets['Coach_Week_Notes'] || ''),
+        coach_notes: normalizeNewlines((targets['Coach_Week_Notes'] || '')),
         targets: targets
       };
 
@@ -1166,6 +1498,11 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
     }
 
     function loadWeekData(){
+      // Update visible label
+      try {
+        document.getElementById('weekLabel').textContent = formatWeekLabel(getWeekStart());
+      } catch(e) {}
+
       const weekStart = getWeekStart();
       const savedData = localStorage.getItem(getStorageKey(weekStart));
       const inputs = document.querySelectorAll('#trackerForm input, #trackerForm textarea, #trackerForm select');
@@ -1256,6 +1593,7 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
       const monday = mondayDate.toLocaleDateString('en-CA');
 
       document.getElementById('weekDate').value = monday;
+      document.getElementById('weekLabel').textContent = formatWeekLabel(monday);
 
       document.getElementById('loginBtn').addEventListener('click', login);
       document.getElementById('logoutBtn').addEventListener('click', logout);
@@ -1265,6 +1603,16 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
 
       document.getElementById('magicLinkBtn').addEventListener('click', sendMagicLink);
       document.getElementById('forgotPwBtn').addEventListener('click', forgotPassword);
+      // Week navigation
+      document.getElementById('prevWeekBtn').addEventListener('click', () => shiftWeek(-1));
+      document.getElementById('nextWeekBtn').addEventListener('click', () => shiftWeek(1));
+      document.getElementById('weekLabel').addEventListener('click', openJumpModal);      // Jump modal controls
+      document.getElementById('jumpPrevMonth').addEventListener('click', () => changeJumpMonth(-1));
+      document.getElementById('jumpNextMonth').addEventListener('click', () => changeJumpMonth(1));
+      document.getElementById('jumpCloseBtn').addEventListener('click', closeJumpModal);
+      document.getElementById('jumpBackdrop').addEventListener('click', closeJumpModal);
+      document.getElementById('jumpTodayInModal').addEventListener('click', () => { setThisWeek(); closeJumpModal(); });
+
       await refreshAuthUI();
 
       await handleRecoveryFromUrl();
@@ -1274,11 +1622,38 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
       if (currentUser) await syncFromServerForWeek();
 
       document.getElementById('trackerForm').addEventListener('input', scheduleSave);
-      document.getElementById('weekDate').addEventListener('change', () => {
-        loadWeekData();
-      });
     }
   </script>
+
+
+  <!-- Jump-to-week Modal (Mondays only) -->
+  <div id="jumpModal" class="modal">
+    <div class="modal-backdrop" id="jumpBackdrop"></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="jumpModalTitle">
+      <div class="modal-head">
+        <div id="jumpModalTitle" class="modal-title">Jump to week</div>
+        <button type="button" class="modal-close" id="jumpCloseBtn" aria-label="Close">×</button>
+      </div>
+
+      <div class="modal-sub">Select a <b>Monday</b> to load that week.</div>
+
+      <div class="cal-head">
+        <button type="button" class="btn btn-clear cal-nav" id="jumpPrevMonth" aria-label="Previous month">‹</button>
+        <div id="jumpMonthTitle" class="cal-title">—</div>
+        <button type="button" class="btn btn-clear cal-nav" id="jumpNextMonth" aria-label="Next month">›</button>
+      </div>
+
+      <div class="cal-dow">
+        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+      </div>
+
+      <div id="jumpCalendarGrid" class="cal-grid"></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-clear" id="jumpTodayInModal">This week</button>
+      </div>
+    </div>
+  </div>
 
 </body>
 </html>
