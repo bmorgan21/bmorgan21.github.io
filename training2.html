@@ -1250,7 +1250,11 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
     async function initApp(){
       const d = new Date();
       const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1);
-      const monday = new Date(d.setDate(diff)).toISOString().split('T')[0];
+      const mondayDate = new Date(d.setDate(diff));
+
+      // Use en-CA (English Canada) because it uses the YYYY-MM-DD format naturally
+      const monday = mondayDate.toLocaleDateString('en-CA');
+
       document.getElementById('weekDate').value = monday;
 
       document.getElementById('loginBtn').addEventListener('click', login);
@@ -1261,33 +1265,7 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
 
       document.getElementById('magicLinkBtn').addEventListener('click', sendMagicLink);
       document.getElementById('forgotPwBtn').addEventListener('click', forgotPassword);
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        // event can be: SIGNED_IN, SIGNED_OUT, PASSWORD_RECOVERY, TOKEN_REFRESHED, USER_UPDATED, etc.
-        await refreshAuthUI();
-
-        if (event === 'PASSWORD_RECOVERY') {
-          // Some clients arrive with a bare '#', but Supabase still sets a session.
-          sessionStorage.setItem('pw_recovery_pending', '1');
-          document.getElementById('recoveryBox').style.display = 'block';
-          document.getElementById('recoveryStatus').textContent = "Password recovery session detected. Set your new password below.";
-        }
-
-        if (event === 'SIGNED_OUT') {
-          sessionStorage.removeItem('pw_recovery_pending');
-          const rb = document.getElementById('recoveryBox');
-          if (rb) rb.style.display = 'none';
-        }
-
-        if (event === 'USER_UPDATED') {
-          // Often fired after password update; clear recovery state
-          sessionStorage.removeItem('pw_recovery_pending');
-          const rb = document.getElementById('recoveryBox');
-          if (rb) rb.style.display = 'none';
-        }
-
-        if (currentUser) await syncFromServerForWeek();
-      });
-await refreshAuthUI();
+      await refreshAuthUI();
 
       await handleRecoveryFromUrl();
 
