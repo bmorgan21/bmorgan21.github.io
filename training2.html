@@ -797,14 +797,20 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
       } finally {
         // Clear any recovery state
         sessionStorage.removeItem('pw_recovery_pending');
-        // Reset UI and force refresh so it's obvious you're logged out
+
+        // Reset UI state immediately
         await refreshAuthUI();
         setStatus('Logged out. Local-only.');
-        // Hard refresh (works reliably even if cached UI state lingers)
-        window.location.replace(window.location.pathname + window.location.search);
+
+        // Force a real navigation (some browsers won't reload if replace() points to identical URL)
+        const base = window.location.origin + window.location.pathname;
+        const qs = new URLSearchParams(window.location.search || "");
+        qs.set('ts', String(Date.now())); // cache-bust
+        // Drop hash entirely
+        window.location.href = base + "?" + qs.toString();
       }
     }
-    
+
     // ===== Password recovery flow (GitHub Pages) =====
     // Supabase recovery links redirect back with tokens in the URL hash.
     async function handleRecoveryFromUrl(){
