@@ -830,7 +830,6 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
       }
 
       // ---- FLOW 1: Implicit hash tokens (#access_token=...&refresh_token=...&type=recovery)
-      // Some Supabase emails (especially recovery) use the hash token flow.
       try {
         if (hash.includes("access_token=") && hash.includes("refresh_token=")){
           const params = new URLSearchParams(hash.replace(/^#/, ""));
@@ -840,18 +839,17 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
 
           if (access_token && refresh_token){
             const { error } = await supabaseClient.auth.setSession({ access_token, refresh_token });
-            if (error){
-              console.warn("setSession error:", error.message);
-            } else {
+            if (!error){
               if (type === "recovery"){
                 sessionStorage.setItem('pw_recovery_pending', '1');
                 document.getElementById('recoveryBox').style.display = 'block';
                 document.getElementById('recoveryStatus').textContent = "Password recovery session detected. Set your new password below.";
               }
-              // Clean URL hash
               history.replaceState(null, document.title, window.location.pathname + window.location.search);
               await refreshAuthUI();
               return;
+            } else {
+              console.warn("setSession error:", error.message);
             }
           }
         }
@@ -860,46 +858,21 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
       }
 
       // ---- FLOW 2: PKCE code flow (?code=...)
-      // Magic links often come back with a 'code' query parameter.
       try {
         const qs = new URLSearchParams(search.replace(/^\?/, ""));
         const code = qs.get("code");
         if (code){
           const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
-          if (error){
-            console.warn("exchangeCodeForSession error:", error.message);
-          } else {
-            // Clean URL query
+          if (!error){
             history.replaceState(null, document.title, window.location.pathname);
             await refreshAuthUI();
             return;
+          } else {
+            console.warn("exchangeCodeForSession error:", error.message);
           }
         }
       } catch (e){
         console.warn("handleRecoveryFromUrl code flow error:", e);
-      }
-    }
-// If the URL contains an error (e.g., otp_expired), show it for clarity.
-      if (hash.includes("error=")){
-        const params = new URLSearchParams(hash.replace(/^#/, ""));
-        const err = params.get("error_description") || params.get("error_code") || params.get("error") || "Unknown error";
-        const box = document.getElementById('recoveryBox');
-        const status = document.getElementById('recoveryStatus');
-        box.style.display = 'block';
-        status.textContent = "Recovery link error: " + decodeURIComponent((err || "").replace(/\+/g, " "));
-        return;
-      }
-
-      // Try to extract and store session from the URL (supports recovery links).
-      try {
-        const { data, error } = await supabaseClient.auth.getSessionFromUrl({ storeSession: true });
-        if (error) return;
-        if (data?.session){
-          document.getElementById('recoveryBox').style.display = 'block';
-          document.getElementById('recoveryStatus').textContent = "Recovery session detected. Set your new password.";
-        }
-      } catch (e){
-        console.warn("handleRecoveryFromUrl error:", e);
       }
     }
 
