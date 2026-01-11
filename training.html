@@ -308,7 +308,6 @@
       margin-bottom:12px;
       font-size:0.9rem;
       line-height:1.25rem;
-      white-space:pre-wrap;
     }
     .coach-note .title{
       display:block;
@@ -319,22 +318,275 @@
       text-transform:uppercase;
       letter-spacing:0.02em;
     }
+    .coach-note #coachNoteText{
+      white-space:pre-wrap;
+    }
     .coach-controls{
       display:none;
       margin-bottom:12px;
     }
     .hidden{ display:none !important; }
 
-  </style>
+  
+/* ===== Auth UI responsiveness ===== */
+.auth-bar{
+  display:grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  gap:8px;
+  align-items:center;
+  margin-bottom:8px;
+}
+.auth-bar input, .auth-bar button{
+  padding:12px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  font-size:16px;
+}
+.auth-links{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  margin:6px 0 12px;
+  font-size:0.85rem;
+}
+.auth-links .btn{
+  padding:10px 12px;
+  border-radius:10px;
+}
+.auth-status{
+  margin-bottom:12px;
+  font-size:0.85rem;
+  color:var(--secondary);
+  text-align:center;
+}
+@media (max-width: 640px){
+  .auth-bar{ grid-template-columns: 1fr; }
+  .auth-bar input, .auth-bar button{ width:100%; }
+  .auth-links{ flex-direction:column; gap:8px; }
+  .auth-links button{ width:100%; }
+}
+
+
+/* ===== Desktop auth polish (logged-in) ===== */
+@media (min-width: 900px){
+  body.authed .auth-bar{
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    gap:10px;
+    margin-bottom:6px;
+  }
+  body.authed .auth-status{
+    text-align:right;
+    margin-top:-2px;
+    margin-bottom:12px;
+  }
+  body.authed #logoutBtn{
+    padding:10px 14px;
+    border-radius:999px;
+  }
+}
+/* Keep mobile behavior the same */
+
+
+/* ===== Week navigator ===== */
+.week-nav{
+  background: var(--card); opacity: 1;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 12px 10px;
+  margin: 10px 0 10px;
+}
+.week-nav-header{
+  text-align:center;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--secondary);
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+}
+.week-nav-controls{
+  display:grid;
+  grid-template-columns: 52px 1fr 52px;
+  gap: 10px;
+  align-items:center;
+}
+.week-nav-label{
+  text-align:center;
+  font-weight: 900;
+  font-size: 1.15rem;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.week-btn{
+  height: 46px;
+  border-radius: 12px;
+  font-size: 1.15rem;
+  font-weight: 900;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.week-nav-actions{
+  display:flex;
+  justify-content:center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.week-jump{
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+@media (min-width: 900px){
+  /* Desktop: keep it compact */
+  .week-nav{
+    padding: 10px 14px 10px;
+  }
+  .week-nav-controls{
+    grid-template-columns: 44px 360px 44px;
+    justify-content:center;
+  }
+  .week-nav-label{
+    font-size: 1.05rem;
+  }
+}
+
+
+/* ===== Modal (Jump to week) ===== */
+body.modal-open{ overflow:hidden; }
+
+.modal{ display:none; position:fixed; inset:0; z-index:9999; }
+.modal.show{ display:block; }
+.modal-backdrop{ position:absolute; inset:0; background: rgba(0,0,0,0.55); backdrop-filter: blur(2px); }
+
+.modal-card{
+  position:relative;
+  background-color: #ffffff !important;
+  width:min(520px, calc(100% - 24px));
+  margin: 12vh auto 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  padding: 14px;
+}
+
+.modal-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.modal-title{ font-weight: 900; font-size: 1.1rem; }
+.modal-close{
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 12px;
+  width: 40px; height: 40px;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.modal-sub{ margin-top:6px; color: var(--secondary); font-size: 0.92rem; }
+
+.cal-head{
+  display:grid;
+  grid-template-columns: 44px 1fr 44px;
+  gap: 10px;
+  align-items:center;
+  margin-top: 12px;
+}
+.cal-title{ text-align:center; font-weight: 900; }
+.cal-nav{ border-radius: 12px; font-size: 1.2rem; font-weight: 900; }
+
+.cal-dow{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: var(--secondary);
+  text-align:center;
+}
+.cal-grid{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cal-day{
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 12px;
+  height: 44px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.cal-day.cal-out{ opacity: 0.55; }
+.cal-day.cal-disabled{ opacity: 0.35; cursor:not-allowed; }
+.cal-day.cal-mon{ background: var(--card); }
+.cal-day.cal-selected{
+  outline: 2px solid rgba(0,0,0,0.5);
+}
+
+.modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin-top: 12px;
+}
+
+@media (max-width: 640px){
+  .modal-card{ margin-top: 8vh; }
+  .cal-day{ height: 42px; }
+}
+
+</style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body onload="initApp()">
   <header><h1>Training Log</h1></header>
 
-  <div class="date-selector">
-    <label>LOG WEEK STARTING</label>
-    <input type="date" id="weekDate" onchange="loadWeekData()">
+
+  <div id="authBar" class="auth-bar">
+    <input id="email" type="email" placeholder="email">
+    <input id="password" type="password" placeholder="password">
+    <button id="loginBtn" type="button" class="btn btn-share">Login</button>
+    <button id="logoutBtn" type="button" class="btn btn-clear">Logout</button>
   </div>
+  <div id="authStatus" class="auth-status"></div>
+
+  <div id="authLinks" class="auth-links">
+    <button id="magicLinkBtn" type="button" class="btn btn-clear" style="padding:8px 10px; border-radius:10px;">Email me a magic link</button>
+    <button id="forgotPwBtn" type="button" class="btn btn-clear" style="padding:8px 10px; border-radius:10px;">Forgot password</button>
+  </div>
+
+
+  <div id="recoveryBox" class="card" style="display:none; margin-bottom:12px;">
+    <div style="font-weight:800; margin-bottom:6px;">Set a new password</div>
+    <div style="font-size:0.9rem; color:var(--secondary); margin-bottom:10px;">
+      You opened a password recovery link. Choose a new password below.
+    </div>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <input id="newPassword" type="password" placeholder="New password" style="flex:1; min-width:220px; padding:10px; border-radius:10px; border:1px solid var(--border);">
+      <input id="newPassword2" type="password" placeholder="Confirm password" style="flex:1; min-width:220px; padding:10px; border-radius:10px; border:1px solid var(--border);">
+      <button id="setPasswordBtn" type="button" class="btn btn-share" style="padding:12px; border-radius:10px;">Set Password</button>
+    </div>
+    <div id="recoveryStatus" style="margin-top:8px; font-size:0.85rem; color:var(--secondary);"></div>
+  </div>
+
+
+  
+  <div class="week-nav">
+    <div class="week-nav-header">LOG WEEK STARTING</div>
+    <div class="week-nav-controls">
+      <button type="button" id="prevWeekBtn" class="btn btn-clear week-btn" aria-label="Previous week">←</button>
+      <button type="button" class="week-nav-label week-nav-label-btn" id="weekLabel" aria-label="Jump to week">—</button>
+      <button type="button" id="nextWeekBtn" class="btn btn-clear week-btn" aria-label="Next week">→</button>
+    </div>
+<!-- Keep the underlying date input for storage/keying; always set to Monday (YYYY-MM-DD) -->
+    <input id="weekDate" type="date" style="display:none;">
+  </div>
+
 
   <div class="rpe-bar">
     <span><b>6:</b> Aerobic</span>
@@ -615,65 +867,440 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
     <div id="status" class="status-msg">Ready.</div>
   </form>
 
+  
   <script>
-    function initApp(){
-      const d = new Date();
-      const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1);
-      const monday = new Date(d.setDate(diff)).toISOString().split('T')[0];
-      document.getElementById('weekDate').value = monday;
-      loadWeekData();
-      loadTargets();
-      document.getElementById('trackerForm').addEventListener('input', autoSave);
+    // ===== Supabase (Auth + DB) =====
+    const SUPABASE_URL = "https://hagffbmzsfrsxwuokppn.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_-w_qtI5zMzFJ3F41IO8Djw_59jyAJTr";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUser = null;
+    let saveTimer = null;
+    let syncing = false;
+
+    function setStatus(msg){
+      document.getElementById('status').innerText = msg;
+    }
+
+    function getWeekStart(){
+      return document.getElementById('weekDate').value;
     }
 
     function getStorageKey(dateStr){
-      return 'training_log_v3_' + (dateStr || document.getElementById('weekDate').value);
+      return 'training_log_v3_' + (dateStr || getWeekStart());
     }
 
     function getTargetsKey(dateStr){
-      return 'training_targets_v1_' + (dateStr || document.getElementById('weekDate').value);
+      return 'training_targets_v1_' + (dateStr || getWeekStart());
     }
 
-    function autoSave(){
-      const data = {};
-      const inputs = document.querySelectorAll('#trackerForm input, #trackerForm textarea, #trackerForm select');
-      inputs.forEach(input => {
-        data[input.id] = (input.type === 'checkbox') ? input.checked : input.value;
-      });
-      localStorage.setItem(getStorageKey(), JSON.stringify(data));
-      document.getElementById('status').innerText = "Saved locally.";
+
+    function parseISODate(s){
+      // expects YYYY-MM-DD
+      const parts = (s || '').split('-').map(Number);
+      if (parts.length !== 3) return null;
+      const d = new Date(parts[0], parts[1]-1, parts[2]);
+      if (isNaN(d.getTime())) return null;
+      return d;
     }
 
-    function loadTargets(){
-      const saved = localStorage.getItem(getTargetsKey());
-      if (!saved) return false;
+    function toISODate(d){
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const day = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${day}`;
+    }
 
-      try{
-        const targets = JSON.parse(saved);
-        applyTargetsToUI(targets);
+    function mondayOfDate(d){
+      // Monday as start of week; JS getDay(): 0 Sun .. 6 Sat
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      return new Date(d.getFullYear(), d.getMonth(), diff);
+    }
 
-        // Flip UI into "coach active" mode
-        document.getElementById('coachBadge').style.display = 'block';
-        document.getElementById('coachControls').style.display = 'block';
-        document.getElementById('coachBox').classList.add('hidden');
-        return true;
-      } catch(e){
-        console.warn("Bad targets JSON", e);
-        return false;
+    function formatWeekLabel(isoMonday){
+      const d = parseISODate(isoMonday);
+      if (!d) return isoMonday || '—';
+      const opts = { month: 'short', day: 'numeric', year: 'numeric' };
+      // Example: "Jan 5, 2026 (Mon)"
+      const pretty = d.toLocaleDateString(undefined, opts);
+      return pretty;
+    }
+
+    function setWeek(isoMonday, { sync=true } = {}){
+      const input = document.getElementById('weekDate');
+      input.value = isoMonday;
+      document.getElementById('weekLabel').textContent = formatWeekLabel(isoMonday);
+      loadWeekData();
+      if (sync && currentUser) syncFromServerForWeek().then(() => setStatus('Loaded (synced).'));
+    }
+
+    function shiftWeek(deltaWeeks){
+      const cur = parseISODate(getWeekStart());
+      if (!cur) return;
+      const next = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + (deltaWeeks*7));
+      setWeek(toISODate(next));
+    }
+
+    
+    // ===== Jump-to-week modal (Mondays only) =====
+    let jumpModalMonth = null; // Date set to 1st of visible month
+
+    function openJumpModal(){
+      const modal = document.getElementById('jumpModal');
+      if (!modal) return;
+
+      // Start calendar on the currently selected week (or today)
+      const cur = parseISODate(getWeekStart()) || new Date();
+      jumpModalMonth = new Date(cur.getFullYear(), cur.getMonth(), 1);
+
+      renderJumpCalendar();
+      modal.classList.add('show');
+      document.body.classList.add('modal-open');
+    }
+
+    function closeJumpModal(){
+      const modal = document.getElementById('jumpModal');
+      if (!modal) return;
+      modal.classList.remove('show');
+      document.body.classList.remove('modal-open');
+    }
+
+    function changeJumpMonth(delta){
+      if (!jumpModalMonth) jumpModalMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      jumpModalMonth = new Date(jumpModalMonth.getFullYear(), jumpModalMonth.getMonth() + delta, 1);
+      renderJumpCalendar();
+    }
+
+    function renderJumpCalendar(){
+      const title = document.getElementById('jumpMonthTitle');
+      const grid = document.getElementById('jumpCalendarGrid');
+      if (!title || !grid || !jumpModalMonth) return;
+
+      const y = jumpModalMonth.getFullYear();
+      const m = jumpModalMonth.getMonth();
+
+      const monthName = jumpModalMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      title.textContent = monthName;
+
+      // Determine first visible date in grid (start on Sunday)
+      const firstOfMonth = new Date(y, m, 1);
+      const startDay = firstOfMonth.getDay(); // 0=Sun
+      const gridStart = new Date(y, m, 1 - startDay);
+
+      // 6 weeks x 7 days = 42 cells
+      grid.innerHTML = "";
+      for (let i=0; i<42; i++){
+        const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i);
+        const isThisMonth = d.getMonth() === m;
+        const isMonday = d.getDay() === 1;
+        const iso = toISODate(d);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cal-day' + (isThisMonth ? '' : ' cal-out') + (isMonday ? ' cal-mon' : ' cal-disabled');
+
+        btn.textContent = String(d.getDate());
+        btn.setAttribute('data-iso', iso);
+
+        // Highlight current selected week
+        if (getWeekStart() === iso) btn.classList.add('cal-selected');
+
+        if (isMonday){
+          btn.addEventListener('click', () => {
+            setWeek(iso);
+            closeJumpModal();
+          });
+        } else {
+          btn.disabled = true;
+          btn.tabIndex = -1;
+        }
+
+        grid.appendChild(btn);
       }
     }
 
+    function setThisWeek(){
+      const now = new Date();
+      const mon = mondayOfDate(now);
+      setWeek(toISODate(mon));
+    }
+
+    async function refreshAuthUI(){
+      const { data } = await supabaseClient.auth.getUser();
+      currentUser = data?.user ?? null;
+
+      document.body.classList.toggle('authed', !!currentUser);
+
+      document.getElementById('logoutBtn').style.display = currentUser ? 'inline-block' : 'none';
+      document.getElementById('loginBtn').style.display = currentUser ? 'none' : 'inline-block';
+      document.getElementById('email').style.display = currentUser ? 'none' : 'inline-block';
+      document.getElementById('password').style.display = currentUser ? 'none' : 'inline-block';
+
+      document.getElementById('authStatus').textContent = currentUser
+        ? `Signed in as ${currentUser.email} (sync on)`
+        : 'Not signed in (local-only).';
+
+      document.getElementById('authLinks').style.display = currentUser ? 'none' : 'flex';
+    
+      
+      // Hide recovery UI unless we're actively in a recovery session
+      const recoveryActive = (sessionStorage.getItem('pw_recovery_pending') === '1');
+      if (!recoveryActive){
+        const rb = document.getElementById('recoveryBox');
+        if (rb) rb.style.display = 'none';
+      }
+}
+
+    async function login(){
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      if (!email || !password) return alert('Enter email + password');
+
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) return alert(error.message);
+
+      sessionStorage.removeItem('pw_recovery_pending');
+      await refreshAuthUI();
+      await syncFromServerForWeek();
+      setStatus('Logged in. Synced.');
+    }
+    
+    async function sendMagicLink(){
+      const email = document.getElementById('email').value.trim();
+      if (!email) return alert('Enter your email first.');
+
+      const redirectTo = window.location.origin + '/training2.html';
+      setStatus('Sending magic link...');
+
+      const { error } = await supabaseClient.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: redirectTo }
+      });
+
+      if (error) {
+        console.warn('magic link error:', error.message);
+        setStatus('Magic link error.');
+        return alert(error.message);
+      }
+
+      setStatus('Magic link sent. Check your email.');
+      alert('Magic link sent. Check your email and open the link in this browser.');
+    }
+
+    async function forgotPassword(){
+      const email = document.getElementById('email').value.trim();
+      if (!email) return alert('Enter your email first.');
+
+      const redirectTo = window.location.origin + '/training2.html';
+      setStatus('Sending reset link...');
+
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+
+      if (error) {
+        console.warn('reset password error:', error.message);
+        setStatus('Reset link error.');
+        return alert(error.message);
+      }
+
+      setStatus('Reset link sent. Check your email.');
+      alert('Password reset link sent. Check your email and open the link in this browser.');
+    }
 
 
-    function applyTargetsToUI(targets){
-      // Inline target values
+    async function logout(){
+      try {
+        await supabaseClient.auth.signOut();
+      } finally {
+        // Clear any recovery state
+        sessionStorage.removeItem('pw_recovery_pending');
+
+        // Reset UI state immediately
+        await refreshAuthUI();
+        setStatus('Logged out. Local-only.');
+
+        // Force a real navigation (some browsers won't reload if replace() points to identical URL)
+        const base = window.location.origin + window.location.pathname;
+        const qs = new URLSearchParams(window.location.search || "");
+        qs.set('ts', String(Date.now())); // cache-bust
+        // Drop hash entirely
+        window.location.href = base + "?" + qs.toString();
+      }
+    }
+
+    // ===== Password recovery flow (GitHub Pages) =====
+    // Supabase recovery links redirect back with tokens in the URL hash.
+    async function handleRecoveryFromUrl(){
+      const hash = window.location.hash || "";
+      const search = window.location.search || "";
+
+      // If a prior auth-state callback marked recovery pending, show the UI even if the URL hash is bare '#'
+      if (sessionStorage.getItem('pw_recovery_pending') === '1') {
+        document.getElementById('recoveryBox').style.display = 'block';
+        document.getElementById('recoveryStatus').textContent = "Password recovery session detected. Set your new password.";
+        return;
+      }
+
+      // If the URL contains an error (e.g., otp_expired), show it for clarity.
+      if (hash.includes("error=")){
+        const params = new URLSearchParams(hash.replace(/^#/, ""));
+        const err = params.get("error_description") || params.get("error_code") || params.get("error") || "Unknown error";
+        const box = document.getElementById('recoveryBox');
+        const status = document.getElementById('recoveryStatus');
+        box.style.display = 'block';
+        status.textContent = "Recovery link error: " + decodeURIComponent((err || "").replace(/\+/g, " "));
+        return;
+      }
+
+      // ---- FLOW 1: Implicit hash tokens (#access_token=...&refresh_token=...&type=recovery)
+      try {
+        if (hash.includes("access_token=") && hash.includes("refresh_token=")){
+          const params = new URLSearchParams(hash.replace(/^#/, ""));
+          const access_token = params.get("access_token");
+          const refresh_token = params.get("refresh_token");
+          const type = params.get("type"); // "recovery" for reset-password flows
+
+          if (access_token && refresh_token){
+            const { error } = await supabaseClient.auth.setSession({ access_token, refresh_token });
+            if (!error){
+              if (type === "recovery"){
+                sessionStorage.setItem('pw_recovery_pending', '1');
+                document.getElementById('recoveryBox').style.display = 'block';
+                document.getElementById('recoveryStatus').textContent = "Password recovery session detected. Set your new password below.";
+              }
+              history.replaceState(null, document.title, window.location.pathname + window.location.search);
+              await refreshAuthUI();
+              return;
+            } else {
+              console.warn("setSession error:", error.message);
+            }
+          }
+        }
+      } catch (e){
+        console.warn("handleRecoveryFromUrl hash flow error:", e);
+      }
+
+      // ---- FLOW 2: PKCE code flow (?code=...)
+      try {
+        const qs = new URLSearchParams(search.replace(/^\?/, ""));
+        const code = qs.get("code");
+        if (code){
+          const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
+          if (!error){
+            history.replaceState(null, document.title, window.location.pathname);
+            await refreshAuthUI();
+            return;
+          } else {
+            console.warn("exchangeCodeForSession error:", error.message);
+          }
+        }
+      } catch (e){
+        console.warn("handleRecoveryFromUrl code flow error:", e);
+      }
+    }
+
+    async function setNewPassword(){
+      const p1 = document.getElementById('newPassword').value;
+      const p2 = document.getElementById('newPassword2').value;
+      const status = document.getElementById('recoveryStatus');
+
+      if (!p1 || p1.length < 8){
+        status.textContent = "Password must be at least 8 characters.";
+        return;
+      }
+      if (p1 !== p2){
+        status.textContent = "Passwords do not match.";
+        return;
+      }
+
+      status.textContent = "Setting password...";
+      const { error } = await supabaseClient.auth.updateUser({ password: p1 });
+      if (error){
+        status.textContent = "Failed: " + error.message;
+        return;
+      }
+
+      status.textContent = "Password updated. You can now log in.";
+      // Remove tokens from URL
+      history.replaceState(null, document.title, window.location.pathname + window.location.search);
+      await refreshAuthUI();
+    }
+
+
+    function collectActualsFromUI(){
+      const data = {};
+      const inputs = document.querySelectorAll('#trackerForm input, #trackerForm textarea, #trackerForm select');
+      inputs.forEach(input => {
+        if (input.id === 'Coach_Targets') return;
+        if (!input.id) return;
+        data[input.id] = (input.type === 'checkbox') ? input.checked : input.value;
+      });
+      return data;
+    }
+
+    function applyActualsToUI(data){
+      if (!data) return;
+      for (const id in data){
+        const el = document.getElementById(id);
+        if (!el) continue;
+        if (el.type === 'checkbox') el.checked = !!data[id];
+        else el.value = data[id];
+      }
+    }
+
+    function autoSaveLocal(){
+      const data = collectActualsFromUI();
+      localStorage.setItem(getStorageKey(), JSON.stringify(data));
+      setStatus('Saved locally.');
+    }
+
+    function scheduleSave(){
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(async () => {
+        autoSaveLocal();
+        await autoSaveServerBestEffort();
+      }, 400);
+    }
+
+    async function autoSaveServerBestEffort(){
+      if (!currentUser) return;
+      if (syncing) return;
+
+      const weekStart = getWeekStart();
+      const actuals = collectActualsFromUI();
+
+      const payload = {
+        user_id: currentUser.id,
+        week_start: weekStart,
+        actuals: actuals,
+        weekly_summary: document.getElementById('Weekly_Commentary')?.value || null
+      };
+
+      const { error } = await supabaseClient
+        .from('user_workout_logs')
+        .upsert(payload, { onConflict: 'user_id,week_start' });
+
+      if (error) {
+        console.warn('upsert user_workout_logs error:', error.message);
+        setStatus('Saved locally (sync error).');
+      } else {
+        setStatus('Saved (synced).');
+      }
+    }
+
+    
+    function normalizeNewlines(s){
+      // Handles both real newlines and literal "\n" sequences that can show up from pasted/serialized data
+      return (s || '').replace(/\\n/g, '\n').replace(/\r\n/g, '\n');
+    }
+
+function applyTargetsToUI(targets){
       document.querySelectorAll('[data-target]').forEach(el => {
         const key = el.getAttribute('data-target');
         if (targets[key]) el.textContent = targets[key];
       });
 
-      // Coach voice-over / instructions (shown at top when coach targets active)
-      const note = (targets['Coach_Week_Notes'] || '').trim();
+      const note = normalizeNewlines((targets['Coach_Week_Notes'] || '').trim());
       if (note){
         document.getElementById('coachNoteText').textContent = note;
         document.getElementById('coachNote').style.display = 'block';
@@ -683,14 +1310,119 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
       }
     }
 
+    function loadTargetsLocal(){
+      const saved = localStorage.getItem(getTargetsKey());
+      if (!saved) return false;
+      try {
+        const targets = JSON.parse(saved);
+        applyTargetsToUI(targets);
+        document.getElementById('coachBadge').style.display = 'block';
+        document.getElementById('coachControls').style.display = 'block';
+        document.getElementById('coachBox').classList.add('hidden');
+        return true;
+      } catch(e) {
+        console.warn('Bad targets JSON', e);
+        return false;
+      }
+    }
 
+    async function fetchWeekPlanFromServer(weekStart){
+      if (!currentUser) return null;
+      const { data, error } = await supabaseClient
+        .from('user_week_plans')
+        .select('targets, coach_notes')
+        .eq('user_id', currentUser.id)
+        .eq('week_start', weekStart)
+        .maybeSingle();
+      if (error) {
+        console.warn('fetchWeekPlanFromServer error:', error.message);
+        return null;
+      }
+      return data;
+    }
+
+    async function fetchWeekLogFromServer(weekStart){
+      if (!currentUser) return null;
+      const { data, error } = await supabaseClient
+        .from('user_workout_logs')
+        .select('actuals, weekly_summary')
+        .eq('user_id', currentUser.id)
+        .eq('week_start', weekStart)
+        .maybeSingle();
+      if (error) {
+        console.warn('fetchWeekLogFromServer error:', error.message);
+        return null;
+      }
+      return data;
+    }
+
+    async function syncFromServerForWeek(){
+      if (!currentUser) return;
+      const weekStart = getWeekStart();
+      if (!weekStart) return;
+
+      syncing = true;
+      try {
+        const plan = await fetchWeekPlanFromServer(weekStart);
+        if (plan?.targets) {
+          localStorage.setItem(getTargetsKey(weekStart), JSON.stringify(plan.targets));
+          applyTargetsToUI(plan.targets);
+          // Prefer dedicated coach_notes field if present (keeps formatting clean)
+          if (plan?.coach_notes){
+            const n = normalizeNewlines(plan.coach_notes);
+            if (n.trim()){
+              document.getElementById('coachNoteText').textContent = n;
+              document.getElementById('coachNote').style.display = 'block';
+            }
+          }
+
+          document.getElementById('coachBadge').style.display = 'block';
+          document.getElementById('coachControls').style.display = 'block';
+          document.getElementById('coachBox').classList.add('hidden');
+        }
+
+        const log = await fetchWeekLogFromServer(weekStart);
+        if (log?.actuals) {
+          localStorage.setItem(getStorageKey(weekStart), JSON.stringify(log.actuals));
+          applyActualsToUI(log.actuals);
+        }
+        if (log?.weekly_summary) {
+          const ws = document.getElementById('Weekly_Commentary');
+          if (ws) ws.value = log.weekly_summary;
+        }
+      } finally {
+        syncing = false;
+      }
+    }
+
+    async function upsertWeekPlanToServer(weekStart, targets){
+      if (!currentUser) return;
+
+      const payload = {
+        user_id: currentUser.id,
+        week_start: weekStart,
+        program_code: 'run_strength_12wk_v1',
+        week_number: 0,
+        coach_notes: normalizeNewlines((targets['Coach_Week_Notes'] || '')),
+        targets: targets
+      };
+
+      const { error } = await supabaseClient
+        .from('user_week_plans')
+        .upsert(payload, { onConflict: 'user_id,week_start' });
+
+      if (error) {
+        console.warn('upsert user_week_plans error:', error.message);
+        setStatus('Targets applied locally (sync error).');
+      } else {
+        setStatus('Targets applied (synced).');
+      }
+    }
 
     function applyCoachTargets(){
       const raw = (document.getElementById('Coach_Targets').value || '').trim();
-      if (!raw){ alert("Paste targets first."); return; }
+      if (!raw){ alert('Paste targets first.'); return; }
 
-      // Parse KEY: VALUE lines.
-      // Special case: Coach_Week_Notes can span multiple lines until the next KEY: line.
       const targets = {};
       const lines = raw.split(/\r?\n/);
 
@@ -701,7 +1433,6 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
 
         if (!line || line.startsWith('#') || line.startsWith('//')) continue;
 
-        // Match KEY: VALUE
         const m = line.match(/^([A-Za-z0-9_]+)\s*:\s*(.*)$/);
         if (!m) continue;
 
@@ -709,13 +1440,11 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
         let val = (m[2] || '').trim();
 
         if (key === 'Coach_Week_Notes'){
-          // Collect continuation lines until next KEY: line
           const noteLines = [val];
           while (i < lines.length){
             const peek = lines[i];
             const peekTrim = peek.trim();
             if (!peekTrim || peekTrim.startsWith('#') || peekTrim.startsWith('//')){
-              // allow blank/comment lines inside notes
               noteLines.push(peek);
               i += 1;
               continue;
@@ -724,61 +1453,67 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
             noteLines.push(peek);
             i += 1;
           }
-          val = noteLines.join("\n").trim();
+          val = noteLines.join('\n').trim();
         }
 
-        // Convert literal \n sequences to real newlines for convenience
-        val = val.replace(/\\n/g, "\n");
-
+        val = val.replace(/\\n/g, '\n');
         targets[key] = val;
       }
 
-      if (Object.keys(targets).length === 0){
-        alert("No KEY: VALUE lines found.");
-        return;
-      }
+      if (Object.keys(targets).length === 0){ alert('No KEY: VALUE lines found.'); return; }
 
       localStorage.setItem(getTargetsKey(), JSON.stringify(targets));
       applyTargetsToUI(targets);
 
-      // Clear input and flip UI into "coach active" mode
       document.getElementById('Coach_Targets').value = '';
       document.getElementById('coachBadge').style.display = 'block';
       document.getElementById('coachControls').style.display = 'block';
       document.getElementById('coachBox').classList.add('hidden');
 
-      document.getElementById('status').innerText = "Targets applied (coach overrides).";
+      setStatus('Targets applied locally.');
+      upsertWeekPlanToServer(getWeekStart(), targets);
     }
 
-
-
-
     function clearTargets(){
-      if (!confirm("Clear coach targets for this week?")) return;
+      if (!confirm('Clear coach targets for this week?')) return;
       localStorage.removeItem(getTargetsKey());
 
-      // Reset UI state and reload defaults
       document.getElementById('coachBadge').style.display = 'none';
       document.getElementById('coachControls').style.display = 'none';
       document.getElementById('coachNote').style.display = 'none';
       document.getElementById('coachBox').classList.remove('hidden');
+
+      (async () => {
+        if (!currentUser) return;
+        const weekStart = getWeekStart();
+        const { error } = await supabaseClient
+          .from('user_week_plans')
+          .delete()
+          .eq('user_id', currentUser.id)
+          .eq('week_start', weekStart);
+        if (error) console.warn('delete user_week_plans error:', error.message);
+      })();
+
       location.reload();
     }
 
-
-
     function loadWeekData(){
-      const savedData = localStorage.getItem(getStorageKey());
+      // Update visible label
+      try {
+        document.getElementById('weekLabel').textContent = formatWeekLabel(getWeekStart());
+      } catch(e) {}
+
+      const weekStart = getWeekStart();
+      const savedData = localStorage.getItem(getStorageKey(weekStart));
       const inputs = document.querySelectorAll('#trackerForm input, #trackerForm textarea, #trackerForm select');
 
-      // reset fields (keep coach targets box untouched)
       inputs.forEach(i => {
         if (i.id === 'weekDate' || i.id === 'Coach_Targets') return;
         if (i.type === 'checkbox') i.checked = false;
         else i.value = '';
       });
 
-      const hadTargets = loadTargets();
+      const hadTargets = loadTargetsLocal();
       if (!hadTargets){
         document.getElementById('coachBadge').style.display = 'none';
         document.getElementById('coachControls').style.display = 'none';
@@ -787,27 +1522,41 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
       }
 
       if (savedData){
-        const data = JSON.parse(savedData);
-        for (const id in data){
-          const el = document.getElementById(id);
-          if (el){
-            if (el.type === 'checkbox') el.checked = data[id];
-            else el.value = data[id];
-          }
+        try {
+          const data = JSON.parse(savedData);
+          applyActualsToUI(data);
+        } catch(e) {
+          console.warn('Bad local actuals JSON', e);
         }
+      }
+
+      if (currentUser) {
+        syncFromServerForWeek().then(() => setStatus('Loaded (synced).'));
+      } else {
+        setStatus('Loaded (local).');
       }
     }
 
     function clearWeek(){
-      if (!confirm("Clear this week?")) return;
+      if (!confirm('Clear this week?')) return;
       localStorage.removeItem(getStorageKey());
       loadWeekData();
-      document.getElementById('status').innerText = "Cleared week (targets kept).";
+      setStatus('Cleared week (targets kept).');
+
+      (async () => {
+        if (!currentUser) return;
+        const weekStart = getWeekStart();
+        const { error } = await supabaseClient
+          .from('user_workout_logs')
+          .delete()
+          .eq('user_id', currentUser.id)
+          .eq('week_start', weekStart);
+        if (error) console.warn('delete user_workout_logs error:', error.message);
+      })();
     }
 
     async function shareData(){
-      // Targets snapshot (what was displayed in the UI this week)
-      const week = document.getElementById('weekDate').value;
+      const week = getWeekStart();
       let summary = `Workout Summary: ${week}\n\n`;
 
       summary += `TARGETS (as displayed in UI)\n`;
@@ -823,18 +1572,88 @@ Thu_A1_Squat_Target: 125x6-8 x3"></textarea>
 
       summary += `\nACTUALS\n(Assumed completed as prescribed unless Actuals/Notes say otherwise)\n`;
 
-      // Actuals inputs
       const inputs = document.querySelectorAll('#trackerForm input, #trackerForm textarea, #trackerForm select');
       inputs.forEach(input => {
-        if (input.id === 'Coach_Targets') return; // coach box is input-only
-        const val = input.type === 'checkbox' ? (input.checked ? "DONE" : "") : input.value;
+        if (input.id === 'Coach_Targets') return;
+        const val = input.type === 'checkbox' ? (input.checked ? 'DONE' : '') : input.value;
         const name = input.getAttribute('data-name') || input.id;
-        if (val && val !== "") summary += `\n${name}: ${val}`;
+        if (val && val !== '') summary += `\n${name}: ${val}`;
       });
 
       await navigator.clipboard.writeText(summary);
-      alert("Summary copied to clipboard!");
+      alert('Summary copied to clipboard!');
+    }
+
+    async function initApp(){
+      const d = new Date();
+      const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const mondayDate = new Date(d.setDate(diff));
+
+      // Use en-CA (English Canada) because it uses the YYYY-MM-DD format naturally
+      const monday = mondayDate.toLocaleDateString('en-CA');
+
+      document.getElementById('weekDate').value = monday;
+      document.getElementById('weekLabel').textContent = formatWeekLabel(monday);
+
+      document.getElementById('loginBtn').addEventListener('click', login);
+      document.getElementById('logoutBtn').addEventListener('click', logout);
+
+      
+      document.getElementById('setPasswordBtn').addEventListener('click', setNewPassword);
+
+      document.getElementById('magicLinkBtn').addEventListener('click', sendMagicLink);
+      document.getElementById('forgotPwBtn').addEventListener('click', forgotPassword);
+      // Week navigation
+      document.getElementById('prevWeekBtn').addEventListener('click', () => shiftWeek(-1));
+      document.getElementById('nextWeekBtn').addEventListener('click', () => shiftWeek(1));
+      document.getElementById('weekLabel').addEventListener('click', openJumpModal);      // Jump modal controls
+      document.getElementById('jumpPrevMonth').addEventListener('click', () => changeJumpMonth(-1));
+      document.getElementById('jumpNextMonth').addEventListener('click', () => changeJumpMonth(1));
+      document.getElementById('jumpCloseBtn').addEventListener('click', closeJumpModal);
+      document.getElementById('jumpBackdrop').addEventListener('click', closeJumpModal);
+      document.getElementById('jumpTodayInModal').addEventListener('click', () => { setThisWeek(); closeJumpModal(); });
+
+      await refreshAuthUI();
+
+      await handleRecoveryFromUrl();
+
+      loadWeekData();
+      loadTargetsLocal();
+      if (currentUser) await syncFromServerForWeek();
+
+      document.getElementById('trackerForm').addEventListener('input', scheduleSave);
     }
   </script>
+
+
+  <!-- Jump-to-week Modal (Mondays only) -->
+  <div id="jumpModal" class="modal">
+    <div class="modal-backdrop" id="jumpBackdrop"></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="jumpModalTitle">
+      <div class="modal-head">
+        <div id="jumpModalTitle" class="modal-title">Jump to week</div>
+        <button type="button" class="modal-close" id="jumpCloseBtn" aria-label="Close">×</button>
+      </div>
+
+      <div class="modal-sub">Select a <b>Monday</b> to load that week.</div>
+
+      <div class="cal-head">
+        <button type="button" class="btn btn-clear cal-nav" id="jumpPrevMonth" aria-label="Previous month">‹</button>
+        <div id="jumpMonthTitle" class="cal-title">—</div>
+        <button type="button" class="btn btn-clear cal-nav" id="jumpNextMonth" aria-label="Next month">›</button>
+      </div>
+
+      <div class="cal-dow">
+        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+      </div>
+
+      <div id="jumpCalendarGrid" class="cal-grid"></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-clear" id="jumpTodayInModal">This week</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
