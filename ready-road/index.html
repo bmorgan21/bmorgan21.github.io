@@ -831,17 +831,10 @@
 
             if (!email || !password || !name) return showToast("Complete all enrollment parameters.", 'warning');
 
-            await withActionLock('signup', trigger, 'Creating...', async () => {
-                const { data, error } = await withLoading('Creating account...', () => supabaseClient.auth.signUp({ email, password }));
+            await withActionLock('signup', trigger, 'Creating account...', async () => {
+                const { data, error } = await withLoading('Creating account...', () => supabaseClient.auth.signUp({ email, password, options: { data: { role, display_name: name } }}));
                 if (error) return showToast(error.message, 'error');
 
-                if (data.user) {
-                    // Bug Fix B: Explicit profile creation record fallback synchronization
-                    const { error: dbErr } = await supabaseRequest('Creating profile...', () => supabaseClient.from('profiles').insert([
-                        { id: data.user.id, role: role, display_name: name }
-                    ]));
-                    if (dbErr) console.error("Profile auto-sync error context:", dbErr.message);
-                }
                 showToast("Enrollment successful! Signing into session system.", 'success');
             });
         }
@@ -1108,7 +1101,7 @@
                     if(d.day_night === 'night') nightMins += d.duration_minutes || 0;
 
                     const row = document.createElement('div');
-                    row.className = "p-2.5 bg-slate-50 border border-slate-100 rounded-lg text-xs flex justify-between";
+                    row.className = "p-3 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center text-xs";
                     // Change this line inside the loop:
                     row.innerHTML = `<div><div class="font-bold text-slate-800">${new Date(d.start_time).toLocaleDateString()} &bull; ${Math.round(d.duration_minutes)} mins</div><div class="text-slate-400 text-[11px] mt-0.5">${d.start_address} ➡️ ${d.end_address}</div></div><span class="px-2 py-0.5 font-bold uppercase rounded text-[10px] ${d.day_night === 'night'?'bg-indigo-50 text-indigo-600':'bg-amber-50 text-amber-600'}">${d.day_night}</span>`;
                     list.appendChild(row);
