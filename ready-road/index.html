@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>ReadyRoad</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="ReadyRoad">
+
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Modern mobile wrapper fallback definitions */
+        .app-screen { display: none; }
+        .app-screen.active { display: block; }
+
+        html {
+            overscroll-behavior-y: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body.drive-active {
+            overscroll-behavior: none;
+            overflow: hidden;
+        }
+
+        input, select, textarea, button {
+            font-size: 16px;
+            touch-action: manipulation;
+        }
+
+        @media (min-width: 640px) {
+            input, select, textarea, button { font-size: 14px; }
+        }
+
+        #installAppBanner {
+            padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+        }
+        
+        @media print {
+    body * { visibility: hidden; }
+    #printTemplate, #printTemplate * { visibility: visible; }
+    #printTemplate { 
+        position: absolute; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        background: white; 
+        color: black; 
+        display: block !important; 
+    }
+    .print-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+    .print-table th, .print-table td { border: 1px solid black; padding: 6px; text-align: left; }
+}
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen font-sans antialiased">
+
+    <div id="installAppBanner" class="hidden fixed left-4 right-4 bottom-0 z-[80] pointer-events-none">
+        <div class="max-w-md mx-auto bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 pointer-events-auto">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black shrink-0">R</div>
+                <div class="flex-1 min-w-0">
+                    <div id="installAppTitle" class="font-black text-slate-800 text-sm">Install ReadyRoad</div>
+                    <div id="installAppMessage" class="text-xs text-slate-500 mt-0.5 leading-relaxed">Add ReadyRoad to your home screen for a full-screen app experience.</div>
+                    <div id="installAppActions" class="flex gap-2 mt-3">
+                        <button id="installAppBtn" type="button" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition">Install App</button>
+                        <button id="dismissInstallBtn" type="button" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-lg text-xs transition">Not Now</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="toastContainer" class="fixed top-4 left-4 right-4 z-[100] space-y-2 pointer-events-none"></div>
+    <div id="globalLoadingOverlay" class="hidden fixed inset-0 z-[90] bg-slate-900/20 backdrop-blur-[1px] items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 px-5 py-4 flex items-center gap-3 text-sm font-bold text-slate-700">
+            <div class="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <span id="globalLoadingText">Working...</span>
+        </div>
+    </div>
+    <div id="confirmDialog" class="hidden fixed inset-0 z-[110] bg-slate-900/40 backdrop-blur-sm items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 p-5 space-y-4">
+            <div>
+                <h2 id="confirmDialogTitle" class="text-lg font-black text-slate-800">Confirm action</h2>
+                <p id="confirmDialogMessage" class="text-sm text-slate-500 mt-1 leading-relaxed"></p>
+            </div>
+            <div class="grid grid-cols-2 gap-3 pt-1">
+                <button id="confirmDialogCancel" type="button" class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition">Cancel</button>
+                <button id="confirmDialogConfirm" type="button" class="py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-md mx-auto p-4 pb-20">
+        <header class="mb-6 pt-4 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black shadow-sm shrink-0">R</div>
+                <div class="min-w-0">
+                    <h1 class="text-2xl font-black tracking-tight text-blue-600 leading-none">ReadyRoad</h1>
+                    <div id="appHeaderSubtitle" class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-1">Driving Log</div>
+                </div>
+            </div>
+            <button id="globalLogoutBtn" onclick="handleLogout(event)" class="hidden shrink-0 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 text-xs font-black shadow-sm transition">
+                Sign Out
+            </button>
+        </header>
+
+        <section id="authScreen" class="app-screen active bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <div class="flex gap-2 mb-6">
+                <button id="showLoginBtn" class="flex-1 py-2.5 font-bold rounded-xl bg-blue-600 text-white transition">Login</button>
+                <button id="showSignupBtn" class="flex-1 py-2.5 font-bold rounded-xl bg-slate-100 text-slate-600 transition">Sign Up</button>
+            </div>
+
+            <form id="loginPanel" onsubmit="handleLogin(event)" class="space-y-3">
+                <input id="loginEmail" type="email" placeholder="Email Address" autocomplete="email" class="w-full border border-slate-200 p-3 rounded-xl focus:outline-blue-500">
+                <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" class="w-full border border-slate-200 p-3 rounded-xl focus:outline-blue-500">
+                <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition mt-2">Sign In</button>
+            </form>
+
+            <form id="signupPanel" onsubmit="handleSignup(event)" class="hidden space-y-3">
+                <input id="signupName" type="text" placeholder="Display Name" autocomplete="name" class="w-full border border-slate-200 p-3 rounded-xl focus:outline-blue-500">
+                <input id="signupEmail" type="email" placeholder="Email Address" autocomplete="email" class="w-full border border-slate-200 p-3 rounded-xl focus:outline-blue-500">
+                <input id="signupPassword" type="password" placeholder="Password" autocomplete="new-password" class="w-full border border-slate-200 p-3 rounded-xl focus:outline-blue-500">
+                <select id="signupRole" class="w-full border border-slate-200 p-3 rounded-xl focus:outline-blue-500 bg-white">
+                    <option value="parent">I am a Parent / Supervisor</option>
+                    <option value="child">I am a Teen Driver</option>
+                </select>
+                <button type="submit" class="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition mt-2">Create Account</button>
+            </form>
+        </section>
+
+        <section id="parentDashboard" class="app-screen space-y-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center">
+                <div>
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Supervisor Profile</div>
+                    <div id="parentName" class="font-bold text-slate-800 text-lg"></div>
+                </div>
+            </div>
+
+            <div id="parentDriverSelectorCard" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Active Target Driver</label>
+                <select id="childSelector" onchange="handleChildSelectionChange()" class="w-full border border-slate-200 p-2.5 rounded-lg bg-white text-sm"></select>
+            </div>
+
+            <div id="parentLinkTeenCard" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <h3 class="font-bold text-slate-700 mb-2 text-sm uppercase tracking-wide">Link Teen Driver</h3>
+                <div class="flex gap-2">
+                    <input id="shareCodeInput" type="text" placeholder="Enter Child Share Code" class="flex-1 border border-slate-200 p-2.5 rounded-lg text-sm uppercase">
+                    <button onclick="linkChild(event)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 font-bold rounded-lg text-sm transition">Link</button>
+                </div>
+            </div>
+
+            <div id="parentProgressCard" class="parent-driver-dependent bg-white p-4 rounded-xl shadow-sm border border-slate-100 space-y-4">
+                <div>
+                    <div class="flex justify-between text-xs font-bold mb-1">
+                        <span class="text-slate-500">Total Practice Progress</span>
+                        <span id="totalHoursText" class="text-blue-600">0.0 / 40.0 Hours</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                        <div id="totalHoursBar" class="bg-blue-600 h-full transition-all" style="width:0%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs font-bold mb-1">
+                        <span class="text-slate-500">Night Practice Progress</span>
+                        <span id="nightHoursText" class="text-indigo-600">0.0 / 10.0 Hours</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                        <div id="nightHoursBar" class="bg-indigo-600 h-full transition-all" style="width:0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="parentActionsCard" class="parent-driver-dependent grid grid-cols-2 gap-3">
+                <button onclick="startGPSDriveFlow()" class="p-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-center text-sm shadow-sm transition">⏱️ Live GPS Drive</button>
+                <button onclick="openManualFormFlow()" class="p-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-center text-sm shadow-sm transition">📝 Manual Entry</button>
+                <button onclick="exportDMV()" class="col-span-2 p-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-center text-sm shadow-sm transition">📄 Export NH DMV Log (PDF)</button>
+            </div>
+
+            <div id="parentHistoryCard" class="parent-driver-dependent bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <h2 class="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wide">Drive Log History</h2>
+                <div id="parentDriveList" class="space-y-2 max-h-60 overflow-y-auto"></div>
+            </div>
+        </section>
+
+        <section id="trackerScreen" class="app-screen bg-white p-6 rounded-2xl shadow-sm border border-slate-100 text-center space-y-6">
+            <div class="flex justify-center items-center gap-2">
+                <div id="gpsStatus" class="w-3 h-3 rounded-full bg-red-500"></div>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400" id="gpsStatusText">GPS Standby</span>
+            </div>
+            <div id="timerDisplay" class="text-6xl font-mono font-black text-slate-800">00:00</div>
+            <button id="trackerButton" onclick="toggleGPSEngine()" class="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-black text-lg rounded-xl transition shadow-md">START DRIVE</button>
+            <button onclick="abortGPSTracking()" class="text-xs text-slate-400 hover:text-slate-600 underline block mx-auto">Cancel / Return Dashboard</button>
+        </section>
+
+        <section id="driveFormScreen" class="app-screen bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+            <h2 id="formTitle" class="font-black text-xl text-slate-800 border-b pb-2">Log Drive Details</h2>
+            <form id="driveLogForm" onsubmit="handleFormSubmission(event)" class="space-y-3">
+                <input type="hidden" id="formMode" value="manual">
+                <input type="hidden" id="formStartLat"><input type="hidden" id="formStartLon">
+                <input type="hidden" id="formEndLat"><input type="hidden" id="formEndLon">
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Start Time</label>
+                        <input id="formStartTime" type="datetime-local" required class="w-full border p-2 rounded-lg text-sm bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">End Time</label>
+                        <input id="formEndTime" type="datetime-local" required class="w-full border p-2 rounded-lg text-sm bg-slate-50">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Start Place</label>
+                        <input id="formStartAddress" type="text" placeholder="City / Town" class="w-full border p-2 rounded-lg text-sm bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">End Place</label>
+                        <input id="formEndAddress" type="text" placeholder="City / Town" class="w-full border p-2 rounded-lg text-sm bg-slate-50">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Classification</label>
+                    <select id="formDayNight" class="w-full border p-2 rounded-lg text-sm bg-white">
+                        <option value="day">Day Drive</option>
+                        <option value="night">Night Drive</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Road Type</label>
+                        <select id="formRoadType" required class="w-full border p-2 rounded-lg text-sm bg-white">
+                            <option value="Local">Local</option>
+                            <option value="Highway">Highway</option>
+                            <option value="Rural">Rural</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Weather</label>
+                        <select id="formWeather" required class="w-full border p-2 rounded-lg text-sm bg-white">
+                            <option value="Clear">Clear</option>
+                            <option value="Rain">Rain</option>
+                            <option value="Snow">Snow</option>
+                            <option value="Fog">Fog</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Supervisor Name</label>
+                    <input id="formSupervisorName" type="text" required class="w-full border p-2 rounded-lg text-sm bg-slate-50">
+                </div>
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <button type="button" onclick="cancelFormEngine()" class="py-2.5 bg-slate-100 font-bold rounded-xl text-sm transition">Cancel</button>
+                    <button type="submit" class="py-2.5 bg-green-600 text-white font-bold rounded-xl text-sm transition">Save Log Entry</button>
+                </div>
+            </form>
+        </section>
+
+        <section id="childDashboard" class="app-screen space-y-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <div id="childName" class="font-black text-xl text-slate-800"></div>
+                <div class="text-xs text-slate-400 mt-1 uppercase font-bold tracking-wider">Your Unique Share Code:</div>
+                <div class="flex items-center gap-2 mt-1.5 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                    <code id="shareCodeDisplay" class="text-sm font-mono font-bold text-blue-600 tracking-wider flex-1"></code>
+                    <button onclick="copyChildShareCode()" class="bg-slate-200 hover:bg-slate-300 px-3 py-1 rounded text-xs font-bold uppercase transition">Copy</button>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 space-y-4">
+                <div>
+                    <div class="flex justify-between text-xs font-bold mb-1">
+                        <span class="text-slate-500">Total Practice Progress</span>
+                        <span id="childTotalText" class="text-blue-600">0.0 / 40.0 Hours</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                        <div id="childTotalBar" class="bg-blue-600 h-full transition-all" style="width:0%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs font-bold mb-1">
+                        <span class="text-slate-500">Night Practice Progress</span>
+                        <span id="childNightText" class="text-indigo-600">0.0 / 10.0 Hours</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                        <div id="childNightBar" class="bg-indigo-600 h-full transition-all" style="width:0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <h2 class="font-bold text-slate-700 mb-2 text-sm uppercase tracking-wide">Linked Supervisors</h2>
+                <div id="parentList" class="text-xs text-slate-500 space-y-1"></div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <h2 class="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wide">Your Verified Driving Log</h2>
+                <div id="childDriveList" class="space-y-2 max-h-64 overflow-y-auto"></div>
+            </div>
+        </section>
+    </div>
+
+    <div id="printTemplate" class="hidden print:block">
+        <h1 style="text-align:center; font-size:18px; text-transform:uppercase; margin-bottom:2px;">State of New Hampshire</h1>
+        <h2 style="text-align:center; font-size:14px; text-transform:uppercase; margin-bottom:15px; border-bottom:2px solid #000; padding-bottom:5px;">Teen Driver Certification Log</h2>
+        
+        <div style="margin-bottom: 15px; font-size: 13px; font-family: Arial, sans-serif; display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 8px;">
+            <div>Total Practice Hours: <span id="printTotalHours" style="color: #000;">0.0</span> / 40.0 Hrs</div>
+            <div>Night Driving Hours: <span id="printNightHours" style="color: #000;">0.0</span> / 10.0 Hrs</div>
+        </div>
+
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Start / End Time</th>
+                    <th>Route & Driving Conditions</th>
+                    <th>Day Mins</th>
+                    <th>Night Mins</th>
+                    <th>Supervisor Printed Name & Signature Baseline</th>
+                </tr>
+            </thead>
+            <tbody id="printTableBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        // --- PROVIDE YOUR REAL PROJECT VALUES HERE ---
+        const SUPABASE_URL = "https://nvhznwkdzwranyxbmdxs.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_4WsxVlvdM1ZIcJwG4uRIxQ_3GVHlivl";
+
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let state = {
+            user: null,
+            profile: null,
+            linkedChildren: [],
+            selectedChildId: null,
+            currentDrives: [],
+            tracker: {
+                active: false,
+                watchId: null,
+                timerInterval: null,
+                startTime: null,
+                startLat: null, startLon: null,
+                endLat: null, endLon: null,
+                elapsedSeconds: 0,
+                stopTime: null,
+                dayNight: null,
+                weather: null,
+                childId: null,
+                loggedBy: null,
+                status: 'idle'
+            }
+        };
+
+        // --- UX STABILITY LAYER ---
+        const pendingActions = new Set();
+        let loadingDepth = 0;
+
+        function showToast(message, type = 'info', duration = 4200) {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+
+            const palette = {
+                success: 'bg-green-600 text-white',
+                error: 'bg-red-600 text-white',
+                warning: 'bg-amber-500 text-white',
+                info: 'bg-slate-800 text-white'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto rounded-xl shadow-lg px-4 py-3 text-sm font-semibold transition-all ${palette[type] || palette.info}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-[-4px]');
+                setTimeout(() => toast.remove(), 250);
+            }, duration);
+        }
+
+        function setGlobalLoading(isLoading, message = 'Working...') {
+            const overlay = document.getElementById('globalLoadingOverlay');
+            const text = document.getElementById('globalLoadingText');
+            if (!overlay) return;
+            if (text) text.textContent = message;
+            overlay.classList.toggle('hidden', !isLoading);
+            overlay.classList.toggle('flex', isLoading);
+        }
+
+        async function withLoading(message, work) {
+            loadingDepth++;
+            setGlobalLoading(true, message);
+            try {
+                return await work();
+            } finally {
+                loadingDepth = Math.max(loadingDepth - 1, 0);
+                if (loadingDepth === 0) setGlobalLoading(false);
+            }
+        }
+
+        function setElementBusy(el, busy, busyText) {
+            if (!el) return;
+            if (busy) {
+                el.dataset.originalText = el.dataset.originalText || el.innerText;
+                el.disabled = true;
+                el.classList.add('opacity-60', 'cursor-not-allowed');
+                if (busyText) el.innerText = busyText;
+            } else {
+                el.disabled = false;
+                el.classList.remove('opacity-60', 'cursor-not-allowed');
+                if (el.dataset.originalText) el.innerText = el.dataset.originalText;
+                delete el.dataset.originalText;
+            }
+        }
+
+        async function withActionLock(key, triggerEl, busyText, work) {
+            if (pendingActions.has(key)) return;
+            pendingActions.add(key);
+            setElementBusy(triggerEl, true, busyText);
+            try {
+                return await work();
+            } finally {
+                setElementBusy(triggerEl, false);
+                pendingActions.delete(key);
+            }
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function isRetryableSupabaseError(error) {
+            if (!error) return false;
+            const status = error.status || error.code;
+            if ([408, 429, 500, 502, 503, 504].includes(Number(status))) return true;
+            return /network|timeout|fetch|temporarily|rate limit/i.test(error.message || '');
+        }
+
+        async function withRetry(label, work, options = {}) {
+            const retries = options.retries ?? 2;
+            const baseDelay = options.baseDelay ?? 450;
+            let lastResult;
+
+            for (let attempt = 0; attempt <= retries; attempt++) {
+                lastResult = await work();
+                if (!lastResult || !lastResult.error || !isRetryableSupabaseError(lastResult.error) || attempt === retries) {
+                    return lastResult;
+                }
+                await sleep(baseDelay * Math.pow(2, attempt));
+            }
+            return lastResult;
+        }
+
+        async function supabaseRequest(label, work, options = {}) {
+            const result = await withLoading(label, () => withRetry(label, work, options));
+            if (result && result.error) {
+                showToast(result.error.message || `${label} failed.`, 'error');
+            }
+            return result;
+        }
+
+        window.alert = (message) => showToast(String(message), 'error');
+
+        function showConfirmDialog(message, options = {}) {
+            const dialog = document.getElementById('confirmDialog');
+            const titleEl = document.getElementById('confirmDialogTitle');
+            const messageEl = document.getElementById('confirmDialogMessage');
+            const cancelBtn = document.getElementById('confirmDialogCancel');
+            const confirmBtn = document.getElementById('confirmDialogConfirm');
+
+            if (!dialog || !cancelBtn || !confirmBtn) return Promise.resolve(false);
+
+            titleEl.textContent = options.title || 'Confirm action';
+            messageEl.textContent = message;
+            cancelBtn.textContent = options.cancelText || 'Cancel';
+            confirmBtn.textContent = options.confirmText || 'Confirm';
+            confirmBtn.className = options.confirmClass || 'py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition';
+
+            dialog.classList.remove('hidden');
+            dialog.classList.add('flex');
+            confirmBtn.focus();
+
+            return new Promise(resolve => {
+                const cleanup = (value) => {
+                    dialog.classList.add('hidden');
+                    dialog.classList.remove('flex');
+                    cancelBtn.removeEventListener('click', onCancel);
+                    confirmBtn.removeEventListener('click', onConfirm);
+                    dialog.removeEventListener('click', onBackdrop);
+                    document.removeEventListener('keydown', onKeydown);
+                    resolve(value);
+                };
+                const onCancel = () => cleanup(false);
+                const onConfirm = () => cleanup(true);
+                const onBackdrop = (event) => { if (event.target === dialog) cleanup(false); };
+                const onKeydown = (event) => {
+                    if (event.key === 'Escape') cleanup(false);
+                    if (event.key === 'Enter') cleanup(true);
+                };
+
+                cancelBtn.addEventListener('click', onCancel);
+                confirmBtn.addEventListener('click', onConfirm);
+                dialog.addEventListener('click', onBackdrop);
+                document.addEventListener('keydown', onKeydown);
+            });
+        }
+
+
+        // --- PWA / MOBILE APP EXPERIENCE ---
+        let deferredInstallPrompt = null;
+
+        function isRunningStandalone() {
+            return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        }
+
+        function isIOSDevice() {
+            return /iphone|ipad|ipod/i.test(window.navigator.userAgent || '');
+        }
+
+        function showInstallBanner({ ios = false } = {}) {
+            if (isRunningStandalone() || localStorage.getItem('readyroad.installDismissed') === 'true') return;
+            const banner = document.getElementById('installAppBanner');
+            const title = document.getElementById('installAppTitle');
+            const message = document.getElementById('installAppMessage');
+            const installBtn = document.getElementById('installAppBtn');
+            if (!banner) return;
+
+            if (ios) {
+                title.textContent = 'Add ReadyRoad to Home Screen';
+                message.textContent = 'On iPhone, tap Share, then Add to Home Screen to install this app.';
+                if (installBtn) installBtn.classList.add('hidden');
+            } else {
+                title.textContent = 'Install ReadyRoad';
+                message.textContent = 'Add ReadyRoad to your home screen for a full-screen app experience.';
+                if (installBtn) installBtn.classList.remove('hidden');
+            }
+            banner.classList.remove('hidden');
+        }
+
+        function hideInstallBanner({ remember = false } = {}) {
+            document.getElementById('installAppBanner')?.classList.add('hidden');
+            if (remember) localStorage.setItem('readyroad.installDismissed', 'true');
+        }
+
+        function setupPWAInstallExperience() {
+            const installBtn = document.getElementById('installAppBtn');
+            const dismissBtn = document.getElementById('dismissInstallBtn');
+
+            window.addEventListener('beforeinstallprompt', (event) => {
+                event.preventDefault();
+                deferredInstallPrompt = event;
+                showInstallBanner();
+            });
+
+            installBtn?.addEventListener('click', async () => {
+                if (!deferredInstallPrompt) return showInstallBanner({ ios: isIOSDevice() });
+                deferredInstallPrompt.prompt();
+                const choice = await deferredInstallPrompt.userChoice;
+                deferredInstallPrompt = null;
+                if (choice?.outcome === 'accepted') hideInstallBanner({ remember: true });
+            });
+
+            dismissBtn?.addEventListener('click', () => hideInstallBanner({ remember: true }));
+            window.addEventListener('appinstalled', () => {
+                hideInstallBanner({ remember: true });
+                showToast('ReadyRoad installed successfully.', 'success');
+            });
+
+            setTimeout(() => {
+                if (isIOSDevice() && !isRunningStandalone()) showInstallBanner({ ios: true });
+            }, 1500);
+        }
+
+        function setupNetworkStatusToasts() {
+            window.addEventListener('offline', () => showToast('You are offline. Active drive recovery still works on this device, but saving requires a connection.', 'warning', 6500));
+            window.addEventListener('online', () => showToast('Back online.', 'success'));
+        }
+
+        // --- APPS SYSTEM BOOTSTRAP INITIALIZER ---
+        window.addEventListener('DOMContentLoaded', async () => {
+            setupAuthPanelToggles();
+            setupPWAInstallExperience();
+            setupNetworkStatusToasts();
+            const { data: { session } } = await withLoading('Restoring session...', () => supabaseClient.auth.getSession());
+            if (session) {
+                await evaluateUserRouting(session.user);
+            } else {
+                showAppScreen('authScreen');
+            }
+
+            supabaseClient.auth.onAuthStateChange(async (event, session) => {
+                if (event === 'SIGNED_IN' && session) {
+                    await evaluateUserRouting(session.user);
+                } else if (event === 'SIGNED_OUT') {
+                    resetGlobalState();
+                }
+            });
+        });
+
+        function showAppScreen(screenId) {
+            document.querySelectorAll('.app-screen').forEach(s => s.classList.remove('active'));
+            const target = document.getElementById(screenId);
+            if(target) target.classList.add('active');
+            document.body.classList.toggle('drive-active', screenId === 'trackerScreen');
+        }
+
+        function setupAuthPanelToggles() {
+            document.getElementById('showLoginBtn').addEventListener('click', () => {
+                document.getElementById('loginPanel').classList.remove('hidden');
+                document.getElementById('signupPanel').classList.add('hidden');
+                document.getElementById('showLoginBtn').className = "flex-1 py-2.5 font-bold rounded-xl bg-blue-600 text-white transition";
+                document.getElementById('showSignupBtn').className = "flex-1 py-2.5 font-bold rounded-xl bg-slate-100 text-slate-600 transition";
+            });
+            document.getElementById('showSignupBtn').addEventListener('click', () => {
+                document.getElementById('signupPanel').classList.remove('hidden');
+                document.getElementById('loginPanel').classList.add('hidden');
+                document.getElementById('showSignupBtn').className = "flex-1 py-2.5 font-bold rounded-xl bg-blue-600 text-white transition";
+                document.getElementById('showLoginBtn').className = "flex-1 py-2.5 font-bold rounded-xl bg-slate-100 text-slate-600 transition";
+            });
+        }
+
+        // --- SECURITY WORKFLOW & AUTH ROUTER ---
+        async function evaluateUserRouting(authUser) {
+            state.user = authUser;
+            
+            const { data: profile, error } = await supabaseRequest('Loading profile...', () => supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', authUser.id)
+                .maybeSingle());
+
+            if (!profile) {
+                await supabaseClient.auth.signOut();
+                showToast("Profile Row Verification Discrepancy. Re-register device account.", 'error');
+                return;
+            }
+
+            state.profile = profile;
+            document.getElementById('globalLogoutBtn').classList.remove('hidden');
+
+            if (profile.role === 'parent') {
+                document.getElementById('parentName').innerText = profile.display_name;
+                await fetchLinkedChildrenProfiles();
+                showAppScreen('parentDashboard');
+            } else {
+                document.getElementById('childName').innerText = profile.display_name;
+                document.getElementById('shareCodeDisplay').innerText = profile.share_code;
+                state.selectedChildId = profile.id;
+                await refreshChildDashboardView();
+                showAppScreen('childDashboard');
+            }
+        }
+
+        async function handleSignup(event) {
+            event?.preventDefault?.();
+            const trigger = event?.submitter || event?.currentTarget?.querySelector?.('button[type="submit"]') || event?.target;
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value.trim();
+            const name = document.getElementById('signupName').value.trim();
+            const role = document.getElementById('signupRole').value;
+
+            if (!email || !password || !name) return showToast("Complete all enrollment parameters.", 'warning');
+
+            await withActionLock('signup', trigger, 'Creating...', async () => {
+                const { data, error } = await withLoading('Creating account...', () => supabaseClient.auth.signUp({ email, password }));
+                if (error) return showToast(error.message, 'error');
+
+                if (data.user) {
+                    // Bug Fix B: Explicit profile creation record fallback synchronization
+                    const { error: dbErr } = await supabaseRequest('Creating profile...', () => supabaseClient.from('profiles').insert([
+                        { id: data.user.id, role: role, display_name: name }
+                    ]));
+                    if (dbErr) console.error("Profile auto-sync error context:", dbErr.message);
+                }
+                showToast("Enrollment successful! Signing into session system.", 'success');
+            });
+        }
+
+        async function handleLogin(event) {
+            event?.preventDefault?.();
+            const trigger = event?.submitter || event?.currentTarget?.querySelector?.('button[type="submit"]') || event?.target;
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            await withActionLock('login', trigger, 'Signing in...', async () => {
+                const { error } = await withLoading('Signing in...', () => supabaseClient.auth.signInWithPassword({ email, password }));
+                if (error) showToast(error.message, 'error');
+            });
+        }
+
+        async function handleLogout(event) {
+            const trigger = event?.currentTarget || event?.target;
+            await withActionLock('logout', trigger, 'Logging out...', async () => {
+                const { error } = await withLoading('Logging out...', () => supabaseClient.auth.signOut());
+                if (error) return showToast(error.message, 'error');
+                location.reload();
+            });
+        }
+
+        function resetGlobalState() {
+            state.user = null; state.profile = null; state.linkedChildren = []; state.selectedChildId = null;
+            document.getElementById('globalLogoutBtn').classList.add('hidden');
+            showAppScreen('authScreen');
+        }
+
+        // --- ACCOUNT RELATIONAL MAPPING SCHEMAS ---
+        const LINK_TEEN_DRIVER_VALUE = '__link_teen_driver__';
+
+        function resetParentDashboardMetrics() {
+            state.currentDrives = [];
+            document.getElementById('totalHoursText').innerText = '0.0 / 40.0 Hours';
+            document.getElementById('nightHoursText').innerText = '0.0 / 10.0 Hours';
+            document.getElementById('totalHoursBar').style.width = '0%';
+            document.getElementById('nightHoursBar').style.width = '0%';
+            document.getElementById('parentDriveList').innerHTML = '<div class="text-center text-xs py-6 text-slate-400">Link a teen driver to view drive history.</div>';
+        }
+
+        function updateParentDashboardVisibility({ showLink = false } = {}) {
+            const hasLinkedDrivers = state.linkedChildren.length > 0;
+            const linkCard = document.getElementById('parentLinkTeenCard');
+            const selectorCard = document.getElementById('parentDriverSelectorCard');
+            const driverSections = document.querySelectorAll('.parent-driver-dependent');
+
+            if (linkCard) linkCard.classList.toggle('hidden', hasLinkedDrivers && !showLink);
+            if (selectorCard) selectorCard.classList.toggle('hidden', !hasLinkedDrivers);
+            driverSections.forEach(section => section.classList.toggle('hidden', !hasLinkedDrivers || showLink));
+
+            if (!hasLinkedDrivers || showLink) resetParentDashboardMetrics();
+        }
+
+        function renderChildSelector(selectedId = state.selectedChildId) {
+            const selector = document.getElementById('childSelector');
+            selector.innerHTML = '';
+
+            state.linkedChildren.forEach(child => {
+                const opt = document.createElement('option');
+                opt.value = child.id;
+                opt.innerText = child.display_name;
+                selector.appendChild(opt);
+            });
+
+            const dividerOpt = document.createElement('option');
+            dividerOpt.disabled = true;
+            dividerOpt.innerText = '──────────────';
+            selector.appendChild(dividerOpt);
+
+            const linkOpt = document.createElement('option');
+            linkOpt.value = LINK_TEEN_DRIVER_VALUE;
+            linkOpt.innerText = '➕ Link Teen Driver';
+            selector.appendChild(linkOpt);
+
+            if (selectedId && state.linkedChildren.some(child => child.id === selectedId)) {
+                selector.value = selectedId;
+            } else if (state.linkedChildren.length > 0) {
+                selector.value = state.linkedChildren[0].id;
+            }
+
+            state.selectedChildId = selector.value !== LINK_TEEN_DRIVER_VALUE ? selector.value : null;
+        }
+
+        async function fetchLinkedChildrenProfiles() {
+            const previousChildId = state.selectedChildId;
+            const { data: links } = await supabaseRequest('Loading linked drivers...', () => supabaseClient.from('parent_child_relationships').select('child_id').eq('parent_id', state.user.id));
+            state.linkedChildren = [];
+
+            if (links && links.length > 0) {
+                const childIds = links.map(l => l.child_id);
+                const { data: profiles } = await supabaseRequest('Loading driver profiles...', () => supabaseClient.from('profiles').select('*').in('id', childIds));
+                state.linkedChildren = profiles || [];
+            }
+
+            if (state.linkedChildren.length === 0) {
+                state.selectedChildId = null;
+                updateParentDashboardVisibility({ showLink: true });
+                return;
+            }
+
+            renderChildSelector(previousChildId);
+            updateParentDashboardVisibility({ showLink: false });
+            await refreshParentDashboardLogs();
+        }
+
+        async function linkChild(event){
+
+    const trigger = event?.currentTarget || event?.target;
+    return withActionLock('link-child', trigger, 'Linking...', async () => {
+
+    const code =
+    document.getElementById('shareCodeInput')
+    .value
+    .trim()
+    .toUpperCase();
+
+    if(!code){
+
+        showToast('Enter a share code', 'warning');
+
+        return;
+    }
+
+    const {
+        data,
+        error
+    } =
+    await supabaseRequest('Finding teen driver...', () => supabaseClient.rpc(
+        'find_child_by_code',
+        {
+            p_code:code
+        }
+    ));
+
+    if(error){
+
+        showToast(error.message, 'error');
+        return;
+    }
+
+    if(!data || data.length===0){
+
+        showToast('No child found', 'warning');
+
+        return;
+    }
+
+    const child =
+    data[0];
+
+    const {
+        error:insertError
+    } =
+    await supabaseRequest('Linking teen driver...', () => supabaseClient
+    .from(
+        'parent_child_relationships'
+    )
+    .insert({
+
+        parent_id:
+        state.user.id,
+
+        child_id:
+        child.id
+
+    }));
+
+    if(insertError){
+
+        showToast(insertError.message, 'error');
+        return;
+    }
+
+    showToast('Child linked successfully', 'success');
+
+    document.getElementById('shareCodeInput').value='';
+    state.selectedChildId = child.id;
+
+    await fetchLinkedChildrenProfiles();
+    });
+}
+
+        async function linkChild2(event) {
+            const code = document.getElementById('shareCodeInput').value.trim();
+            if (!code) return showToast("Input child key string code.", 'warning');
+
+            const trigger = event?.currentTarget || event?.target;
+            return withActionLock('link-child-legacy', trigger, 'Linking...', async () => {
+                const { data: targetProfile, error } = await supabaseRequest('Finding teen driver...', () => supabaseClient.from('profiles').select('*').eq('share_code', code).eq('role', 'child').maybeSingle());
+                if (error || !targetProfile) return showToast("Driver identity verification error mismatch. Re-verify target key code.", 'error');
+
+                const { error: linkErr } = await supabaseRequest('Linking teen driver...', () => supabaseClient.from('parent_child_relationships').insert([{ parent_id: state.user.id, child_id: targetProfile.id }]));
+                if (linkErr) return showToast("Relational connection matrix already defined.", 'error');
+
+                showToast("Relational linking authenticated successfully.", 'success');
+                document.getElementById('shareCodeInput').value = '';
+                state.selectedChildId = targetProfile.id;
+                await fetchLinkedChildrenProfiles();
+            });
+        }
+
+        async function handleChildSelectionChange() {
+            const selector = document.getElementById('childSelector');
+            const selectedValue = selector.value;
+
+            if (selectedValue === LINK_TEEN_DRIVER_VALUE) {
+                state.selectedChildId = null;
+                updateParentDashboardVisibility({ showLink: true });
+                document.getElementById('shareCodeInput')?.focus();
+                return;
+            }
+
+            if ((state.tracker.active || state.tracker.status === 'finalizing') && state.tracker.childId && state.tracker.childId !== selectedValue) {
+                showToast('Finish or discard the active drive before switching drivers.', 'warning');
+                selector.value = state.tracker.childId;
+                return;
+            }
+            state.selectedChildId = selectedValue;
+            updateParentDashboardVisibility({ showLink: false });
+            await refreshParentDashboardLogs();
+            recoverActiveDriveOnBoot();
+        }
+
+        // --- METRICS RECALCULATION & RENDER DATA CONTROLLERS ---
+        async function refreshParentDashboardLogs() {
+            if (!state.selectedChildId) return;
+            const { data: drives } = await supabaseRequest('Loading drive logs...', () => supabaseClient.from('drives').select('*').eq('child_id', state.selectedChildId).order('start_time', { ascending: false }));
+            state.currentDrives = drives || [];
+            
+            const container = document.getElementById('parentDriveList');
+            container.innerHTML = '';
+
+            let totalMins = 0; let nightMins = 0;
+            state.currentDrives.forEach(d => {
+                totalMins += d.duration_minutes || 0;
+                if(d.day_night === 'night') nightMins += d.duration_minutes || 0;
+
+                const row = document.createElement('div');
+                row.className = "p-3 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center text-xs";
+                // Change this line inside the loop:
+                row.innerHTML = `<div><div class="font-bold text-slate-800">${new Date(d.start_time).toLocaleDateString()} &bull; ${Math.round(d.duration_minutes)} mins</div><div class="text-slate-400 text-[11px] mt-0.5">${d.start_address} ➡️ ${d.end_address}</div></div><span class="px-2 py-0.5 font-bold uppercase rounded text-[10px] ${d.day_night === 'night'?'bg-indigo-50 text-indigo-600':'bg-amber-50 text-amber-600'}">${d.day_night}</span>`;
+                container.appendChild(row);
+            });
+
+            const totHrs = (totalMins / 60).toFixed(1);
+            const nxtHrs = (nightMins / 60).toFixed(1);
+            document.getElementById('totalHoursText').innerText = `${totHrs} / 40.0 Hours`;
+            document.getElementById('nightHoursText').innerText = `${nxtHrs} / 10.0 Hours`;
+            document.getElementById('totalHoursBar').style.width = `${Math.min((totHrs / 40) * 100, 100)}%`;
+            document.getElementById('nightHoursBar').style.width = `${Math.min((nxtHrs / 10) * 100, 100)}%`;
+        }
+
+        async function refreshChildDashboardView() {
+            const { data: drives } = await supabaseRequest('Loading your drive logs...', () => supabaseClient.from('drives').select('*').eq('child_id', state.user.id).order('start_time', { ascending: false }));
+            const list = document.getElementById('childDriveList');
+            list.innerHTML = '';
+
+            let totalMins = 0; let nightMins = 0;
+            if(drives) {
+                drives.forEach(d => {
+                    totalMins += d.duration_minutes || 0;
+                    if(d.day_night === 'night') nightMins += d.duration_minutes || 0;
+
+                    const row = document.createElement('div');
+                    row.className = "p-2.5 bg-slate-50 border border-slate-100 rounded-lg text-xs flex justify-between";
+                    // Change this line inside the loop:
+                    row.innerHTML = `<div><div class="font-bold text-slate-800">${new Date(d.start_time).toLocaleDateString()} &bull; ${Math.round(d.duration_minutes)} mins</div><div class="text-slate-400 text-[11px] mt-0.5">${d.start_address} ➡️ ${d.end_address}</div></div><span class="px-2 py-0.5 font-bold uppercase rounded text-[10px] ${d.day_night === 'night'?'bg-indigo-50 text-indigo-600':'bg-amber-50 text-amber-600'}">${d.day_night}</span>`;
+                    list.appendChild(row);
+                });
+            }
+
+            const totHrs = (totalMins / 60).toFixed(1);
+            const nxtHrs = (nightMins / 60).toFixed(1);
+            document.getElementById('childTotalText').innerText = `${totHrs} / 40.0 Hours`;
+            document.getElementById('childNightText').innerText = `${nxtHrs} / 10.0 Hours`;
+            document.getElementById('childTotalBar').style.width = `${Math.min((totHrs / 40) * 100, 100)}%`;
+            document.getElementById('childNightBar').style.width = `${Math.min((nxtHrs / 10) * 100, 100)}%`;
+
+            const { data: linkedRel } = await supabaseRequest('Loading supervisors...', () => supabaseClient.from('parent_child_relationships').select('profiles!parent_child_relationships_parent_id_fkey(display_name)').eq('child_id', state.user.id));
+            document.getElementById('parentList').innerText = linkedRel && linkedRel.length > 0 ? linkedRel.map(r => r.profiles.display_name).join(', ') : 'No supervisors linked yet.';
+        }
+
+        // --- LIVE GEOLOCATION IN-CAR ENGINE ---
+        const ACTIVE_DRIVE_STORAGE_PREFIX = 'nhdmv.activeDrive.';
+
+        function getActiveDriveStorageKey(childId = state.selectedChildId) {
+            return childId ? `${ACTIVE_DRIVE_STORAGE_PREFIX}${childId}` : null;
+        }
+
+        function serializeActiveDrive(overrides = {}) {
+            return {
+                childId: state.tracker.childId || state.selectedChildId,
+                loggedBy: state.tracker.loggedBy || state.user?.id,
+                startTime: state.tracker.startTime ? new Date(state.tracker.startTime).toISOString() : null,
+                startLat: state.tracker.startLat,
+                startLon: state.tracker.startLon,
+                endLat: state.tracker.endLat,
+                endLon: state.tracker.endLon,
+                stopTime: state.tracker.stopTime ? new Date(state.tracker.stopTime).toISOString() : null,
+                dayNight: state.tracker.dayNight,
+                weather: state.tracker.weather,
+                status: state.tracker.status || 'active',
+                updatedAt: new Date().toISOString(),
+                ...overrides
+            };
+        }
+
+        function persistActiveDrive(overrides = {}) {
+            const snapshot = serializeActiveDrive(overrides);
+            const key = getActiveDriveStorageKey(snapshot.childId);
+            if (!key || !snapshot.startTime) return;
+            localStorage.setItem(key, JSON.stringify(snapshot));
+        }
+
+        function loadActiveDrive(childId = state.selectedChildId) {
+            const key = getActiveDriveStorageKey(childId);
+            if (!key) return null;
+            try {
+                const stored = JSON.parse(localStorage.getItem(key) || 'null');
+                return stored && stored.startTime ? stored : null;
+            } catch {
+                localStorage.removeItem(key);
+                return null;
+            }
+        }
+
+        function removeActiveDrive(childId = state.tracker.childId || state.selectedChildId) {
+            const key = getActiveDriveStorageKey(childId);
+            if (key) localStorage.removeItem(key);
+        }
+
+        function findAnyActiveDrive() {
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (!key || !key.startsWith(ACTIVE_DRIVE_STORAGE_PREFIX)) continue;
+                const childId = key.replace(ACTIVE_DRIVE_STORAGE_PREFIX, '');
+                const drive = loadActiveDrive(childId);
+                if (drive) return drive;
+            }
+            return null;
+        }
+
+        function updateTimerDisplayFromStart() {
+            if (!state.tracker.startTime) return;
+            state.tracker.elapsedSeconds = Math.max(0, Math.floor((Date.now() - new Date(state.tracker.startTime).getTime()) / 1000));
+            const m = Math.floor(state.tracker.elapsedSeconds / 60).toString().padStart(2, '0');
+            const s = (state.tracker.elapsedSeconds % 60).toString().padStart(2, '0');
+            document.getElementById('timerDisplay').innerText = `${m}:${s}`;
+        }
+
+        function startTrackerTimer() {
+            clearInterval(state.tracker.timerInterval);
+            updateTimerDisplayFromStart();
+            state.tracker.timerInterval = setInterval(() => {
+                updateTimerDisplayFromStart();
+                persistActiveDrive();
+            }, 1000);
+        }
+
+        function hydrateTrackerFromStoredDrive(storedDrive) {
+            state.selectedChildId = storedDrive.childId;
+            const selector = document.getElementById('childSelector');
+            if (selector && selector.value !== storedDrive.childId) selector.value = storedDrive.childId;
+            state.tracker.active = storedDrive.status !== 'finalizing';
+            state.tracker.status = storedDrive.status || 'active';
+            state.tracker.childId = storedDrive.childId;
+            state.tracker.loggedBy = storedDrive.loggedBy || state.user?.id;
+            state.tracker.startTime = new Date(storedDrive.startTime);
+            state.tracker.startLat = storedDrive.startLat ?? null;
+            state.tracker.startLon = storedDrive.startLon ?? null;
+            state.tracker.endLat = storedDrive.endLat ?? null;
+            state.tracker.endLon = storedDrive.endLon ?? null;
+            state.tracker.stopTime = storedDrive.stopTime ? new Date(storedDrive.stopTime) : null;
+            state.tracker.dayNight = storedDrive.dayNight ?? null;
+            state.tracker.weather = storedDrive.weather ?? null;
+        }
+
+        async function resumeFinalizingDrive(storedDrive) {
+            hydrateTrackerFromStoredDrive(storedDrive);
+            clearInterval(state.tracker.timerInterval);
+            state.tracker.active = false;
+            state.tracker.status = 'finalizing';
+            const stopTime = state.tracker.stopTime || new Date(storedDrive.stopTime || Date.now());
+            state.tracker.stopTime = stopTime;
+            updateGPSIndicator(false, 'Finalize required');
+            await finalizeGPSTrackResult(
+                state.tracker.startTime,
+                stopTime,
+                state.tracker.startLat,
+                state.tracker.startLon,
+                state.tracker.endLat,
+                state.tracker.endLon
+            );
+        }
+
+        async function recoverActiveDriveOnBoot() {
+            if (state.profile?.role !== 'parent') return;
+            const storedDrive = loadActiveDrive(state.selectedChildId) || findAnyActiveDrive();
+            if (!storedDrive) return;
+            if (storedDrive.status === 'finalizing') {
+                await resumeFinalizingDrive(storedDrive);
+                return;
+            }
+            hydrateTrackerFromStoredDrive(storedDrive);
+            showAppScreen('trackerScreen');
+            document.getElementById('trackerButton').innerText = 'STOP DRIVE';
+            document.getElementById('trackerButton').className = 'w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black text-lg rounded-xl transition shadow-md';
+            updateGPSIndicator(true, 'Drive recovered');
+            startTrackerTimer();
+        }
+
+        async function startGPSDriveFlow() {
+            if (!state.selectedChildId) return showToast('Assign a target tracking driver context profile first.', 'warning');
+
+            const storedDrive = loadActiveDrive(state.selectedChildId);
+            if (storedDrive) {
+                if (storedDrive.status === 'finalizing') {
+                    await resumeFinalizingDrive(storedDrive);
+                    return;
+                }
+                hydrateTrackerFromStoredDrive(storedDrive);
+                showAppScreen('trackerScreen');
+                document.getElementById('trackerButton').innerText = 'STOP DRIVE';
+                document.getElementById('trackerButton').className = 'w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black text-lg rounded-xl transition shadow-md';
+                updateGPSIndicator(true, 'Drive resumed');
+                startTrackerTimer();
+                return;
+            }
+
+            if (findAnyActiveDrive()) return showToast('There is already an active drive. Finish or discard it before starting another one.', 'warning');
+            showAppScreen('trackerScreen');
+        }
+
+        function toggleGPSEngine() {
+            if (!state.tracker.active && state.tracker.status !== 'finalizing') {
+                if (!('geolocation' in navigator)) return showToast('GPS Localization Engine completely offline.', 'error');
+
+                state.tracker.active = true;
+                state.tracker.status = 'active';
+                state.tracker.childId = state.selectedChildId;
+                state.tracker.loggedBy = state.user.id;
+                state.tracker.startTime = new Date();
+                state.tracker.elapsedSeconds = 0;
+                state.tracker.startLat = null;
+                state.tracker.startLon = null;
+                state.tracker.endLat = null;
+                state.tracker.endLon = null;
+                state.tracker.stopTime = null;
+                state.tracker.dayNight = null;
+                state.tracker.weather = null;
+                persistActiveDrive();
+
+                document.getElementById('trackerButton').innerText = 'STOP DRIVE';
+                document.getElementById('trackerButton').className = 'w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black text-lg rounded-xl transition shadow-md';
+                updateGPSIndicator(true, 'GPS Lock Active');
+
+                navigator.geolocation.getCurrentPosition(pos => {
+                    state.tracker.startLat = pos.coords.latitude;
+                    state.tracker.startLon = pos.coords.longitude;
+                    persistActiveDrive();
+                }, () => persistActiveDrive(), { enableHighAccuracy: true });
+
+                startTrackerTimer();
+            } else {
+                clearInterval(state.tracker.timerInterval);
+                state.tracker.active = false;
+                state.tracker.status = 'finalizing';
+                const stopTime = state.tracker.stopTime ? new Date(state.tracker.stopTime) : new Date();
+                state.tracker.stopTime = stopTime;
+                persistActiveDrive({ status: 'finalizing', stopTime: stopTime.toISOString() });
+                updateGPSIndicator(false, 'Parsing coordinates...');
+                document.getElementById('trackerButton').disabled = true;
+
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    document.getElementById('trackerButton').disabled = false;
+                    state.tracker.endLat = pos.coords.latitude;
+                    state.tracker.endLon = pos.coords.longitude;
+                    await finalizeGPSTrackResult(state.tracker.startTime, stopTime, state.tracker.startLat, state.tracker.startLon, pos.coords.latitude, pos.coords.longitude);
+                }, async () => {
+                    document.getElementById('trackerButton').disabled = false;
+                    await finalizeGPSTrackResult(state.tracker.startTime, stopTime, state.tracker.startLat, state.tracker.startLon, state.tracker.endLat, state.tracker.endLon);
+                }, { enableHighAccuracy: true });
+            }
+        }
+
+        async function finalizeGPSTrackResult(start, end, sLat, sLon, eLat, eLon) {
+            const autoDayNight = await determineDriveDayNight(start, end, sLat, sLon, eLat, eLon);
+            const autoWeather = await determineDriveWeather(start, end, sLat, sLon, eLat, eLon);
+            openUnifiedForm({
+                mode: 'gps', start: formatDateLocalInput(new Date(start)), end: formatDateLocalInput(new Date(end)),
+                sLat, sLon, eLat, eLon, sAddr: 'Resolving address...', eAddr: 'Resolving address...', dayNight: autoDayNight, weather: autoWeather
+            });
+
+            if (sLat && sLon) document.getElementById('formStartAddress').value = await reverseGeocode(sLat, sLon);
+            if (eLat && eLon) document.getElementById('formEndAddress').value = await reverseGeocode(eLat, eLon);
+            persistActiveDrive({ status: 'finalizing', stopTime: new Date(end).toISOString(), endLat: eLat, endLon: eLon, dayNight: autoDayNight, weather: autoWeather });
+        }
+
+        async function abortGPSTracking() {
+            if (state.tracker.active || loadActiveDrive(state.selectedChildId)) {
+                const discard = await showConfirmDialog('Discard this active drive? This cannot be recovered.', {
+                    title: 'Discard active drive?',
+                    confirmText: 'Discard Drive',
+                    cancelText: 'Keep Drive'
+                });
+                if (!discard) return;
+                removeActiveDrive();
+            }
+            clearGPSEngineSettings();
+            showAppScreen('parentDashboard');
+        }
+
+        function clearGPSEngineSettings(options = {}) {
+            clearInterval(state.tracker.timerInterval);
+            state.tracker.active = false;
+            state.tracker.watchId = null;
+            state.tracker.timerInterval = null;
+            state.tracker.startTime = null;
+            state.tracker.startLat = null;
+            state.tracker.startLon = null;
+            state.tracker.elapsedSeconds = 0;
+            state.tracker.stopTime = null;
+            state.tracker.endLat = null;
+            state.tracker.endLon = null;
+            state.tracker.dayNight = null;
+            state.tracker.weather = null;
+            state.tracker.childId = null;
+            state.tracker.loggedBy = null;
+            state.tracker.status = 'idle';
+            if (options.clearStorage) removeActiveDrive();
+            document.getElementById('timerDisplay').innerText = '00:00';
+            document.getElementById('trackerButton').disabled = false;
+            document.getElementById('trackerButton').innerText = 'START DRIVE';
+            document.getElementById('trackerButton').className = 'w-full py-4 bg-green-600 hover:bg-green-700 text-white font-black text-lg rounded-xl transition shadow-md';
+            updateGPSIndicator(false, 'GPS Standby');
+        }
+
+        function updateGPSIndicator(isLive, text) {
+            document.getElementById('gpsStatusText').innerText = text;
+            document.getElementById('gpsStatus').className = isLive ? 'w-3 h-3 rounded-full bg-green-500 animate-pulse' : 'w-3 h-3 rounded-full bg-red-500';
+        }
+
+        async function reverseGeocode(lat, lon) {
+            try {
+                // Throttle compliance timeout injection
+                await new Promise(r => setTimeout(r, 1000));
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`, {
+                    headers: { 'User-Agent': 'NH-DMV-Teen-Driving-Log-Tracker-SPA/1.0' }
+                });
+                const data = await res.json();
+                return data.address ? (data.address.city || data.address.town || data.address.village || 'New Hampshire') : 'Unknown Address';
+            } catch { return 'Unknown Location'; }
+        }
+
+
+        function formatDateParam(date) {
+            return formatDateLocalInput(new Date(date)).slice(0, 10);
+        }
+
+        function minutesBetween(a, b) {
+            return Math.max(0, (b.getTime() - a.getTime()) / 60000);
+        }
+
+        function uniqueLocalDatesBetween(start, end) {
+            const dates = [];
+            const cursor = new Date(start);
+            cursor.setHours(0, 0, 0, 0);
+            const last = new Date(end);
+            last.setHours(0, 0, 0, 0);
+            while (cursor <= last) {
+                dates.push(formatDateParam(cursor));
+                cursor.setDate(cursor.getDate() + 1);
+            }
+            return dates;
+        }
+
+        async function fetchSunWindow(lat, lon, dateParam) {
+            const url = `https://api.sunrise-sunset.org/json?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lon)}&date=${dateParam}&formatted=0`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (!res.ok || data.status !== 'OK' || !data.results?.sunrise || !data.results?.sunset) {
+                throw new Error('Sunrise/sunset lookup failed');
+            }
+            return {
+                sunrise: new Date(data.results.sunrise),
+                sunset: new Date(data.results.sunset)
+            };
+        }
+
+        async function determineDriveDayNight(startValue, endValue, sLat, sLon, eLat, eLon) {
+            const start = new Date(startValue);
+            const end = new Date(endValue);
+            const fallback = (start.getHours() >= 6 && start.getHours() < 18) ? 'day' : 'night';
+            const lat = Number.isFinite(parseFloat(sLat)) ? parseFloat(sLat) : parseFloat(eLat);
+            const lon = Number.isFinite(parseFloat(sLon)) ? parseFloat(sLon) : parseFloat(eLon);
+
+            if (!Number.isFinite(lat) || !Number.isFinite(lon) || !(end > start)) return fallback;
+
+            try {
+                let dayMinutes = 0;
+                const dates = uniqueLocalDatesBetween(start, end);
+                for (const dateParam of dates) {
+                    const { sunrise, sunset } = await fetchSunWindow(lat, lon, dateParam);
+                    const overlapStart = new Date(Math.max(start.getTime(), sunrise.getTime()));
+                    const overlapEnd = new Date(Math.min(end.getTime(), sunset.getTime()));
+                    dayMinutes += minutesBetween(overlapStart, overlapEnd);
+                }
+                const totalMinutes = minutesBetween(start, end);
+                const nightMinutes = Math.max(0, totalMinutes - dayMinutes);
+                return nightMinutes > dayMinutes ? 'night' : 'day';
+            } catch (err) {
+                console.warn('Day/night auto-classification fallback used:', err);
+                return fallback;
+            }
+        }
+
+
+        function mapOpenMeteoWeatherCodeToDMVWeather(code) {
+            if (code === 45 || code === 48) return 'Fog';
+            if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || (code >= 95 && code <= 99)) return 'Rain';
+            if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'Snow';
+            return 'Clear';
+        }
+
+        function nearestHourlyWeatherCode(hourly, targetTime) {
+            if (!hourly?.time || !hourly?.weather_code || hourly.time.length === 0) return null;
+            let bestCode = null;
+            let bestDiff = Number.POSITIVE_INFINITY;
+            hourly.time.forEach((timeValue, index) => {
+                const sampleTime = new Date(timeValue).getTime();
+                const diff = Math.abs(sampleTime - targetTime.getTime());
+                if (Number.isFinite(sampleTime) && diff < bestDiff) {
+                    bestDiff = diff;
+                    bestCode = hourly.weather_code[index];
+                }
+            });
+            return bestCode;
+        }
+
+        async function fetchOpenMeteoWeather(lat, lon, dateParam, targetTime) {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hourly=weather_code&start_date=${dateParam}&end_date=${dateParam}&timezone=auto`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (!res.ok || !data.hourly) throw new Error('Open-Meteo weather lookup failed');
+            const code = nearestHourlyWeatherCode(data.hourly, targetTime);
+            if (code === null || code === undefined) throw new Error('Open-Meteo weather code unavailable');
+            return mapOpenMeteoWeatherCodeToDMVWeather(Number(code));
+        }
+
+        async function determineDriveWeather(startValue, endValue, sLat, sLon, eLat, eLon) {
+            const start = new Date(startValue);
+            const end = new Date(endValue);
+            const lat = Number.isFinite(parseFloat(sLat)) ? parseFloat(sLat) : parseFloat(eLat);
+            const lon = Number.isFinite(parseFloat(sLon)) ? parseFloat(sLon) : parseFloat(eLon);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon) || !(end > start)) return null;
+
+            try {
+                const midpoint = new Date(start.getTime() + ((end.getTime() - start.getTime()) / 2));
+                return await fetchOpenMeteoWeather(lat, lon, formatDateParam(midpoint), midpoint);
+            } catch (err) {
+                console.warn('Open-Meteo weather fallback used:', err);
+                return null;
+            }
+        }
+
+        // --- ENTRY MANIPULATION COMPILER FORM ---
+        function openManualFormFlow() {
+            openUnifiedForm({ mode: 'manual', start: '', end: '', sLat: '', sLon: '', eLat: '', eLon: '', sAddr: '', eAddr: '' });
+        }
+
+        function openUnifiedForm(cfg) {
+            document.getElementById('formMode').value = cfg.mode;
+            document.getElementById('formStartTime').value = cfg.start;
+            document.getElementById('formEndTime').value = cfg.end;
+            document.getElementById('formStartLat').value = cfg.sLat || '';
+            document.getElementById('formStartLon').value = cfg.sLon || '';
+            document.getElementById('formEndLat').value = cfg.eLat || '';
+            document.getElementById('formEndLon').value = cfg.eLon || '';
+            document.getElementById('formStartAddress').value = cfg.sAddr || '';
+            document.getElementById('formEndAddress').value = cfg.eAddr || '';
+            document.getElementById('formSupervisorName').value = state.profile.display_name;
+
+            document.getElementById('formDayNight').disabled = cfg.mode === 'gps';
+            document.getElementById('formDayNight').classList.toggle('opacity-60', cfg.mode === 'gps');
+            document.getElementById('formDayNight').title = cfg.mode === 'gps' ? 'Automatically calculated from GPS location, date, sunrise, and sunset.' : '';
+
+            if (cfg.dayNight) {
+                document.getElementById('formDayNight').value = cfg.dayNight;
+            } else if(cfg.start) {
+                const hour = new Date(cfg.start).getHours();
+                document.getElementById('formDayNight').value = (hour >= 6 && hour < 18) ? 'day' : 'night';
+            } else {
+                document.getElementById('formDayNight').disabled = false;
+                document.getElementById('formDayNight').classList.remove('opacity-60');
+                document.getElementById('formDayNight').title = '';
+            }
+
+            document.getElementById('formWeather').disabled = false;
+            document.getElementById('formWeather').classList.toggle('opacity-60', cfg.mode === 'gps' && !!cfg.weather);
+            document.getElementById('formWeather').title = cfg.mode === 'gps' && cfg.weather ? 'Automatically estimated from Open-Meteo using GPS location and drive time. You can still change it if needed.' : '';
+            if (cfg.weather) document.getElementById('formWeather').value = cfg.weather;
+
+            showAppScreen('driveFormScreen');
+        }
+
+        async function cancelFormEngine() {
+            if (document.getElementById('formMode').value === 'gps' && loadActiveDrive(state.selectedChildId)) {
+                const discard = await showConfirmDialog('Discard this finalized GPS drive instead of saving it?', {
+                    title: 'Discard finalized drive?',
+                    confirmText: 'Discard Drive',
+                    cancelText: 'Keep Editing'
+                });
+                if (!discard) return;
+                removeActiveDrive();
+                clearGPSEngineSettings();
+            }
+            document.getElementById('driveLogForm').reset();
+            showAppScreen('parentDashboard');
+        }
+
+        async function handleFormSubmission(e) {
+            e.preventDefault();
+            const submitButton = e.submitter || document.querySelector('#driveLogForm button[type="submit"]');
+            if (pendingActions.has('save-drive')) return;
+            return withActionLock('save-drive', submitButton, 'Saving...', async () => {
+            const start = new Date(document.getElementById('formStartTime').value);
+            const end = new Date(document.getElementById('formEndTime').value);
+            if(end <= start) return showToast("The ending timestamp must occur after the start window.", 'warning');
+
+            let calculatedDayNight = document.getElementById('formDayNight').value;
+            if (document.getElementById('formMode').value === 'gps') {
+                calculatedDayNight = await determineDriveDayNight(
+                    start,
+                    end,
+                    document.getElementById('formStartLat').value,
+                    document.getElementById('formStartLon').value,
+                    document.getElementById('formEndLat').value,
+                    document.getElementById('formEndLon').value
+                );
+                document.getElementById('formDayNight').value = calculatedDayNight;
+            }
+
+            let calculatedWeather = document.getElementById('formWeather').value;
+            if (document.getElementById('formMode').value === 'gps') {
+                const autoWeather = await determineDriveWeather(
+                    start,
+                    end,
+                    document.getElementById('formStartLat').value,
+                    document.getElementById('formStartLon').value,
+                    document.getElementById('formEndLat').value,
+                    document.getElementById('formEndLon').value
+                );
+                if (autoWeather) {
+                    calculatedWeather = autoWeather;
+                    document.getElementById('formWeather').value = calculatedWeather;
+                }
+            }
+
+            const payload = {
+                child_id: state.selectedChildId, logged_by: state.user.id,
+                start_time: start.toISOString(), end_time: end.toISOString(),
+                start_lat: parseFloat(document.getElementById('formStartLat').value) || null,
+                start_lon: parseFloat(document.getElementById('formStartLon').value) || null,
+                end_lat: parseFloat(document.getElementById('formEndLat').value) || null,
+                end_lon: parseFloat(document.getElementById('formEndLon').value) || null,
+                start_address: document.getElementById('formStartAddress').value || 'Manual Location',
+                end_address: document.getElementById('formEndAddress').value || 'Manual Location',
+                day_night: calculatedDayNight,
+                road_type: document.getElementById('formRoadType').value,
+                weather: calculatedWeather,
+                supervisor_name: document.getElementById('formSupervisorName').value
+            };
+
+            const { error } = await supabaseRequest('Saving drive log...', () => supabaseClient.from('drives').insert([payload]));
+            if (error) return showToast("Transaction log drop bypassed sync: " + error.message, 'error');
+
+            if (document.getElementById('formMode').value === 'gps') {
+                removeActiveDrive();
+                clearGPSEngineSettings();
+            }
+            showToast("Entry saved!", 'success');
+            document.getElementById('driveLogForm').reset();
+            showAppScreen('parentDashboard');
+            await refreshParentDashboardLogs();
+            });
+        }
+
+        // --- PDF ENGINE COMPILE WRAPPER ---
+        function exportDMV() {
+            if (!state.currentDrives || state.currentDrives.length === 0) return showToast("No driver log sheets written for tracking context.", 'warning');
+            
+            const tbody = document.getElementById('printTableBody');
+            tbody.innerHTML = '';
+            
+            let totalMinutes = 0;
+            let nightMinutes = 0;
+            
+            // Map ascending chronologically to conform with audit guidelines
+            const chronDrives = [...state.currentDrives].reverse();
+            chronDrives.forEach(d => {
+                // Track aggregates on the fly for the print header summary calculation
+                totalMinutes += d.duration_minutes || 0;
+                if (d.day_night === 'night') {
+                    nightMinutes += d.duration_minutes || 0;
+                }
+
+                const tr = document.createElement('tr');
+                const roundedMins = Math.round(d.duration_minutes || 0);
+                
+                tr.innerHTML = `
+                    <td>${new Date(d.start_time).toLocaleDateString()}</td>
+                    <td>${new Date(d.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(d.end_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                    <td>${d.start_address} to ${d.end_address} (${d.road_type}, ${d.weather})</td>
+                    <td><center>${d.day_night==='day'?roundedMins:''}</center></td>
+                    <td><center>${d.day_night==='night'?roundedMins:''}</center></td>
+                    <td style="padding-top:20px; vertical-align:bottom;"><small>${d.supervisor_name}</small><div style="border-bottom:1px dotted #000; width:100%; height:2px;"></div></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            // Inject calculated hour aggregates to one decimal place into print header elements
+            document.getElementById('printTotalHours').innerText = (totalMinutes / 60).toFixed(1);
+            document.getElementById('printNightHours').innerText = (nightMinutes / 60).toFixed(1);
+
+            window.print();
+        }
+
+        function copyChildShareCode() {
+            navigator.clipboard.writeText(state.profile.share_code || '').then(() => {
+                showToast("Your Share Code has been copied to your clipboard!", 'success');
+            }).catch(() => {
+                showToast("Failed to copy Share Code. Please try again.", 'error');
+            });
+        }
+
+        function formatDateLocalInput(date) {
+            const offset = date.getTimezoneOffset() * 60000;
+            return (new Date(date.getTime() - offset)).toISOString().slice(0, 16);
+        }
+    </script>
+
+    <script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+        try {
+            await navigator.serviceWorker.register('/sw.js');
+            console.log('Service Worker registered');
+        } catch (err) {
+            console.error('Service Worker registration failed', err);
+        }
+    });
+}
+</script>
+
+</body>
+</html>
