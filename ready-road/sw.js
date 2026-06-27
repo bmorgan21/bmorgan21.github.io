@@ -1,6 +1,6 @@
-const CACHE_NAME = "readyroad-v2";
+const CACHE_NAME = "readyroad-v4";
 
-const APP_FILES = [
+const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.json",
@@ -10,45 +10,103 @@ const APP_FILES = [
 
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(async cache => {
-      for (const url of APP_FILES) {
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+
+      for (const file of APP_SHELL) {
         try {
-          const response = await fetch(url, { cache: "reload" });
+          const response = await fetch(file, { cache: "reload" });
           if (response.ok) {
-            await cache.put(url, response);
-          } else {
-            console.warn("Skipped cache file:", url, response.status);
+            await cache.put(file, response);
           }
         } catch (err) {
-          console.warn("Failed to cache file:", url, err);
+          console.warn("Unable to cache", file, err);
         }
       }
-    })
-  );
 
-  self.skipWaiting();
+      self.skipWaiting();
+    })()
+  );
 });
 
 self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
+    (async () => {
+      const keys = await caches.keys();
+
+      await Promise.all(
         keys
           .filter(key => key !== CACHE_NAME)
           .map(key => caches.delete(key))
-      )
-    )
-  );
+      );
 
-  self.clients.claim();
+      await self.clients.claim();
+    })()
+  );
+});
+
+self.addEventListener("message", event => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
 
+  const url = new URL(event.request.url);
+
+  if (
+    url.hostname.includes("supabase.co") ||
+    url.pathname.includes("/rest/v1/") ||
+    url.pathname.includes("/auth/v1/")
+  ) {
+    return;
+  }
+
+  if (
+    event.request.mode === "navigate" ||
+    event.request.destination === "document"
+  ) {
+    event.respondWith(
+      (async () => {
+        try {
+          const network = await fetch(event.request);
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(event.request, network.clone());
+          return network;
+        } catch {
+          return (
+            (await caches.match(event.request)) ||
+            (await caches.match("./index.html"))
+          );
+        }
+      })()
+    );
+
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      return cached || fetch(event.request);
-    })
+    (async () => {
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
+
+      try {
+        const network = await fetch(event.request);
+
+        if (
+          network.ok &&
+          event.request.url.startsWith(self.location.origin)
+        ) {
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(event.request, network.clone());
+        }
+
+        return network;
+      } catch {
+        return cached;
+      }
+    })()
   );
 });

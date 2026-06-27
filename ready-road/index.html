@@ -104,6 +104,55 @@
                 <button id="confirmDialogConfirm" type="button" class="py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition">Confirm</button>
             </div>
         </div>
+
+    </div>
+
+    <div id="settingsDrawer" class="hidden fixed inset-0 z-[105] bg-slate-900/40 backdrop-blur-sm">
+        <div class="absolute inset-x-0 bottom-0 mx-auto max-w-md bg-white rounded-t-3xl shadow-2xl border-t border-slate-200 p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] space-y-4">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <h2 class="text-xl font-black text-slate-800">ReadyRoad</h2>
+                    <p id="settingsVersionText" class="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1">Version</p>
+                </div>
+                <button type="button" onclick="closeSettingsDrawer()" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 font-black transition" aria-label="Close settings">×</button>
+            </div>
+
+            <div id="updateAvailableCard" class="hidden rounded-2xl border border-blue-100 bg-blue-50 p-3">
+                <div class="font-black text-blue-700 text-sm">Update ready</div>
+                <div class="text-xs text-blue-600 mt-1">A newer version of ReadyRoad is available.</div>
+                <button type="button" onclick="reloadForUpdate()" class="mt-3 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-sm transition">Reload Now</button>
+            </div>
+
+            <div class="grid gap-2">
+                <button type="button" onclick="syncNow()" class="w-full flex items-center justify-between gap-3 p-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition text-left">
+                    <span>
+                        <span class="block font-black text-slate-700 text-sm">Sync Now</span>
+                        <span class="block text-xs text-slate-400 mt-0.5">Refresh data and check for app updates</span>
+                    </span>
+                    <span class="text-lg">↻</span>
+                </button>
+
+                <button type="button" onclick="checkForAppUpdates(true)" class="w-full flex items-center justify-between gap-3 p-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition text-left">
+                    <span>
+                        <span class="block font-black text-slate-700 text-sm">Check for Updates</span>
+                        <span class="block text-xs text-slate-400 mt-0.5">Look for the latest ReadyRoad version</span>
+                    </span>
+                    <span class="text-lg">⬇️</span>
+                </button>
+
+                <button type="button" onclick="showInstallFromSettings()" class="w-full flex items-center justify-between gap-3 p-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition text-left">
+                    <span>
+                        <span class="block font-black text-slate-700 text-sm">Install App</span>
+                        <span id="settingsInstallHint" class="block text-xs text-slate-400 mt-0.5">Add ReadyRoad to your home screen</span>
+                    </span>
+                    <span class="text-lg">📱</span>
+                </button>
+            </div>
+
+            <div class="pt-2 border-t border-slate-100">
+                <button type="button" onclick="handleLogout(event)" class="w-full py-3 rounded-2xl bg-red-50 hover:bg-red-100 text-red-600 font-black text-sm transition">Sign Out</button>
+            </div>
+        </div>
     </div>
 
     <div class="max-w-md mx-auto p-4 pb-20">
@@ -115,8 +164,8 @@
                     <div id="appHeaderSubtitle" class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-1">Driving Log</div>
                 </div>
             </div>
-            <button id="globalLogoutBtn" onclick="handleLogout(event)" class="hidden shrink-0 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 text-xs font-black shadow-sm transition">
-                Sign Out
+            <button id="settingsButton" onclick="openSettingsDrawer()" class="hidden shrink-0 w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 text-lg font-black shadow-sm transition" aria-label="Open settings">
+                ⚙️
             </button>
         </header>
 
@@ -345,6 +394,7 @@
         const SUPABASE_KEY = "sb_publishable_4WsxVlvdM1ZIcJwG4uRIxQ_3GVHlivl";
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const APP_VERSION = '1.0.0';
 
         let state = {
             user: null,
@@ -593,6 +643,107 @@
             window.addEventListener('online', () => showToast('Back online.', 'success'));
         }
 
+        let serviceWorkerRegistration = null;
+        let waitingServiceWorker = null;
+        let refreshingForUpdate = false;
+
+        function isSafeToReloadForUpdate() {
+            const activeDrive = state.tracker.active || state.tracker.status === 'finalizing' || !!findAnyActiveDrive();
+            const editingDriveForm = document.getElementById('driveFormScreen')?.classList.contains('active');
+            return !activeDrive && !editingDriveForm;
+        }
+
+        function markUpdateAvailable(worker) {
+            waitingServiceWorker = worker || waitingServiceWorker;
+            document.getElementById('updateAvailableCard')?.classList.remove('hidden');
+            showToast('A ReadyRoad update is ready. Open settings to reload.', 'info', 6500);
+        }
+
+        function reloadForUpdate() {
+            if (waitingServiceWorker) {
+                refreshingForUpdate = true;
+                waitingServiceWorker.postMessage({ type: 'SKIP_WAITING' });
+                setTimeout(() => window.location.reload(), 700);
+                return;
+            }
+            window.location.reload();
+        }
+
+        async function checkForAppUpdates(showResult = false) {
+            if (!('serviceWorker' in navigator)) {
+                if (showResult) showToast('App updates are not supported in this browser.', 'warning');
+                return;
+            }
+            try {
+                const registration = serviceWorkerRegistration || await navigator.serviceWorker.getRegistration('./');
+                if (!registration) {
+                    if (showResult) showToast('ReadyRoad is not installed as a service worker yet.', 'warning');
+                    return;
+                }
+                await registration.update();
+                const waiting = registration.waiting;
+                if (waiting) {
+                    markUpdateAvailable(waiting);
+                    if (isSafeToReloadForUpdate() && !showResult) reloadForUpdate();
+                    return;
+                }
+                if (showResult) showToast('ReadyRoad is up to date.', 'success');
+            } catch (err) {
+                console.error('Update check failed', err);
+                if (showResult) showToast('Could not check for updates right now.', 'error');
+            }
+        }
+
+        async function syncNow() {
+            closeSettingsDrawer();
+            await checkForAppUpdates(false);
+
+            if (state.profile?.role === 'parent') {
+                await fetchLinkedChildrenProfiles();
+                if (state.selectedChildId) await refreshParentDashboardLogs();
+            } else if (state.profile?.role === 'child') {
+                await refreshChildDashboardView();
+            }
+
+            if (waitingServiceWorker && isSafeToReloadForUpdate()) {
+                reloadForUpdate();
+            } else if (waitingServiceWorker) {
+                showToast('Update ready. Finish your current drive or form, then reload from Settings.', 'info', 7000);
+            } else {
+                showToast('ReadyRoad synced.', 'success');
+            }
+        }
+
+        function openSettingsDrawer() {
+            const drawer = document.getElementById('settingsDrawer');
+            document.getElementById('settingsVersionText').textContent = `Version ${APP_VERSION}`;
+            document.getElementById('settingsInstallHint').textContent = isRunningStandalone()
+                ? 'ReadyRoad is already installed'
+                : (isIOSDevice() ? 'Use Share, then Add to Home Screen' : 'Add ReadyRoad to your home screen');
+            drawer?.classList.remove('hidden');
+        }
+
+        function closeSettingsDrawer() {
+            document.getElementById('settingsDrawer')?.classList.add('hidden');
+        }
+
+        async function showInstallFromSettings() {
+            if (isRunningStandalone()) {
+                showToast('ReadyRoad is already installed.', 'success');
+                return;
+            }
+            localStorage.removeItem('readyroad.installDismissed');
+            closeSettingsDrawer();
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                const choice = await deferredInstallPrompt.userChoice;
+                deferredInstallPrompt = null;
+                if (choice?.outcome === 'accepted') hideInstallBanner({ remember: true });
+                return;
+            }
+            showInstallBanner({ ios: isIOSDevice() });
+        }
+
         // --- APPS SYSTEM BOOTSTRAP INITIALIZER ---
         window.addEventListener('DOMContentLoaded', async () => {
             setupAuthPanelToggles();
@@ -653,7 +804,7 @@
             }
 
             state.profile = profile;
-            document.getElementById('globalLogoutBtn').classList.remove('hidden');
+            document.getElementById('settingsButton').classList.remove('hidden');
 
             if (profile.role === 'parent') {
                 document.getElementById('parentName').innerText = profile.display_name;
@@ -715,7 +866,7 @@
 
         function resetGlobalState() {
             state.user = null; state.profile = null; state.linkedChildren = []; state.selectedChildId = null;
-            document.getElementById('globalLogoutBtn').classList.add('hidden');
+            document.getElementById('settingsButton').classList.add('hidden');
             showAppScreen('authScreen');
         }
 
@@ -1536,8 +1687,31 @@
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
         try {
-            await navigator.serviceWorker.register('./sw.js', { scope: './' });
+            const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+            serviceWorkerRegistration = reg;
             console.log('Service Worker registered');
+
+            if (reg.waiting) markUpdateAvailable(reg.waiting);
+
+            reg.addEventListener('updatefound', () => {
+                const installingWorker = reg.installing;
+                if (!installingWorker) return;
+
+                installingWorker.addEventListener('statechange', () => {
+                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        markUpdateAvailable(installingWorker);
+                        if (isSafeToReloadForUpdate()) reloadForUpdate();
+                    }
+                });
+            });
+
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshingForUpdate) return;
+                refreshingForUpdate = true;
+                window.location.reload();
+            });
+
+            await reg.update();
         } catch (err) {
             console.error('Service Worker registration failed', err);
         }
