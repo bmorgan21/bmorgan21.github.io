@@ -670,6 +670,8 @@
         }
 
         async function checkForAppUpdates(showResult = false) {
+            closeSettingsDrawer();
+
             if (!('serviceWorker' in navigator)) {
                 if (showResult) showToast('App updates are not supported in this browser.', 'warning');
                 return;
