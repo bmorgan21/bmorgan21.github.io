@@ -1546,18 +1546,38 @@
 
             if (!Number.isFinite(lat) || !Number.isFinite(lon) || !(end > start)) return fallback;
 
+            // NH DMV qualifying night: one-half hour AFTER sunset to one-half hour BEFORE sunrise.
+            // The 30-min dusk buffer (sunset→sunset+30) and dawn buffer (sunrise-30→sunrise)
+            // are twilight windows that count as neither qualifying day nor qualifying night.
+            const THIRTY_MIN_MS = 30 * 60 * 1000;
+
             try {
-                let dayMinutes = 0;
+                let qualifyingDayMinutes = 0;
+                let twilightMinutes = 0;
                 const dates = uniqueLocalDatesBetween(start, end);
                 for (const dateParam of dates) {
                     const { sunrise, sunset } = await fetchSunWindow(lat, lon, dateParam);
-                    const overlapStart = new Date(Math.max(start.getTime(), sunrise.getTime()));
-                    const overlapEnd = new Date(Math.min(end.getTime(), sunset.getTime()));
-                    dayMinutes += minutesBetween(overlapStart, overlapEnd);
+
+                    // Qualifying day: sunrise → sunset
+                    const dayOverlapStart = new Date(Math.max(start.getTime(), sunrise.getTime()));
+                    const dayOverlapEnd = new Date(Math.min(end.getTime(), sunset.getTime()));
+                    qualifyingDayMinutes += minutesBetween(dayOverlapStart, dayOverlapEnd);
+
+                    // Dusk buffer: sunset → sunset + 30 min
+                    const duskEnd = new Date(sunset.getTime() + THIRTY_MIN_MS);
+                    const duskOverlapStart = new Date(Math.max(start.getTime(), sunset.getTime()));
+                    const duskOverlapEnd = new Date(Math.min(end.getTime(), duskEnd.getTime()));
+                    twilightMinutes += minutesBetween(duskOverlapStart, duskOverlapEnd);
+
+                    // Dawn buffer: sunrise - 30 min → sunrise
+                    const dawnStart = new Date(sunrise.getTime() - THIRTY_MIN_MS);
+                    const dawnOverlapStart = new Date(Math.max(start.getTime(), dawnStart.getTime()));
+                    const dawnOverlapEnd = new Date(Math.min(end.getTime(), sunrise.getTime()));
+                    twilightMinutes += minutesBetween(dawnOverlapStart, dawnOverlapEnd);
                 }
                 const totalMinutes = minutesBetween(start, end);
-                const nightMinutes = Math.max(0, totalMinutes - dayMinutes);
-                return nightMinutes > dayMinutes ? 'night' : 'day';
+                const qualifyingNightMinutes = Math.max(0, totalMinutes - qualifyingDayMinutes - twilightMinutes);
+                return qualifyingNightMinutes > qualifyingDayMinutes ? 'night' : 'day';
             } catch (err) {
                 console.warn('Day/night auto-classification fallback used:', err);
                 return fallback;
