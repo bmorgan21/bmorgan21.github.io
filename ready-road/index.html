@@ -50,17 +50,27 @@
             padding-bottom: calc(1rem + env(safe-area-inset-bottom));
         }
         
+        @page { margin: 0.5in; }
+
         @media print {
     body * { visibility: hidden; }
     #printTemplate, #printTemplate * { visibility: visible; }
-    #printTemplate { 
-        position: absolute; 
-        top: 0; 
-        left: 0; 
-        width: 100%; 
-        background: white; 
-        color: black; 
-        display: block !important; 
+    #printTemplate {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: white;
+        color: black;
+        display: block !important;
+    }
+    #printCoverPage {
+        font-family: Arial, Helvetica, sans-serif;
+        display: flex;
+        flex-direction: column;
+        min-height: 10in;
+        box-sizing: border-box;
+        page-break-after: always;
     }
     .print-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
     .print-table th, .print-table td { border: 1px solid black; padding: 6px; text-align: left; }
@@ -373,6 +383,99 @@
     </div>
 
     <div id="printTemplate" class="hidden print:block">
+
+        <!-- ═══════════════════════════════════════════════════════
+             COVER PAGE — Supervised Driving Log
+        ═══════════════════════════════════════════════════════ -->
+        <div id="printCoverPage">
+
+            <!-- Title -->
+            <div style="text-align:center; border-bottom:3px double #000; padding-bottom:14px; margin-bottom:22px;">
+                <div style="font-size:11pt; text-transform:uppercase; letter-spacing:2px; color:#444; margin-bottom:8px;">State of New Hampshire</div>
+                <div style="font-size:20pt; font-weight:900; letter-spacing:0.4px; line-height:1.1;">Supervised Driving Log</div>
+            </div>
+
+            <!-- Introductory text -->
+            <div style="font-size:10.5pt; line-height:1.7; margin-bottom:26px;">
+                <p style="margin:0 0 14px 0;">New Hampshire law requires a minimum of <strong>40 hours</strong> of practice driving with a licensed adult in addition to the Driver Education Program Certificate. At least <strong>10 hours</strong> of the supervised driving time must be completed during the period from one-half hour after sunset to one-half hour before sunrise. Parents are encouraged to practice as much as possible with their child. The student driver must be at least <strong>15 years and 6 months</strong> of age, and the supervising licensed driver must be at least <strong>25 years old</strong>.</p>
+                <p style="margin:0;">I certify that my child has received a minimum of <strong>40 hours</strong> of supervised driving practice with at least <strong>10 hours</strong> occurring during the period from one-half hour after sunset to one-half hour before sunrise.</p>
+            </div>
+
+            <!-- Signature section -->
+            <div style="display:flex; gap:40px; margin-bottom:8px; align-items:flex-end;">
+                <div style="flex:2;">
+                    <div style="border-bottom:1.5px solid #000; height:42px; margin-bottom:5px;"></div>
+                    <div style="font-size:9pt; font-weight:bold;">Parent/Guardian Signature</div>
+                </div>
+                <div style="flex:1;">
+                    <div style="border-bottom:1.5px solid #000; height:42px; margin-bottom:5px;"></div>
+                    <div style="font-size:9pt; font-weight:bold;">Date</div>
+                </div>
+            </div>
+            <p style="font-size:8.5pt; font-style:italic; color:#444; margin:0 0 30px 0;">This authorization form is signed under penalty of unsworn falsification pursuant to RSA 641:3.</p>
+
+            <!-- Student information -->
+            <div style="border:1.5px solid #333; padding:14px 18px; margin-bottom:28px;">
+                <div style="font-size:9.5pt; font-weight:bold; text-transform:uppercase; letter-spacing:0.8px; padding-bottom:10px; margin-bottom:16px; border-bottom:1px solid #ccc;">Student Information</div>
+                <div style="display:flex; gap:32px; font-size:9.5pt;">
+                    <!-- Left column -->
+                    <div style="flex:1;">
+                        <div style="margin-bottom:14px;">
+                            <div style="font-weight:bold; margin-bottom:3px;">Student Full Name:</div>
+                            <div style="border-bottom:1px solid #555; height:20px;"></div>
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <div style="font-weight:bold; margin-bottom:3px;">Parent Name:</div>
+                            <div style="border-bottom:1px solid #555; height:20px;"></div>
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <div style="font-weight:bold; margin-bottom:3px;">Telephone #:</div>
+                            <div style="border-bottom:1px solid #555; height:20px;"></div>
+                        </div>
+                        <div>
+                            <div style="font-weight:bold; margin-bottom:3px;">Name of Driving School Attending:</div>
+                            <div style="border-bottom:1px solid #555; height:20px;"></div>
+                        </div>
+                    </div>
+                    <!-- Right column -->
+                    <div style="flex:1;">
+                        <div style="margin-bottom:14px;">
+                            <div style="font-weight:bold; margin-bottom:3px;">Date of Birth:</div>
+                            <div style="border-bottom:1px solid #555; height:20px;"></div>
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <div style="font-weight:bold; margin-bottom:3px;">Total Driving Time:</div>
+                            <div style="border-bottom:1px solid #555; height:20px; padding-top:2px;"><span id="coverTotalHours" style="font-size:9pt;"></span></div>
+                        </div>
+                        <div>
+                            <div style="font-weight:bold; margin-bottom:3px;">Total Night Driving Time:</div>
+                            <div style="border-bottom:1px solid #555; height:20px; padding-top:2px;"><span id="coverNightHours" style="font-size:9pt;"></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vertical spacer pushes footer to bottom of page -->
+            <div style="flex:1;"></div>
+
+            <!-- Footer -->
+            <div style="border-top:1px solid #aaa; padding-top:12px;">
+                <div style="display:flex; gap:28px; align-items:flex-start;">
+                    <div style="flex:3; font-size:8pt; color:#444; line-height:1.6;">
+                        <div style="font-weight:bold; font-size:9pt; margin-bottom:5px;">New Hampshire</div>
+                        <p style="margin:0 0 6px 0;">A component of The Parent's Supervised Driving Program provided free to DMVs and Licensing Agencies throughout the country.</p>
+                        <p style="margin:0;">This driving log is a resource for families to utilize during the supervised driving process. Please refer to your state's rules and regulations to determine whether this log is required and accepted in your state.</p>
+                    </div>
+                    <div style="flex:1; font-size:8.5pt; text-align:center;">
+                        <div style="font-weight:bold; margin-bottom:10px;">With Support From</div>
+                        <div style="min-height:44px; border:1px dashed #bbb; border-radius:2px;"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <!-- END COVER PAGE -->
+
         <h1 style="text-align:center; font-size:18px; text-transform:uppercase; margin-bottom:2px;">State of New Hampshire</h1>
         <h2 style="text-align:center; font-size:14px; text-transform:uppercase; margin-bottom:15px; border-bottom:2px solid #000; padding-bottom:5px;">Teen Driver Certification Log</h2>
         
@@ -1667,9 +1770,13 @@
                 tbody.appendChild(tr);
             });
             
-            // Inject calculated hour aggregates to one decimal place into print header elements
-            document.getElementById('printTotalHours').innerText = (totalMinutes / 60).toFixed(1);
-            document.getElementById('printNightHours').innerText = (nightMinutes / 60).toFixed(1);
+            // Inject calculated hour aggregates to one decimal place into print header and cover page
+            const totalHrs = (totalMinutes / 60).toFixed(1);
+            const nightHrs = (nightMinutes / 60).toFixed(1);
+            document.getElementById('printTotalHours').innerText = totalHrs;
+            document.getElementById('printNightHours').innerText = nightHrs;
+            document.getElementById('coverTotalHours').innerText = `${totalHrs} hrs`;
+            document.getElementById('coverNightHours').innerText = `${nightHrs} hrs`;
 
             window.print();
         }
