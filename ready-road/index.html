@@ -169,6 +169,14 @@
             </button>
         </header>
 
+        <div id="updateAvailableBanner" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-3">
+            <div class="min-w-0">
+                <div class="font-black text-blue-700 text-sm">Update Available</div>
+                <div class="text-xs text-blue-500 mt-0.5">A newer version of ReadyRoad is ready to install.</div>
+            </div>
+            <button onclick="reloadForUpdate()" class="shrink-0 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition">Update Now</button>
+        </div>
+
         <section id="authScreen" class="app-screen active bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
             <div class="flex gap-2 mb-6">
                 <button id="showLoginBtn" class="flex-1 py-2.5 font-bold rounded-xl bg-blue-600 text-white transition">Login</button>
@@ -656,7 +664,8 @@
         function markUpdateAvailable(worker) {
             waitingServiceWorker = worker || waitingServiceWorker;
             document.getElementById('updateAvailableCard')?.classList.remove('hidden');
-            showToast('A ReadyRoad update is ready. Open settings to reload.', 'info', 6500);
+            document.getElementById('updateAvailableBanner')?.classList.remove('hidden');
+            showToast('A ReadyRoad update is ready.', 'info', 6500);
         }
 
         function reloadForUpdate() {
@@ -812,6 +821,7 @@
                 document.getElementById('parentName').innerText = profile.display_name;
                 await fetchLinkedChildrenProfiles();
                 showAppScreen('parentDashboard');
+                await recoverActiveDriveOnBoot();
             } else {
                 document.getElementById('childName').innerText = profile.display_name;
                 document.getElementById('shareCodeDisplay').innerText = profile.share_code;
@@ -1703,7 +1713,11 @@ if ('serviceWorker' in navigator) {
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (refreshingForUpdate) return;
                 refreshingForUpdate = true;
-                window.location.reload();
+                if (isSafeToReloadForUpdate()) {
+                    window.location.reload();
+                } else {
+                    markUpdateAvailable(null);
+                }
             });
 
             await reg.update();
