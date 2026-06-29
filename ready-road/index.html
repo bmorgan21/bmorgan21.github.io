@@ -390,9 +390,12 @@
         <div id="printCoverPage">
 
             <!-- Title -->
-            <div style="text-align:center; border-bottom:3px double #000; padding-bottom:14px; margin-bottom:22px;">
-                <div style="font-size:11pt; text-transform:uppercase; letter-spacing:2px; color:#444; margin-bottom:8px;">State of New Hampshire</div>
-                <div style="font-size:20pt; font-weight:900; letter-spacing:0.4px; line-height:1.1;">Supervised Driving Log</div>
+            <div style="border-bottom:3px double #000; padding-bottom:14px; margin-bottom:22px;">
+                <div style="text-align:center;">
+                    <div style="font-size:11pt; text-transform:uppercase; letter-spacing:2px; color:#444; margin-bottom:8px;">State of New Hampshire</div>
+                    <div style="font-size:20pt; font-weight:900; letter-spacing:0.4px; line-height:1.1;">Supervised Driving Log</div>
+                </div>
+                <div style="text-align:right; font-size:8pt; color:#555; margin-top:10px;">Generated: <span id="coverGeneratedDate"></span></div>
             </div>
 
             <!-- Introductory text -->
@@ -422,7 +425,7 @@
                     <div style="flex:1;">
                         <div style="margin-bottom:14px;">
                             <div style="font-weight:bold; margin-bottom:3px;">Student Full Name:</div>
-                            <div style="border-bottom:1px solid #555; height:20px;"></div>
+                            <div style="border-bottom:1px solid #555; height:20px; padding-top:2px;"><span id="coverStudentName" style="font-size:9pt;"></span></div>
                         </div>
                         <div style="margin-bottom:14px;">
                             <div style="font-weight:bold; margin-bottom:3px;">Parent Name:</div>
@@ -1777,6 +1780,10 @@
             document.getElementById('printNightHours').innerText = nightHrs;
             document.getElementById('coverTotalHours').innerText = `${totalHrs} hrs`;
             document.getElementById('coverNightHours').innerText = `${nightHrs} hrs`;
+
+            const selectedChild = state.linkedChildren.find(c => c.id === state.selectedChildId);
+            document.getElementById('coverStudentName').innerText = selectedChild?.display_name ?? '';
+            document.getElementById('coverGeneratedDate').innerText = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
             window.print();
         }
