@@ -495,7 +495,7 @@
                     <th>Route & Driving Conditions</th>
                     <th>Day Mins</th>
                     <th>Night Mins</th>
-                    <th>Supervisor Printed Name & Signature Baseline</th>
+                    <th>Supervisor Name</th>
                 </tr>
             </thead>
             <tbody id="printTableBody"></tbody>
@@ -1768,7 +1768,7 @@
                     <td>${d.start_address} to ${d.end_address} (${d.road_type}, ${d.weather})</td>
                     <td><center>${d.day_night==='day'?roundedMins:''}</center></td>
                     <td><center>${d.day_night==='night'?roundedMins:''}</center></td>
-                    <td style="padding-top:20px; vertical-align:bottom;"><small>${d.supervisor_name}</small><div style="border-bottom:1px dotted #000; width:100%; height:2px;"></div></td>
+                    <td>${d.supervisor_name}</td>
                 `;
                 tbody.appendChild(tr);
             });
