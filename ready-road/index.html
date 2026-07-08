@@ -571,7 +571,7 @@
         const SUPABASE_KEY = "sb_publishable_4WsxVlvdM1ZIcJwG4uRIxQ_3GVHlivl";
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const APP_VERSION = '1.4.0';
+        const APP_VERSION = '1.5.0';
 
         let state = {
             user: null,
@@ -585,6 +585,7 @@
                 watchId: null,
                 timerInterval: null,
                 waypointWatchId: null,
+                wakeLock: null,
                 startTime: null,
                 startLat: null, startLon: null,
                 endLat: null, endLon: null,
@@ -1497,6 +1498,7 @@
                 document.getElementById('trackerButton').className = 'w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black text-lg rounded-xl transition shadow-md';
                 document.getElementById('preDriveInfoCard').classList.add('hidden');
                 updateGPSIndicator(true, 'GPS Lock Active');
+                acquireWakeLock();
 
                 navigator.geolocation.getCurrentPosition(pos => {
                     state.tracker.startLat = pos.coords.latitude;
@@ -1524,6 +1526,7 @@
                 clearInterval(state.tracker.timerInterval);
                 if (state.tracker.waypointWatchId != null) navigator.geolocation.clearWatch(state.tracker.waypointWatchId);
                 state.tracker.waypointWatchId = null;
+                releaseWakeLock();
                 state.tracker.active = false;
                 state.tracker.status = 'finalizing';
                 const stopTime = state.tracker.stopTime ? new Date(state.tracker.stopTime) : new Date();
@@ -1574,6 +1577,7 @@
         function clearGPSEngineSettings(options = {}) {
             clearInterval(state.tracker.timerInterval);
             if (state.tracker.waypointWatchId != null) navigator.geolocation.clearWatch(state.tracker.waypointWatchId);
+            releaseWakeLock();
             state.tracker.active = false;
             state.tracker.watchId = null;
             state.tracker.timerInterval = null;
@@ -1604,6 +1608,34 @@
             document.getElementById('gpsStatusText').innerText = text;
             document.getElementById('gpsStatus').className = isLive ? 'w-3 h-3 rounded-full bg-green-500 animate-pulse' : 'w-3 h-3 rounded-full bg-red-500';
         }
+
+        async function acquireWakeLock() {
+            if (!('wakeLock' in navigator)) {
+                showToast('Screen lock prevention unavailable on this browser. Keep the screen on during tracking for best route accuracy.', 'warning', 7000);
+                return;
+            }
+            try {
+                state.tracker.wakeLock = await navigator.wakeLock.request('screen');
+                updateGPSIndicator(true, 'GPS Active · Screen Held');
+                state.tracker.wakeLock.addEventListener('release', () => {
+                    state.tracker.wakeLock = null;
+                    if (state.tracker.active) updateGPSIndicator(true, 'GPS Active · Screen Free');
+                });
+            } catch {
+                showToast('Could not hold the screen on — keep the display active during tracking for best route accuracy.', 'warning', 7000);
+            }
+        }
+
+        function releaseWakeLock() {
+            if (state.tracker.wakeLock) { state.tracker.wakeLock.release(); state.tracker.wakeLock = null; }
+        }
+
+        // Re-acquire wake lock when the user switches back to the app mid-drive
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && state.tracker.active && !state.tracker.wakeLock) {
+                acquireWakeLock();
+            }
+        });
 
         function getWeatherDisplay(code) {
             if (code === 0)  return { label: 'Clear Sky',      emoji: '☀️',  bg: 'from-amber-50 to-orange-50',   border: 'border-amber-100', text: 'text-amber-700' };
