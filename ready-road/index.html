@@ -571,7 +571,7 @@
         const SUPABASE_KEY = "sb_publishable_4WsxVlvdM1ZIcJwG4uRIxQ_3GVHlivl";
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const APP_VERSION = '1.3.0';
+        const APP_VERSION = '1.4.0';
 
         let state = {
             user: null,
@@ -584,7 +584,7 @@
                 active: false,
                 watchId: null,
                 timerInterval: null,
-                waypointInterval: null,
+                waypointWatchId: null,
                 startTime: null,
                 startLat: null, startLon: null,
                 endLat: null, endLon: null,
@@ -1504,18 +1504,26 @@
                     persistActiveDrive();
                 }, () => persistActiveDrive(), { enableHighAccuracy: true });
 
-                state.tracker.waypointInterval = setInterval(() => {
-                    navigator.geolocation.getCurrentPosition(pos => {
-                        state.tracker.waypoints.push({ lat: pos.coords.latitude, lon: pos.coords.longitude, ts: new Date().toISOString() });
+                // watchPosition runs continuously via the OS location service — survives screen-off and
+                // app backgrounding, unlike setInterval which gets throttled by the browser.
+                state.tracker.waypointWatchId = navigator.geolocation.watchPosition(pos => {
+                    if (!state.tracker.active) return;
+                    const { latitude: lat, longitude: lon } = pos.coords;
+                    const last = state.tracker.waypoints[state.tracker.waypoints.length - 1];
+                    const msSinceLast = last ? Date.now() - new Date(last.ts).getTime() : Infinity;
+                    const mFromLast  = last ? waypointMetersApart(last.lat, last.lon, lat, lon) : Infinity;
+                    // Record if 25+ seconds have elapsed OR device has moved 40+ metres
+                    if (msSinceLast >= 25000 || mFromLast >= 40) {
+                        state.tracker.waypoints.push({ lat, lon, ts: new Date().toISOString() });
                         persistActiveDrive();
-                    }, null, { enableHighAccuracy: true });
-                }, 30000);
+                    }
+                }, null, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
 
                 startTrackerTimer();
             } else {
                 clearInterval(state.tracker.timerInterval);
-                clearInterval(state.tracker.waypointInterval);
-                state.tracker.waypointInterval = null;
+                if (state.tracker.waypointWatchId != null) navigator.geolocation.clearWatch(state.tracker.waypointWatchId);
+                state.tracker.waypointWatchId = null;
                 state.tracker.active = false;
                 state.tracker.status = 'finalizing';
                 const stopTime = state.tracker.stopTime ? new Date(state.tracker.stopTime) : new Date();
@@ -1565,11 +1573,11 @@
 
         function clearGPSEngineSettings(options = {}) {
             clearInterval(state.tracker.timerInterval);
-            clearInterval(state.tracker.waypointInterval);
+            if (state.tracker.waypointWatchId != null) navigator.geolocation.clearWatch(state.tracker.waypointWatchId);
             state.tracker.active = false;
             state.tracker.watchId = null;
             state.tracker.timerInterval = null;
-            state.tracker.waypointInterval = null;
+            state.tracker.waypointWatchId = null;
             state.tracker.startTime = null;
             state.tracker.startLat = null;
             state.tracker.startLon = null;
@@ -1723,6 +1731,15 @@
             }
         }
 
+
+        function waypointMetersApart(lat1, lon1, lat2, lon2) {
+            const R = 6371000;
+            const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(Δφ/2)**2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
 
         function formatDateParam(date) {
             return formatDateLocalInput(new Date(date)).slice(0, 10);
@@ -2145,25 +2162,44 @@
             L.marker(startLL, { icon: mkIcon('#10b981') }).addTo(map).bindPopup('Start: ' + drive.start_address);
             if (endLL) L.marker(endLL, { icon: mkIcon('#ef4444') }).addTo(map).bindPopup('End: ' + drive.end_address);
 
-            if (drive.waypoints && drive.waypoints.length >= 2) {
-                // Actual GPS track recorded during the drive
-                const latlngs = drive.waypoints.map(wp => [wp.lat, wp.lon]);
-                const line = L.polyline(latlngs, { color: '#3b82f6', weight: 4, opacity: 0.85 }).addTo(map);
-                map.fitBounds(line.getBounds().pad(0.25));
-            } else if (endLL) {
-                // No track — fetch estimated road route from OSRM (free, no key)
+            if (endLL) {
+                // Build OSRM coordinate list: start → (waypoints as intermediate stops) → end.
+                // Passing waypoints to OSRM means the route snaps to real roads through each
+                // recorded position, rather than drawing straight segments between GPS points.
+                const buildOsrmUrl = (wps) => {
+                    // OSRM public server handles ~25 coords comfortably; subsample if needed.
+                    const MAX_STOPS = 23;
+                    let stops = wps;
+                    if (stops.length > MAX_STOPS) {
+                        const step = (stops.length - 1) / (MAX_STOPS - 1);
+                        stops = Array.from({ length: MAX_STOPS }, (_, i) => stops[Math.round(i * step)]);
+                    }
+                    const coordStr = stops.map(c => `${c[0]},${c[1]}`).join(';');
+                    return `https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&geometries=geojson`;
+                };
+
+                const hasWaypoints = drive.waypoints && drive.waypoints.length >= 1;
+                const midPoints = hasWaypoints
+                    ? drive.waypoints.map(wp => [wp.lon, wp.lat])
+                    : [];
+                // Deduplicate consecutive identical coords to avoid OSRM rejecting duplicate stops
+                const allStops = [[drive.start_lon, drive.start_lat], ...midPoints, [drive.end_lon, drive.end_lat]]
+                    .filter((c, i, arr) => i === 0 || c[0] !== arr[i-1][0] || c[1] !== arr[i-1][1]);
+
                 try {
-                    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${drive.start_lon},${drive.start_lat};${drive.end_lon},${drive.end_lat}?overview=full&geometries=geojson`;
-                    const res = await fetch(osrmUrl);
+                    const res = await fetch(buildOsrmUrl(allStops));
                     if (!res.ok) throw new Error('osrm-http');
                     const data = await res.json();
                     if (!data.routes?.[0]) throw new Error('osrm-empty');
                     const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
-                    const line = L.polyline(coords, { color: '#3b82f6', weight: 4, opacity: 0.75, dashArray: '1 0' }).addTo(map);
+                    const line = L.polyline(coords, { color: '#3b82f6', weight: 4, opacity: 0.85 }).addTo(map);
                     map.fitBounds(line.getBounds().pad(0.25));
                 } catch {
-                    // Fallback: straight dashed line
-                    const line = L.polyline([startLL, endLL], { color: '#94a3b8', weight: 2.5, dashArray: '6 5', opacity: 0.8 }).addTo(map);
+                    // Fallback: raw GPS polyline or straight line
+                    const fallback = hasWaypoints
+                        ? drive.waypoints.map(wp => [wp.lat, wp.lon])
+                        : [startLL, endLL];
+                    const line = L.polyline([startLL, ...fallback, endLL], { color: '#94a3b8', weight: 2.5, dashArray: '6 5', opacity: 0.8 }).addTo(map);
                     map.fitBounds(line.getBounds().pad(0.35));
                 }
             } else {
