@@ -52,6 +52,10 @@
             padding-bottom: calc(1rem + env(safe-area-inset-bottom));
         }
         
+        @keyframes trackerPing {
+            75%, 100% { transform: scale(2.8); opacity: 0; }
+        }
+
         @page { margin: 0.5in; }
 
         @media print {
@@ -334,6 +338,11 @@
                 </div>
             </div>
 
+            <div id="trackerMapContainer" class="rounded-xl overflow-hidden border border-slate-200" style="height:200px;position:relative;background:#e2e8f0;">
+                <div id="trackerMap" style="height:100%;width:100%;"></div>
+                <div id="trackerMapPlaceholder" class="absolute inset-0 flex items-center justify-center text-slate-400 text-sm font-medium pointer-events-none">Waiting for GPS fix…</div>
+            </div>
+
             <div class="flex justify-center items-center gap-2">
                 <div id="gpsStatus" class="w-3 h-3 rounded-full bg-red-500"></div>
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-400" id="gpsStatusText">GPS Standby</span>
@@ -345,6 +354,10 @@
 
         <section id="driveFormScreen" class="app-screen bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
             <h2 id="formTitle" class="font-black text-xl text-slate-800 border-b pb-2">Log Drive Details</h2>
+            <div id="formRouteMapContainer" class="hidden rounded-xl overflow-hidden border border-slate-200" style="height:160px;position:relative;background:#e2e8f0;">
+                <div id="formRouteMap" style="height:100%;width:100%;"></div>
+                <div id="formRouteMapPlaceholder" class="absolute inset-0 flex items-center justify-center text-slate-400 text-sm font-medium pointer-events-none">Loading route…</div>
+            </div>
             <form id="driveLogForm" onsubmit="handleFormSubmission(event)" class="space-y-3">
                 <input type="hidden" id="formMode" value="manual">
                 <input type="hidden" id="formStartLat"><input type="hidden" id="formStartLon">
@@ -571,7 +584,7 @@
         const SUPABASE_KEY = "sb_publishable_4WsxVlvdM1ZIcJwG4uRIxQ_3GVHlivl";
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const APP_VERSION = '1.5.0';
+        const APP_VERSION = '1.6.0';
 
         let state = {
             user: null,
@@ -580,6 +593,12 @@
             selectedChildId: null,
             currentDrives: [],
             driveDetailMap: null,
+            trackerMap: null,
+            trackerMapLine: null,
+            trackerMapCurrentMarker: null,
+            trackerMapStartMarker: null,
+            trackerMapWatchCoords: [],
+            formRouteMap: null,
             tracker: {
                 active: false,
                 watchId: null,
@@ -1492,6 +1511,7 @@
                 state.tracker.dayNight = null;
                 state.tracker.weather = null;
                 state.tracker.waypoints = [];
+                state.trackerMapWatchCoords = [];
                 persistActiveDrive();
 
                 document.getElementById('trackerButton').innerText = 'STOP DRIVE';
@@ -1504,6 +1524,12 @@
                     state.tracker.startLat = pos.coords.latitude;
                     state.tracker.startLon = pos.coords.longitude;
                     persistActiveDrive();
+                    // Pin green start marker and swap current-position dot
+                    if (state.trackerMap) {
+                        if (state.trackerMapCurrentMarker) { state.trackerMapCurrentMarker.remove(); state.trackerMapCurrentMarker = null; }
+                        state.trackerMapStartMarker = L.marker([pos.coords.latitude, pos.coords.longitude], { icon: _pinIcon('#10b981') }).addTo(state.trackerMap);
+                        state.trackerMapCurrentMarker = L.marker([pos.coords.latitude, pos.coords.longitude], { icon: _trackerDotIcon() }).addTo(state.trackerMap);
+                    }
                 }, () => persistActiveDrive(), { enableHighAccuracy: true });
 
                 // watchPosition runs continuously via the OS location service — survives screen-off and
@@ -1511,10 +1537,12 @@
                 state.tracker.waypointWatchId = navigator.geolocation.watchPosition(pos => {
                     if (!state.tracker.active) return;
                     const { latitude: lat, longitude: lon } = pos.coords;
+                    // Update live map on every position fix (smooth visual)
+                    updateTrackerMapLive(lat, lon);
+                    // Throttle database waypoints: 25 s elapsed OR 40 m moved
                     const last = state.tracker.waypoints[state.tracker.waypoints.length - 1];
                     const msSinceLast = last ? Date.now() - new Date(last.ts).getTime() : Infinity;
                     const mFromLast  = last ? waypointMetersApart(last.lat, last.lon, lat, lon) : Infinity;
-                    // Record if 25+ seconds have elapsed OR device has moved 40+ metres
                     if (msSinceLast >= 25000 || mFromLast >= 40) {
                         state.tracker.waypoints.push({ lat, lon, ts: new Date().toISOString() });
                         persistActiveDrive();
@@ -1548,12 +1576,20 @@
         }
 
         async function finalizeGPSTrackResult(start, end, sLat, sLon, eLat, eLon) {
-            const autoDayNight = await determineDriveDayNight(start, end, sLat, sLon, eLat, eLon);
-            const autoWeather = await determineDriveWeather(start, end, sLat, sLon, eLat, eLon);
+            // Kick off map route render in parallel with the day/night and weather API calls
+            const waypoints = [...(state.tracker.waypoints || [])];
+            finalizeTrackerMapRoute(waypoints, sLat, sLon, eLat, eLon);
+
+            const [autoDayNight, autoWeather] = await Promise.all([
+                determineDriveDayNight(start, end, sLat, sLon, eLat, eLon),
+                determineDriveWeather(start, end, sLat, sLon, eLat, eLon)
+            ]);
             openUnifiedForm({
                 mode: 'gps', start: formatDateLocalInput(new Date(start)), end: formatDateLocalInput(new Date(end)),
                 sLat, sLon, eLat, eLon, sAddr: 'Resolving address...', eAddr: 'Resolving address...', dayNight: autoDayNight, weather: autoWeather
             });
+            // Show route preview on the form screen (non-blocking)
+            if (sLat && sLon) showFormRouteMap(waypoints, sLat, sLon, eLat, eLon);
 
             if (sLat && sLon) document.getElementById('formStartAddress').value = await reverseGeocode(sLat, sLon);
             if (eLat && eLon) document.getElementById('formEndAddress').value = await reverseGeocode(eLat, eLon);
@@ -1596,6 +1632,8 @@
             state.tracker.status = 'idle';
             state.tracker.waypoints = [];
             if (options.clearStorage) removeActiveDrive();
+            destroyTrackerMap();
+            destroyFormRouteMap();
             document.getElementById('timerDisplay').innerText = '00:00';
             document.getElementById('trackerButton').disabled = false;
             document.getElementById('trackerButton').innerText = 'START DRIVE';
@@ -1672,6 +1710,8 @@
 
                 document.getElementById('locationCoords').textContent =
                     `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+
+                initTrackerMap(lat, lon);
 
                 reverseGeocode(lat, lon).then(city => {
                     document.getElementById('locationText').textContent = city;
@@ -2022,6 +2062,7 @@
             }
             showToast("Entry saved!", 'success');
             document.getElementById('driveLogForm').reset();
+            destroyFormRouteMap();
             showAppScreen('parentDashboard');
             await refreshParentDashboardLogs();
             });
@@ -2081,6 +2122,136 @@
             }).catch(() => {
                 showToast("Failed to copy Share Code. Please try again.", 'error');
             });
+        }
+
+        // --- TRACKER SCREEN LIVE MAP ---
+        const _trackerDotIcon = () => L.divIcon({
+            className: '',
+            html: `<div style="width:16px;height:16px;position:relative">
+                <div style="position:absolute;inset:0;background:#3b82f6;border-radius:50%;opacity:0.35;animation:trackerPing 1.2s ease-out infinite"></div>
+                <div style="position:absolute;inset:3px;background:#3b82f6;border-radius:50%;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>
+            </div>`,
+            iconSize: [16, 16], iconAnchor: [8, 8]
+        });
+        const _pinIcon = color => L.divIcon({
+            className: '',
+            html: `<div style="width:12px;height:12px;background:${color};border:2.5px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>`,
+            iconSize: [12, 12], iconAnchor: [6, 6]
+        });
+
+        function initTrackerMap(lat, lon) {
+            document.getElementById('trackerMapPlaceholder').classList.add('hidden');
+            if (state.trackerMap) {
+                // Already initialized; just move the current-position marker
+                if (state.trackerMapCurrentMarker) state.trackerMapCurrentMarker.setLatLng([lat, lon]);
+                else state.trackerMapCurrentMarker = L.marker([lat, lon], { icon: _trackerDotIcon() }).addTo(state.trackerMap);
+                state.trackerMap.setView([lat, lon], 15);
+                return;
+            }
+            const map = L.map('trackerMap', { zoomControl: false, attributionControl: false }).setView([lat, lon], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+            state.trackerMap = map;
+            state.trackerMapCurrentMarker = L.marker([lat, lon], { icon: _trackerDotIcon() }).addTo(map);
+            setTimeout(() => map.invalidateSize(), 120);
+        }
+
+        function updateTrackerMapLive(lat, lon) {
+            if (!state.trackerMap) return;
+            state.trackerMapWatchCoords.push([lat, lon]);
+            // Move pulsing dot
+            if (state.trackerMapCurrentMarker) state.trackerMapCurrentMarker.setLatLng([lat, lon]);
+            // Grow live polyline
+            if (state.trackerMapWatchCoords.length >= 2) {
+                if (state.trackerMapLine) {
+                    state.trackerMapLine.setLatLngs(state.trackerMapWatchCoords);
+                } else {
+                    state.trackerMapLine = L.polyline(state.trackerMapWatchCoords, { color: '#3b82f6', weight: 3, opacity: 0.75 }).addTo(state.trackerMap);
+                }
+            }
+            // Gentle pan to follow
+            state.trackerMap.panTo([lat, lon], { animate: true, duration: 0.8 });
+        }
+
+        async function finalizeTrackerMapRoute(waypoints, sLat, sLon, eLat, eLon) {
+            if (!state.trackerMap) return;
+            // Swap live elements for finished markers
+            if (state.trackerMapLine) { state.trackerMapLine.remove(); state.trackerMapLine = null; }
+            if (state.trackerMapCurrentMarker) { state.trackerMapCurrentMarker.remove(); state.trackerMapCurrentMarker = null; }
+            state.trackerMapWatchCoords = [];
+
+            const startLL = [sLat, sLon];
+            const endLL   = eLat && eLon ? [eLat, eLon] : null;
+            L.marker(startLL, { icon: _pinIcon('#10b981') }).addTo(state.trackerMap);
+            if (endLL) L.marker(endLL, { icon: _pinIcon('#ef4444') }).addTo(state.trackerMap);
+
+            await _drawOsrmRouteOnMap(state.trackerMap, waypoints, sLat, sLon, eLat, eLon);
+        }
+
+        function destroyTrackerMap() {
+            if (state.trackerMap) { state.trackerMap.remove(); state.trackerMap = null; }
+            state.trackerMapLine = null;
+            state.trackerMapCurrentMarker = null;
+            state.trackerMapStartMarker = null;
+            state.trackerMapWatchCoords = [];
+            const ph = document.getElementById('trackerMapPlaceholder');
+            if (ph) ph.classList.remove('hidden');
+        }
+
+        async function showFormRouteMap(waypoints, sLat, sLon, eLat, eLon) {
+            const container = document.getElementById('formRouteMapContainer');
+            if (!container) return;
+            container.classList.remove('hidden');
+            if (state.formRouteMap) { state.formRouteMap.remove(); state.formRouteMap = null; }
+            document.getElementById('formRouteMap').innerHTML = '';
+
+            const map = L.map('formRouteMap', { zoomControl: false, attributionControl: false }).setView([sLat, sLon], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+            state.formRouteMap = map;
+
+            const endLL = eLat && eLon ? [eLat, eLon] : null;
+            L.marker([sLat, sLon], { icon: _pinIcon('#10b981') }).addTo(map);
+            if (endLL) L.marker(endLL, { icon: _pinIcon('#ef4444') }).addTo(map);
+
+            setTimeout(() => map.invalidateSize(), 60);
+            await _drawOsrmRouteOnMap(map, waypoints, sLat, sLon, eLat, eLon);
+
+            const ph = document.getElementById('formRouteMapPlaceholder');
+            if (ph) ph.classList.add('hidden');
+        }
+
+        function destroyFormRouteMap() {
+            if (state.formRouteMap) { state.formRouteMap.remove(); state.formRouteMap = null; }
+            const container = document.getElementById('formRouteMapContainer');
+            if (container) container.classList.add('hidden');
+            const ph = document.getElementById('formRouteMapPlaceholder');
+            if (ph) ph.classList.remove('hidden');
+        }
+
+        async function _drawOsrmRouteOnMap(map, waypoints, sLat, sLon, eLat, eLon) {
+            const endLL = eLat && eLon ? [eLat, eLon] : null;
+            if (!endLL) { map.setView([sLat, sLon], 14); return; }
+
+            const mid = waypoints?.length ? waypoints.map(wp => [wp.lon, wp.lat]) : [];
+            let stops = [[sLon, sLat], ...mid, [eLon, eLat]]
+                .filter((c, i, a) => i === 0 || c[0] !== a[i-1][0] || c[1] !== a[i-1][1]);
+            if (stops.length > 25) {
+                const step = (stops.length - 1) / 24;
+                stops = Array.from({ length: 25 }, (_, i) => stops[Math.round(i * step)]);
+            }
+            try {
+                const coordStr = stops.map(c => `${c[0]},${c[1]}`).join(';');
+                const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&geometries=geojson`);
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                if (!data.routes?.[0]) throw new Error();
+                const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                const line = L.polyline(coords, { color: '#3b82f6', weight: 4, opacity: 0.85 }).addTo(map);
+                map.fitBounds(line.getBounds().pad(0.2));
+            } catch {
+                const fallback = [[sLat, sLon], ...(waypoints || []).map(wp => [wp.lat, wp.lon]), ...(endLL ? [endLL] : [])];
+                const line = L.polyline(fallback, { color: '#94a3b8', weight: 2.5, dashArray: '6 5', opacity: 0.8 }).addTo(map);
+                map.fitBounds(line.getBounds().pad(0.25));
+            }
         }
 
         // --- DRIVE DETAIL MODAL ---

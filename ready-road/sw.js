@@ -1,4 +1,4 @@
-const CACHE_NAME = "readyroad-v10";
+const CACHE_NAME = "readyroad-v11";
 
 const APP_SHELL = [
   "./",
