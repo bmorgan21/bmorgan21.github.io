@@ -140,6 +140,7 @@
                 </div>
                 <div id="driveDetailRoute" class="space-y-1 text-sm"></div>
                 <div id="driveDetailMeta" class="grid grid-cols-3 gap-2"></div>
+                <div id="driveDetailNotes" class="hidden bg-slate-50 rounded-xl p-3 text-sm text-slate-600 leading-relaxed"></div>
                 <div id="driveDetailActions" class="hidden grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
                     <button type="button" onclick="editDrive()" class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition">Edit Drive</button>
                     <button type="button" onclick="deleteDrive()" class="py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl text-sm transition">Delete Drive</button>
@@ -252,7 +253,10 @@
 
             <div id="parentDriverSelectorCard" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
                 <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Active Target Driver</label>
-                <select id="childSelector" onchange="handleChildSelectionChange()" class="w-full border border-slate-200 p-2.5 rounded-lg bg-white text-sm"></select>
+                <div class="flex gap-2">
+                    <select id="childSelector" onchange="handleChildSelectionChange()" class="flex-1 border border-slate-200 p-2.5 rounded-lg bg-white text-sm"></select>
+                    <button onclick="unlinkTeen()" title="Unlink this teen driver" class="shrink-0 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-500 font-bold rounded-lg text-xs transition">Unlink</button>
+                </div>
             </div>
 
             <div id="parentLinkTeenCard" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
@@ -309,7 +313,7 @@
             </div>
 
             <div id="parentHistoryCard" class="parent-driver-dependent bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                <h2 class="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wide">Drive Log History</h2>
+                <h2 class="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wide">Drive Log History <span id="driveLogCount" class="normal-case font-normal text-slate-400 text-xs"></span></h2>
                 <div id="parentDriveList" class="space-y-2 max-h-60 overflow-y-auto"></div>
             </div>
         </section>
@@ -416,6 +420,10 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Supervisor Name</label>
                     <input id="formSupervisorName" type="text" required class="w-full border p-2 rounded-lg text-sm bg-slate-50">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Notes <span class="normal-case font-normal text-slate-300">(optional)</span></label>
+                    <textarea id="formNotes" rows="2" placeholder="e.g. First time on the highway, practiced parking" class="w-full border p-2 rounded-lg text-sm bg-slate-50 resize-none"></textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-3 pt-2">
                     <button type="button" onclick="cancelFormEngine()" class="py-2.5 bg-slate-100 font-bold rounded-xl text-sm transition">Cancel</button>
@@ -588,7 +596,7 @@
         const SUPABASE_KEY = "sb_publishable_4WsxVlvdM1ZIcJwG4uRIxQ_3GVHlivl";
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const APP_VERSION = '1.7.2';
+        const APP_VERSION = '1.8.0';
 
         let state = {
             user: null,
@@ -1239,23 +1247,29 @@
     });
 }
 
-        async function linkChild2(event) {
-            const code = document.getElementById('shareCodeInput').value.trim();
-            if (!code) return showToast("Input child key string code.", 'warning');
-
-            const trigger = event?.currentTarget || event?.target;
-            return withActionLock('link-child-legacy', trigger, 'Linking...', async () => {
-                const { data: targetProfile, error } = await supabaseRequest('Finding teen driver...', () => supabaseClient.from('profiles').select('*').eq('share_code', code).eq('role', 'child').maybeSingle());
-                if (error || !targetProfile) return showToast("Driver identity verification error mismatch. Re-verify target key code.", 'error');
-
-                const { error: linkErr } = await supabaseRequest('Linking teen driver...', () => supabaseClient.from('parent_child_relationships').insert([{ parent_id: state.user.id, child_id: targetProfile.id }]));
-                if (linkErr) return showToast("Relational connection matrix already defined.", 'error');
-
-                showToast("Relational linking authenticated successfully.", 'success');
-                document.getElementById('shareCodeInput').value = '';
-                state.selectedChildId = targetProfile.id;
-                await fetchLinkedChildrenProfiles();
-            });
+        async function unlinkTeen() {
+            const childId = state.selectedChildId;
+            if (!childId) return showToast('No teen driver selected.', 'warning');
+            if (state.tracker.active || state.tracker.status === 'finalizing') {
+                return showToast('Finish or discard the active drive before unlinking.', 'warning');
+            }
+            const child = state.linkedChildren.find(c => c.id === childId);
+            const confirmed = await showConfirmDialog(
+                `Remove ${child?.display_name ?? 'this driver'} from your account? Their drive history is preserved and can be re-linked later with the same share code.`,
+                { title: 'Unlink teen driver?', confirmText: 'Unlink', cancelText: 'Keep',
+                  confirmClass: 'py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition' }
+            );
+            if (!confirmed) return;
+            const { error } = await supabaseRequest('Unlinking teen driver...', () =>
+                supabaseClient.from('parent_child_relationships')
+                    .delete()
+                    .eq('parent_id', state.user.id)
+                    .eq('child_id', childId)
+            );
+            if (error) return showToast('Failed to unlink: ' + error.message, 'error');
+            state.selectedChildId = null;
+            showToast(`${child?.display_name ?? 'Driver'} unlinked.`, 'success');
+            await fetchLinkedChildrenProfiles();
         }
 
         async function handleChildSelectionChange() {
@@ -1285,7 +1299,11 @@
             if (!state.selectedChildId) return;
             const { data: drives } = await supabaseRequest('Loading drive logs...', () => supabaseClient.from('drives').select('*').eq('child_id', state.selectedChildId).order('start_time', { ascending: false }));
             state.currentDrives = drives || [];
-            
+
+            const driveCount = state.currentDrives.length;
+            document.getElementById('driveLogCount').textContent =
+                driveCount > 0 ? `(${driveCount} drive${driveCount !== 1 ? 's' : ''})` : '';
+
             const container = document.getElementById('parentDriveList');
             container.innerHTML = '';
 
@@ -1321,6 +1339,35 @@
             document.getElementById('recentDaySessions').textContent = `${daySessions} session${daySessions !== 1 ? 's' : ''}`;
             document.getElementById('recentWeekHours').textContent = (weekMins / 60).toFixed(1);
             document.getElementById('recentWeekSessions').textContent = `${weekSessions} session${weekSessions !== 1 ? 's' : ''}`;
+
+            _checkDriveMilestones(state.selectedChildId, totalMins, nightMins);
+        }
+
+        function _checkDriveMilestones(childId, totalMins, nightMins) {
+            if (!childId) return;
+            const key = `readyroad.milestones.${childId}`;
+            let seen;
+            try { seen = new Set(JSON.parse(localStorage.getItem(key) || '[]')); }
+            catch { seen = new Set(); }
+
+            const totalHrs = totalMins / 60;
+            const nightHrs = nightMins / 60;
+            const milestones = [
+                { id: 'total-10',  met: totalHrs >= 10,  msg: '🎉 10 total hours reached! Great progress!' },
+                { id: 'total-20',  met: totalHrs >= 20,  msg: '🎉 20 total hours — halfway to the goal!' },
+                { id: 'night-10',  met: nightHrs >= 10,  msg: '🌙 10 night hours complete — requirement met!' },
+                { id: 'total-40',  met: totalHrs >= 40,  msg: '🏆 40 hours complete! Log ready for the DMV!' },
+            ];
+
+            let changed = false;
+            for (const m of milestones) {
+                if (m.met && !seen.has(m.id)) {
+                    seen.add(m.id);
+                    changed = true;
+                    showToast(m.msg, 'success', 7000);
+                }
+            }
+            if (changed) localStorage.setItem(key, JSON.stringify([...seen]));
         }
 
         async function refreshChildDashboardView() {
@@ -1480,8 +1527,11 @@
             showAppScreen('trackerScreen');
             document.getElementById('trackerButton').innerText = 'STOP DRIVE';
             document.getElementById('trackerButton').className = 'w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black text-lg rounded-xl transition shadow-md';
+            document.getElementById('preDriveInfoCard').classList.add('hidden');
             updateGPSIndicator(true, 'Drive recovered');
             startTrackerTimer();
+            acquireWakeLock();
+            _restartWaypointWatch();
         }
 
         async function startGPSDriveFlow() {
@@ -1497,14 +1547,34 @@
                 showAppScreen('trackerScreen');
                 document.getElementById('trackerButton').innerText = 'STOP DRIVE';
                 document.getElementById('trackerButton').className = 'w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black text-lg rounded-xl transition shadow-md';
+                document.getElementById('preDriveInfoCard').classList.add('hidden');
                 updateGPSIndicator(true, 'Drive resumed');
                 startTrackerTimer();
+                acquireWakeLock();
+                _restartWaypointWatch();
                 return;
             }
 
             if (findAnyActiveDrive()) return showToast('There is already an active drive. Finish or discard it before starting another one.', 'warning');
             showAppScreen('trackerScreen');
             fetchPreDriveConditions();
+        }
+
+        function _restartWaypointWatch() {
+            if (state.tracker.waypointWatchId != null) navigator.geolocation.clearWatch(state.tracker.waypointWatchId);
+            if (!('geolocation' in navigator)) return;
+            state.tracker.waypointWatchId = navigator.geolocation.watchPosition(pos => {
+                if (!state.tracker.active) return;
+                const { latitude: lat, longitude: lon } = pos.coords;
+                updateTrackerMapLive(lat, lon);
+                const last = state.tracker.waypoints[state.tracker.waypoints.length - 1];
+                const msSinceLast = last ? Date.now() - new Date(last.ts).getTime() : Infinity;
+                const mFromLast  = last ? waypointMetersApart(last.lat, last.lon, lat, lon) : Infinity;
+                if (msSinceLast >= 25000 || mFromLast >= 40) {
+                    state.tracker.waypoints.push({ lat, lon, ts: new Date().toISOString() });
+                    persistActiveDrive();
+                }
+            }, null, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
         }
 
         function toggleGPSEngine() {
@@ -1548,20 +1618,7 @@
 
                 // watchPosition runs continuously via the OS location service — survives screen-off and
                 // app backgrounding, unlike setInterval which gets throttled by the browser.
-                state.tracker.waypointWatchId = navigator.geolocation.watchPosition(pos => {
-                    if (!state.tracker.active) return;
-                    const { latitude: lat, longitude: lon } = pos.coords;
-                    // Update live map on every position fix (smooth visual)
-                    updateTrackerMapLive(lat, lon);
-                    // Throttle database waypoints: 25 s elapsed OR 40 m moved
-                    const last = state.tracker.waypoints[state.tracker.waypoints.length - 1];
-                    const msSinceLast = last ? Date.now() - new Date(last.ts).getTime() : Infinity;
-                    const mFromLast  = last ? waypointMetersApart(last.lat, last.lon, lat, lon) : Infinity;
-                    if (msSinceLast >= 25000 || mFromLast >= 40) {
-                        state.tracker.waypoints.push({ lat, lon, ts: new Date().toISOString() });
-                        persistActiveDrive();
-                    }
-                }, null, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+                _restartWaypointWatch();
 
                 startTrackerTimer();
             } else {
@@ -1774,10 +1831,17 @@
             }, { enableHighAccuracy: false, timeout: 10000 });
         }
 
+        // Nominatim enforces 1 req/s. Track the last call time and wait only what's remaining.
+        let _lastNominatimMs = 0;
+        async function _nominatimRateLimit() {
+            const wait = Math.max(0, 1050 - (Date.now() - _lastNominatimMs));
+            if (wait > 0) await new Promise(r => setTimeout(r, wait));
+            _lastNominatimMs = Date.now();
+        }
+
         async function reverseGeocode(lat, lon) {
             try {
-                // Throttle compliance timeout injection
-                await new Promise(r => setTimeout(r, 1000));
+                await _nominatimRateLimit();
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`, {
                     headers: { 'User-Agent': 'NH-DMV-Teen-Driving-Log-Tracker-SPA/1.0' }
                 });
@@ -1791,7 +1855,7 @@
             const key = `${lat.toFixed(5)},${lon.toFixed(5)}`;
             if (_geocodeDetailCache.has(key)) return _geocodeDetailCache.get(key);
             try {
-                await new Promise(r => setTimeout(r, 1000));
+                await _nominatimRateLimit();
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`, {
                     headers: { 'User-Agent': 'NH-DMV-Teen-Driving-Log-Tracker-SPA/1.0' }
                 });
@@ -1979,6 +2043,7 @@
             document.getElementById('formStartAddress').value = cfg.sAddr || '';
             document.getElementById('formEndAddress').value = cfg.eAddr || '';
             document.getElementById('formSupervisorName').value = cfg.supervisorName || state.profile.display_name;
+            document.getElementById('formNotes').value = cfg.notes || '';
             if (cfg.roadType) document.getElementById('formRoadType').value = cfg.roadType;
 
             // day_night: locked (greyed) only for GPS mode — editable for manual and edit
@@ -2080,7 +2145,8 @@
                 day_night:       calculatedDayNight,
                 road_type:       document.getElementById('formRoadType').value,
                 weather:         calculatedWeather,
-                supervisor_name: document.getElementById('formSupervisorName').value
+                supervisor_name: document.getElementById('formSupervisorName').value,
+                notes:           document.getElementById('formNotes').value.trim() || null
             };
 
             let error, data;
@@ -2140,7 +2206,7 @@
                 tr.innerHTML = `
                     <td>${new Date(d.start_time).toLocaleDateString()}</td>
                     <td>${new Date(d.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(d.end_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                    <td>${d.start_address} to ${d.end_address} (${d.road_type}, ${d.weather})</td>
+                    <td>${d.start_address} to ${d.end_address} (${d.road_type}, ${d.weather})${d.notes ? `<br><em style="font-size:10px;color:#555;">${d.notes}</em>` : ''}</td>
                     <td><center>${d.day_night==='day'?roundedMins:''}</center></td>
                     <td><center>${d.day_night==='night'?roundedMins:''}</center></td>
                     <td>${d.supervisor_name}</td>
@@ -2369,6 +2435,14 @@
                     <div class="text-xs font-bold text-slate-700">${drive.road_type}</div>
                 </div>`;
 
+            const notesEl = document.getElementById('driveDetailNotes');
+            if (drive.notes) {
+                notesEl.textContent = drive.notes;
+                notesEl.classList.remove('hidden');
+            } else {
+                notesEl.classList.add('hidden');
+            }
+
             // Render map after a tick so the modal is visible and has dimensions
             setTimeout(() => renderDriveDetailMap(drive), 50);
         }
@@ -2398,7 +2472,8 @@
                 eLat: drive.end_lat   || '', eLon: drive.end_lon   || '',
                 sAddr: drive.start_address || '', eAddr: drive.end_address || '',
                 dayNight: drive.day_night, weather: drive.weather,
-                roadType: drive.road_type, supervisorName: drive.supervisor_name
+                roadType: drive.road_type, supervisorName: drive.supervisor_name,
+                notes: drive.notes || ''
             });
         }
 
