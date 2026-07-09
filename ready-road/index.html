@@ -140,6 +140,10 @@
                 </div>
                 <div id="driveDetailRoute" class="space-y-1 text-sm"></div>
                 <div id="driveDetailMeta" class="grid grid-cols-3 gap-2"></div>
+                <div id="driveDetailActions" class="hidden grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="editDrive()" class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition">Edit Drive</button>
+                    <button type="button" onclick="deleteDrive()" class="py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl text-sm transition">Delete Drive</button>
+                </div>
             </div>
         </div>
     </div>
@@ -584,7 +588,7 @@
         const SUPABASE_KEY = "sb_publishable_4WsxVlvdM1ZIcJwG4uRIxQ_3GVHlivl";
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const APP_VERSION = '1.6.0';
+        const APP_VERSION = '1.7.0';
 
         let state = {
             user: null,
@@ -593,6 +597,8 @@
             selectedChildId: null,
             currentDrives: [],
             driveDetailMap: null,
+            viewingDrive: null,
+            editingDriveId: null,
             trackerMap: null,
             trackerMapLine: null,
             trackerMapCurrentMarker: null,
@@ -1949,7 +1955,13 @@
         }
 
         function openUnifiedForm(cfg) {
+            const isEdit = cfg.mode === 'edit';
+            const isGps  = cfg.mode === 'gps';
+
             document.getElementById('formMode').value = cfg.mode;
+            document.getElementById('formTitle').textContent = isEdit ? 'Edit Drive' : 'Log Drive Details';
+            document.querySelector('#driveLogForm button[type="submit"]').textContent = isEdit ? 'Save Changes' : 'Save Log Entry';
+
             document.getElementById('formStartTime').value = cfg.start;
             document.getElementById('formEndTime').value = cfg.end;
             document.getElementById('formStartLat').value = cfg.sLat || '';
@@ -1958,15 +1970,16 @@
             document.getElementById('formEndLon').value = cfg.eLon || '';
             document.getElementById('formStartAddress').value = cfg.sAddr || '';
             document.getElementById('formEndAddress').value = cfg.eAddr || '';
-            document.getElementById('formSupervisorName').value = state.profile.display_name;
+            document.getElementById('formSupervisorName').value = cfg.supervisorName || state.profile.display_name;
+            if (cfg.roadType) document.getElementById('formRoadType').value = cfg.roadType;
 
-            document.getElementById('formDayNight').disabled = cfg.mode === 'gps';
-            document.getElementById('formDayNight').classList.toggle('opacity-60', cfg.mode === 'gps');
-            document.getElementById('formDayNight').title = cfg.mode === 'gps' ? 'Automatically calculated from GPS location, date, sunrise, and sunset.' : '';
-
+            // day_night: locked (greyed) only for GPS mode — editable for manual and edit
+            document.getElementById('formDayNight').disabled = isGps;
+            document.getElementById('formDayNight').classList.toggle('opacity-60', isGps);
+            document.getElementById('formDayNight').title = isGps ? 'Automatically calculated from GPS location, date, sunrise, and sunset.' : '';
             if (cfg.dayNight) {
                 document.getElementById('formDayNight').value = cfg.dayNight;
-            } else if(cfg.start) {
+            } else if (cfg.start) {
                 const hour = new Date(cfg.start).getHours();
                 document.getElementById('formDayNight').value = (hour >= 6 && hour < 18) ? 'day' : 'night';
             } else {
@@ -1976,15 +1989,23 @@
             }
 
             document.getElementById('formWeather').disabled = false;
-            document.getElementById('formWeather').classList.toggle('opacity-60', cfg.mode === 'gps' && !!cfg.weather);
-            document.getElementById('formWeather').title = cfg.mode === 'gps' && cfg.weather ? 'Automatically estimated from Open-Meteo using GPS location and drive time. You can still change it if needed.' : '';
+            document.getElementById('formWeather').classList.toggle('opacity-60', isGps && !!cfg.weather);
+            document.getElementById('formWeather').title = isGps && cfg.weather ? 'Automatically estimated from Open-Meteo using GPS location and drive time. You can still change it if needed.' : '';
             if (cfg.weather) document.getElementById('formWeather').value = cfg.weather;
 
             showAppScreen('driveFormScreen');
         }
 
         async function cancelFormEngine() {
-            if (document.getElementById('formMode').value === 'gps' && loadActiveDrive(state.selectedChildId)) {
+            const mode = document.getElementById('formMode').value;
+            if (mode === 'edit') {
+                state.editingDriveId = null;
+                document.getElementById('driveLogForm').reset();
+                destroyFormRouteMap();
+                showAppScreen('parentDashboard');
+                return;
+            }
+            if (mode === 'gps' && loadActiveDrive(state.selectedChildId)) {
                 const discard = await showConfirmDialog('Discard this finalized GPS drive instead of saving it?', {
                     title: 'Discard finalized drive?',
                     confirmText: 'Discard Drive',
@@ -2036,31 +2057,45 @@
                 }
             }
 
-            const isGpsMode = document.getElementById('formMode').value === 'gps';
-            const payload = {
-                child_id: state.selectedChildId, logged_by: state.user.id,
+            const formMode  = document.getElementById('formMode').value;
+            const isGpsMode  = formMode === 'gps';
+            const isEditMode = formMode === 'edit';
+
+            const coreFields = {
                 start_time: start.toISOString(), end_time: end.toISOString(),
                 start_lat: parseFloat(document.getElementById('formStartLat').value) || null,
                 start_lon: parseFloat(document.getElementById('formStartLon').value) || null,
-                end_lat: parseFloat(document.getElementById('formEndLat').value) || null,
-                end_lon: parseFloat(document.getElementById('formEndLon').value) || null,
-                start_address: document.getElementById('formStartAddress').value || 'Manual Location',
-                end_address: document.getElementById('formEndAddress').value || 'Manual Location',
-                day_night: calculatedDayNight,
-                road_type: document.getElementById('formRoadType').value,
-                weather: calculatedWeather,
-                supervisor_name: document.getElementById('formSupervisorName').value,
-                waypoints: isGpsMode && state.tracker.waypoints?.length ? state.tracker.waypoints : null
+                end_lat:   parseFloat(document.getElementById('formEndLat').value)   || null,
+                end_lon:   parseFloat(document.getElementById('formEndLon').value)   || null,
+                start_address:   document.getElementById('formStartAddress').value   || 'Manual Location',
+                end_address:     document.getElementById('formEndAddress').value     || 'Manual Location',
+                day_night:       calculatedDayNight,
+                road_type:       document.getElementById('formRoadType').value,
+                weather:         calculatedWeather,
+                supervisor_name: document.getElementById('formSupervisorName').value
             };
 
-            const { error } = await supabaseRequest('Saving drive log...', () => supabaseClient.from('drives').insert([payload]));
-            if (error) return showToast("Transaction log drop bypassed sync: " + error.message, 'error');
-
-            if (document.getElementById('formMode').value === 'gps') {
-                removeActiveDrive();
-                clearGPSEngineSettings();
+            let error;
+            if (isEditMode) {
+                // UPDATE existing drive — ownership fields and waypoints are intentionally excluded
+                ({ error } = await supabaseRequest('Updating drive...', () =>
+                    supabaseClient.from('drives').update(coreFields).eq('id', state.editingDriveId)
+                ));
+            } else {
+                const payload = {
+                    ...coreFields,
+                    child_id: state.selectedChildId, logged_by: state.user.id,
+                    waypoints: isGpsMode && state.tracker.waypoints?.length ? state.tracker.waypoints : null
+                };
+                ({ error } = await supabaseRequest('Saving drive log...', () =>
+                    supabaseClient.from('drives').insert([payload])
+                ));
             }
-            showToast("Entry saved!", 'success');
+            if (error) return showToast('Failed to save: ' + error.message, 'error');
+
+            if (isEditMode) state.editingDriveId = null;
+            if (isGpsMode) { removeActiveDrive(); clearGPSEngineSettings(); }
+            showToast(isEditMode ? 'Drive updated.' : 'Entry saved!', 'success');
             document.getElementById('driveLogForm').reset();
             destroyFormRouteMap();
             showAppScreen('parentDashboard');
@@ -2256,8 +2291,13 @@
 
         // --- DRIVE DETAIL MODAL ---
         async function openDriveDetail(drive) {
+            state.viewingDrive = drive;
             const modal = document.getElementById('driveDetailModal');
             modal.classList.remove('hidden');
+
+            // Show edit/delete only for parents (children can only view their own logs)
+            const actionsEl = document.getElementById('driveDetailActions');
+            if (actionsEl) actionsEl.classList.toggle('hidden', state.profile?.role !== 'parent');
 
             const start = new Date(drive.start_time);
             const end = new Date(drive.end_time);
@@ -2322,11 +2362,49 @@
         }
 
         function closeDriveDetail() {
+            state.viewingDrive = null;
             document.getElementById('driveDetailModal').classList.add('hidden');
             if (state.driveDetailMap) {
                 state.driveDetailMap.remove();
                 state.driveDetailMap = null;
             }
+        }
+
+        function editDrive() {
+            const drive = state.viewingDrive;
+            if (!drive || state.profile?.role !== 'parent') return;
+            closeDriveDetail();
+            state.editingDriveId = drive.id;
+            if (drive.start_lat && drive.start_lon) {
+                showFormRouteMap(drive.waypoints, drive.start_lat, drive.start_lon, drive.end_lat, drive.end_lon);
+            }
+            openUnifiedForm({
+                mode: 'edit',
+                start: formatDateLocalInput(new Date(drive.start_time)),
+                end: formatDateLocalInput(new Date(drive.end_time)),
+                sLat: drive.start_lat || '', sLon: drive.start_lon || '',
+                eLat: drive.end_lat   || '', eLon: drive.end_lon   || '',
+                sAddr: drive.start_address || '', eAddr: drive.end_address || '',
+                dayNight: drive.day_night, weather: drive.weather,
+                roadType: drive.road_type, supervisorName: drive.supervisor_name
+            });
+        }
+
+        async function deleteDrive() {
+            const drive = state.viewingDrive;
+            if (!drive || state.profile?.role !== 'parent') return;
+            const confirmed = await showConfirmDialog(
+                `This will permanently delete the ${Math.round(drive.duration_minutes)}-minute drive on ${new Date(drive.start_time).toLocaleDateString()}. This cannot be undone.`,
+                { title: 'Delete this drive?', confirmText: 'Delete Drive', cancelText: 'Keep' }
+            );
+            if (!confirmed) return;
+            const { error } = await supabaseRequest('Deleting drive...', () =>
+                supabaseClient.from('drives').delete().eq('id', drive.id)
+            );
+            if (error) return showToast('Failed to delete: ' + error.message, 'error');
+            closeDriveDetail();
+            showToast('Drive deleted.', 'success');
+            await refreshParentDashboardLogs();
         }
 
         async function renderDriveDetailMap(drive) {
