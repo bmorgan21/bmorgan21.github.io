@@ -102,14 +102,14 @@
     </div>
 
 
-    <div id="toastContainer" class="fixed top-4 left-4 right-4 z-[100] space-y-2 pointer-events-none"></div>
+    <div id="toastContainer" class="fixed top-4 left-4 right-4 z-[200] space-y-2 pointer-events-none"></div>
     <div id="globalLoadingOverlay" class="hidden fixed inset-0 z-[90] bg-slate-900/20 backdrop-blur-[1px] items-center justify-center">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 px-5 py-4 flex items-center gap-3 text-sm font-bold text-slate-700">
             <div class="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
             <span id="globalLoadingText">Working...</span>
         </div>
     </div>
-    <div id="confirmDialog" class="hidden fixed inset-0 z-[110] bg-slate-900/40 backdrop-blur-sm items-center justify-center p-4">
+    <div id="confirmDialog" class="hidden fixed inset-0 z-[130] bg-slate-900/40 backdrop-blur-sm items-center justify-center p-4">
         <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 p-5 space-y-4">
             <div>
                 <h2 id="confirmDialogTitle" class="text-lg font-black text-slate-800">Confirm action</h2>
@@ -588,7 +588,7 @@
         const SUPABASE_KEY = "sb_publishable_4WsxVlvdM1ZIcJwG4uRIxQ_3GVHlivl";
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const APP_VERSION = '1.7.0';
+        const APP_VERSION = '1.7.2';
 
         let state = {
             user: null,
@@ -753,10 +753,18 @@
             dialog.classList.add('flex');
             confirmBtn.focus();
 
+            // Leaflet maps live in their own stacking context and ignore backdrop-filter blur.
+            // Apply filter directly so they're visually dimmed like the rest of the page.
+            const blurMaps = ['formRouteMapContainer', 'trackerMapContainer']
+                .map(id => document.getElementById(id))
+                .filter(el => el && !el.classList.contains('hidden'));
+            blurMaps.forEach(el => { el.style.filter = 'blur(3px)'; el.style.transition = 'filter 0.15s'; });
+
             return new Promise(resolve => {
                 const cleanup = (value) => {
                     dialog.classList.add('hidden');
                     dialog.classList.remove('flex');
+                    blurMaps.forEach(el => { el.style.filter = ''; });
                     cancelBtn.removeEventListener('click', onCancel);
                     confirmBtn.removeEventListener('click', onConfirm);
                     dialog.removeEventListener('click', onBackdrop);
@@ -2075,12 +2083,16 @@
                 supervisor_name: document.getElementById('formSupervisorName').value
             };
 
-            let error;
+            let error, data;
             if (isEditMode) {
-                // UPDATE existing drive — ownership fields and waypoints are intentionally excluded
-                ({ error } = await supabaseRequest('Updating drive...', () =>
-                    supabaseClient.from('drives').update(coreFields).eq('id', state.editingDriveId)
+                if (!state.editingDriveId) return showToast('No drive selected to edit.', 'error');
+                // .select() is required — without it Supabase returns null data whether 0 or 1 rows updated
+                ({ data, error } = await supabaseRequest('Updating drive...', () =>
+                    supabaseClient.from('drives').update(coreFields).eq('id', state.editingDriveId).select()
                 ));
+                if (!error && (!data || data.length === 0)) {
+                    return showToast('Update failed: no rows changed. Check Supabase RLS UPDATE policy.', 'error');
+                }
             } else {
                 const payload = {
                     ...coreFields,
@@ -2398,10 +2410,11 @@
                 { title: 'Delete this drive?', confirmText: 'Delete Drive', cancelText: 'Keep' }
             );
             if (!confirmed) return;
-            const { error } = await supabaseRequest('Deleting drive...', () =>
-                supabaseClient.from('drives').delete().eq('id', drive.id)
+            const { data, error } = await supabaseRequest('Deleting drive...', () =>
+                supabaseClient.from('drives').delete().eq('id', drive.id).select()
             );
             if (error) return showToast('Failed to delete: ' + error.message, 'error');
+            if (!data || data.length === 0) return showToast('Delete failed: no rows removed. Check Supabase RLS DELETE policy.', 'error');
             closeDriveDetail();
             showToast('Drive deleted.', 'success');
             await refreshParentDashboardLogs();
