@@ -100,33 +100,36 @@
         <!-- DASHBOARD VIEW -->
         <section id="dashboard-view" class="hidden space-y-6">
             <!-- WEEKLY OVERVIEW HEADER CARD -->
-            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl">
-                <div>
-                    <div class="flex items-center gap-2 mb-2 flex-wrap">
-                        <span class="text-[11px] font-bold text-brand-400 uppercase tracking-wider">Active Training Week</span>
-                        <div class="flex items-center gap-1 bg-slate-950 rounded-xl p-1 border border-slate-800">
-                            <button type="button" onclick="navigateWeek(1)" title="Previous Week (Older)" class="px-2 py-0.5 text-xs text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition">&larr;</button>
-                            <select id="week-select" onchange="selectWeekByDate(this.value)" class="bg-slate-950 text-xs text-brand-400 font-mono px-2 py-0.5 rounded-lg border-0 focus:outline-none cursor-pointer">
-                                <!-- Dynamically Populated -->
-                            </select>
-                            <button type="button" onclick="navigateWeek(-1)" title="Next Week (Newer)" class="px-2 py-0.5 text-xs text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition">&rarr;</button>
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4 shadow-xl">
+                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 mb-2 flex-wrap">
+                            <span class="text-[11px] font-bold text-brand-400 uppercase tracking-wider">Active Training Week</span>
+                            <div class="flex items-center gap-1 bg-slate-950 rounded-xl p-1 border border-slate-800">
+                                <button type="button" onclick="navigateWeek(1)" title="Previous Week (Older)" class="px-2 py-0.5 text-xs text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition">&larr;</button>
+                                <select id="week-select" onchange="selectWeekByDate(this.value)" class="bg-slate-950 text-xs text-brand-400 font-mono px-2 py-0.5 rounded-lg border-0 focus:outline-none cursor-pointer">
+                                    <!-- Dynamically Populated -->
+                                </select>
+                                <button type="button" onclick="navigateWeek(-1)" title="Next Week (Newer)" class="px-2 py-0.5 text-xs text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition">&rarr;</button>
+                            </div>
+                            <button id="btn-jump-current" onclick="jumpToCurrentWeek()" class="hidden text-[11px] bg-brand-500/10 hover:bg-brand-500/20 text-brand-300 border border-brand-500/30 px-2.5 py-0.5 rounded-lg font-medium transition">
+                                Jump to Current
+                            </button>
                         </div>
-                        <button id="btn-jump-current" onclick="jumpToCurrentWeek()" class="hidden text-[11px] bg-brand-500/10 hover:bg-brand-500/20 text-brand-300 border border-brand-500/30 px-2.5 py-0.5 rounded-lg font-medium transition">
-                            Jump to Current
+                        <h2 id="plan-focus-summary" class="text-base font-medium text-slate-200">No active weekly plan loaded.</h2>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button id="end-week-review-btn" onclick="openEndWeekModal()" class="text-xs bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/20">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            End Week & Review
+                        </button>
+                        <button onclick="exportWeekData()" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 px-3 py-2.5 rounded-xl flex items-center gap-1.5 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Export JSON
                         </button>
                     </div>
-                    <h2 id="plan-focus-summary" class="text-base font-medium text-slate-200">No active weekly plan loaded.</h2>
                 </div>
-                <div class="flex items-center gap-2 shrink-0">
-                    <button onclick="openEndWeekModal()" class="text-xs bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/20">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                        End Week & Review
-                    </button>
-                    <button onclick="exportWeekData()" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 px-3 py-2.5 rounded-xl flex items-center gap-1.5 transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                        Export JSON
-                    </button>
-                </div>
+                <div id="plan-review-section" class="mt-1 w-full space-y-2 hidden"></div>
             </div>
 
             <!-- DAILY WORKOUT CARDS GRID -->
@@ -258,7 +261,7 @@
 
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="toggleModal('end-week-modal', false)" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs hover:bg-slate-700 transition">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-xs transition shadow-lg shadow-emerald-500/20">Submit & Generate Next Week</button>
+                    <button id="ai-review-submit-btn" type="submit" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-xs transition shadow-lg shadow-emerald-500/20">Submit & Generate Next Week</button>
                 </div>
             </form>
         </div>
@@ -293,7 +296,7 @@
 
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="toggleModal('ai-plan-modal', false)" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs hover:bg-slate-700 transition">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-brand-500/20">AI Generate & Publish Plan</button>
+                    <button id="ai-import-submit-btn" type="submit" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-brand-500/20">AI Generate & Publish Plan</button>
                 </div>
             </form>
         </div>
@@ -472,6 +475,104 @@
             return isNaN(s) ? null : s;
         };
 
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function normalizeInteger(value, fallback) {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) return fallback;
+            return Math.round(parsed);
+        }
+
+        function normalizeIntegerLike(value, fallback) {
+            if (value === null || value === undefined || value === '') return fallback;
+            if (typeof value === 'number') return Number.isFinite(value) ? Math.round(value) : fallback;
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                if (!trimmed) return fallback;
+                const match = trimmed.match(/-?\d+(?:\.\d+)?/);
+                if (match) {
+                    const parsed = Number(match[0]);
+                    return Number.isFinite(parsed) ? Math.round(parsed) : fallback;
+                }
+            }
+            return fallback;
+        }
+
+        function normalizeNumeric(value, fallback = null) {
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : fallback;
+        }
+
+        let geminiRateLimitCooldownUntil = 0;
+        let geminiRateLimitCountdownTimer = null;
+
+        function showGeminiStatusMessage(elementId, message, tone = 'info') {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+
+            el.classList.remove('hidden');
+            el.classList.remove('bg-brand-500/10', 'text-brand-300', 'border-brand-500/20', 'bg-amber-500/10', 'text-amber-300', 'border-amber-500/20', 'bg-rose-500/10', 'text-rose-300', 'border-rose-500/20');
+            el.classList.add('flex', 'items-start', 'gap-2');
+
+            if (tone === 'warning') {
+                el.classList.add('bg-amber-500/10', 'text-amber-300', 'border-amber-500/20');
+            } else if (tone === 'error') {
+                el.classList.add('bg-rose-500/10', 'text-rose-300', 'border-rose-500/20');
+            } else {
+                el.classList.add('bg-brand-500/10', 'text-brand-300', 'border-brand-500/20');
+            }
+
+            const spinner = '<span class="inline-flex h-2.5 w-2.5 animate-ping rounded-full bg-current opacity-75"></span>';
+            const content = tone === 'warning' || tone === 'error' ? message : `${spinner} ${message}`;
+            el.innerHTML = content;
+        }
+
+        function hideGeminiStatusMessage(elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            el.classList.add('hidden');
+            el.classList.remove('flex', 'items-start', 'gap-2');
+            el.innerHTML = '';
+        }
+
+        function activateGeminiRateLimitCooldown(elementId, durationSeconds = 60) {
+            geminiRateLimitCooldownUntil = Date.now() + durationSeconds * 1000;
+            if (geminiRateLimitCountdownTimer) {
+                clearInterval(geminiRateLimitCountdownTimer);
+            }
+
+            const tick = () => {
+                const remaining = Math.max(0, Math.ceil((geminiRateLimitCooldownUntil - Date.now()) / 1000));
+                if (remaining > 0) {
+                    showGeminiStatusMessage(elementId, `Gemini is temporarily rate-limited. Please wait ${remaining}s before trying again.`, 'warning');
+                } else {
+                    clearInterval(geminiRateLimitCountdownTimer);
+                    geminiRateLimitCountdownTimer = null;
+                    geminiRateLimitCooldownUntil = 0;
+                }
+            };
+
+            tick();
+            geminiRateLimitCountdownTimer = setInterval(tick, 1000);
+        }
+
+        function getGeminiRateLimitRemainingSeconds() {
+            if (!geminiRateLimitCooldownUntil) return 0;
+            return Math.max(0, Math.ceil((geminiRateLimitCooldownUntil - Date.now()) / 1000));
+        }
+
+        function isGeminiRateLimitError(err) {
+            const message = (err && err.message) ? err.message : '';
+            return message.includes('rate-limited') || message.includes('rate limited') || message.includes('429') || message.includes('quota');
+        }
+
         function initApp() {
             try {
                 supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -559,7 +660,7 @@
             const { data: plans, error } = await supabaseClient
                 .from('ft_weekly_plans')
                 .select(`
-                    id, week_start_date, focus_summary, status,
+                    id, week_start_date, focus_summary, status, coach_commentary, athlete_review_text,
                     ft_scheduled_workouts (
                         id, day_of_week, workout_type, target_rpe, notes_from_coach,
                         ft_exercise_targets ( id, exercise_name, target_sets, target_rep_range, target_weight_lbs, progression_note ),
@@ -664,8 +765,46 @@
             }
         };
 
+        function isWeekReviewed(plan) {
+            return Boolean(plan?.coach_commentary || plan?.athlete_review_text);
+        }
+
         function renderDashboard(plan) {
             document.getElementById('plan-focus-summary').innerText = plan.focus_summary || 'No focus summary provided.';
+
+            const endWeekButton = document.getElementById('end-week-review-btn');
+            if (endWeekButton) {
+                endWeekButton.classList.toggle('hidden', !plan || isWeekReviewed(plan));
+            }
+
+            const reviewSection = document.getElementById('plan-review-section');
+            const reviewCards = [];
+
+            if (plan?.coach_commentary) {
+                reviewCards.push(`
+                    <div class="w-full rounded-xl border border-brand-500/20 bg-brand-500/10 p-3">
+                        <div class="text-[10px] uppercase tracking-wider text-brand-300">Coach Commentary</div>
+                        <p class="mt-1 text-xs text-slate-200 leading-relaxed">${escapeHtml(plan.coach_commentary)}</p>
+                    </div>
+                `);
+            }
+
+            if (plan?.athlete_review_text) {
+                reviewCards.push(`
+                    <div class="w-full rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3">
+                        <div class="text-[10px] uppercase tracking-wider text-emerald-300">Your Week Review</div>
+                        <p class="mt-1 text-xs text-slate-200 leading-relaxed">${escapeHtml(plan.athlete_review_text)}</p>
+                    </div>
+                `);
+            }
+
+            if (reviewCards.length > 0) {
+                reviewSection.innerHTML = reviewCards.join('');
+                reviewSection.classList.remove('hidden');
+            } else {
+                reviewSection.innerHTML = '';
+                reviewSection.classList.add('hidden');
+            }
 
             const grid = document.getElementById('workouts-grid');
             grid.innerHTML = '';
@@ -965,13 +1104,28 @@
             reader.readAsDataURL(file);
         };
 
-        async function callGeminiAPI(apiKey, payload) {
-            const candidateModels = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash-lite'];
+        async function callGeminiAPI(apiKey, payload, statusElementId = null) {
+            const remaining = getGeminiRateLimitRemainingSeconds();
+            if (remaining > 0) {
+                if (statusElementId) {
+                    showGeminiStatusMessage(statusElementId, `Gemini is temporarily rate-limited. Please wait ${remaining}s before trying again.`, 'warning');
+                }
+                throw new Error(`Gemini is temporarily rate-limited. Please wait ${remaining}s before trying again.`);
+            }
+
+            const candidateModels = [
+                'gemini-2.5-flash',
+                'gemini-3.5-flash',
+                'gemini-3.6-flash',
+                'gemini-3-flash',
+                'gemini-3.1-flash-lite',
+                'gemini-2.5-flash-lite',
+                'gemini-3.5-flash-lite'
+            ];
             let errorLogs = [];
 
             for (const model of candidateModels) {
                 try {
-                    console.log(`Attempting Gemini API request with model: ${model}`);
                     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -980,15 +1134,17 @@
 
                     const data = await response.json();
                     if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                        console.log(`Successfully completed Gemini API request with model: ${model}`);
                         return data;
                     }
 
                     const errDetail = data.error?.message || `HTTP ${response.status}`;
-                    console.warn(`Gemini model '${model}' failed: ${errDetail}`);
                     errorLogs.push(`${model}: ${errDetail}`);
+
+                    if (response.status === 429 || /rate limit|quota|too many requests/i.test(errDetail)) {
+                        activateGeminiRateLimitCooldown(statusElementId || 'ai-import-status');
+                        throw new Error('Gemini is temporarily rate-limited. Please wait 60 seconds before trying again.');
+                    }
                 } catch (err) {
-                    console.warn(`Fetch error for Gemini model '${model}':`, err);
                     errorLogs.push(`${model}: ${err.message}`);
                 }
             }
@@ -1076,13 +1232,19 @@
             const rawText = document.getElementById('import-plan-text').value;
             const statusDiv = document.getElementById('ai-import-status');
             const errorDiv = document.getElementById('ai-import-error');
+            const submitButton = document.getElementById('ai-import-submit-btn');
 
             errorDiv.classList.add('hidden');
             errorDiv.innerText = '';
 
             console.group("🚀 AI Plan Import Process");
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.classList.add('opacity-60', 'cursor-not-allowed');
+            }
+
             const apiKey = await getGeminiApiKey();
-            statusDiv.classList.remove('hidden');
+            showGeminiStatusMessage('ai-import-status', 'AI formatting plan and writing to database... This can take up to a minute.', 'info');
 
             const prefSummary = getExercisePreferenceSummary();
             let planJson = null;
@@ -1117,11 +1279,18 @@
                         generationConfig: { response_mime_type: "application/json" }
                     };
 
-                    const resData = await callGeminiAPI(apiKey, payload);
+                    const resData = await callGeminiAPI(apiKey, payload, 'ai-import-status');
                     const text = resData.candidates?.[0]?.content?.parts?.[0]?.text;
                     if (text) planJson = JSON.parse(text);
                 } catch (err) {
-                    console.warn("Gemini API rate limited or error. Using client-side plan parser fallback...", err);
+                    if (isGeminiRateLimitError(err)) {
+                        errorDiv.innerText = err.message;
+                        errorDiv.classList.remove('hidden');
+                        console.groupEnd();
+                        return;
+                    }
+
+                    console.info("Gemini import failed, falling back to local parser.", err);
                 }
             }
 
@@ -1132,7 +1301,11 @@
                 } catch (fallbackErr) {
                     errorDiv.innerText = "Import Error: Gemini API rate limit reached. Please wait 60s or check key settings.";
                     errorDiv.classList.remove('hidden');
-                    statusDiv.classList.add('hidden');
+                    hideGeminiStatusMessage('ai-import-status');
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.classList.remove('opacity-60', 'cursor-not-allowed');
+                    }
                     console.groupEnd();
                     return;
                 }
@@ -1142,8 +1315,12 @@
                 await publishPlanToSupabase(planJson);
 
                 toggleModal('ai-plan-modal', false);
-                statusDiv.classList.add('hidden');
+                hideGeminiStatusMessage('ai-import-status');
                 document.getElementById('import-plan-text').value = '';
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('opacity-60', 'cursor-not-allowed');
+                }
                 
                 showToast("Weekly training plan generated and published!", "success");
                 await loadDashboardData();
@@ -1151,7 +1328,11 @@
             } catch (err) {
                 errorDiv.innerText = "Database Error: " + err.message;
                 errorDiv.classList.remove('hidden');
-                statusDiv.classList.add('hidden');
+                hideGeminiStatusMessage('ai-import-status');
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('opacity-60', 'cursor-not-allowed');
+                }
                 console.groupEnd();
             }
         };
@@ -1164,14 +1345,20 @@
             e.preventDefault();
             const comments = document.getElementById('end-week-comments').value;
             const statusDiv = document.getElementById('ai-review-status');
+            const submitButton = document.getElementById('ai-review-submit-btn');
             
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.classList.add('opacity-60', 'cursor-not-allowed');
+            }
+
             const apiKey = await getGeminiApiKey();
             if (!apiKey) {
                 showToast("Please save your Gemini API key in settings first.", "error");
                 return;
             }
 
-            statusDiv.classList.remove('hidden');
+            showGeminiStatusMessage('ai-review-status', 'Generating your weekly review and next-week plan... This can take up to a minute.', 'info');
 
             try {
                 const { data: recentPlans, error: fetchErr } = await supabaseClient
@@ -1229,8 +1416,24 @@
                     generationConfig: { response_mime_type: "application/json" }
                 };
 
-                const resData = await callGeminiAPI(apiKey, payload);
+                const resData = await callGeminiAPI(apiKey, payload, 'ai-review-status');
                 const output = JSON.parse(resData.candidates[0].content.parts[0].text);
+
+                if (activeWeeklyPlan?.id) {
+                    const reviewPayload = {
+                        coach_commentary: output.coach_commentary || null,
+                        athlete_review_text: comments || null
+                    };
+
+                    const { error: reviewErr } = await supabaseClient
+                        .from('ft_weekly_plans')
+                        .update(reviewPayload)
+                        .eq('id', activeWeeklyPlan.id);
+
+                    if (reviewErr) {
+                        throw reviewErr;
+                    }
+                }
 
                 if (output.next_week_plan) {
                     await publishPlanToSupabase(output.next_week_plan);
@@ -1238,11 +1441,23 @@
 
                 showToast("Coach Review generated and next week published!", "success");
                 toggleModal('end-week-modal', false);
-                statusDiv.classList.add('hidden');
+                hideGeminiStatusMessage('ai-review-status');
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('opacity-60', 'cursor-not-allowed');
+                }
                 loadDashboardData();
             } catch (err) {
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('opacity-60', 'cursor-not-allowed');
+                }
+                if (isGeminiRateLimitError(err)) {
+                    showToast(err.message, 'error');
+                    return;
+                }
                 showToast("End Week Review Error: " + err.message, "error");
-                statusDiv.classList.add('hidden');
+                hideGeminiStatusMessage('ai-review-status');
             }
         };
 
@@ -1267,6 +1482,8 @@
 
             await supabaseClient.from('ft_scheduled_workouts').delete().eq('weekly_plan_id', plan.id);
 
+            const exerciseIdByName = new Map();
+
             for (const day of planData.days) {
                 const { data: sw, error: swErr } = await supabaseClient
                     .from('ft_scheduled_workouts')
@@ -1274,7 +1491,7 @@
                         weekly_plan_id: plan.id,
                         day_of_week: day.day_of_week,
                         workout_type: day.workout_type,
-                        target_rpe: day.target_rpe,
+                        target_rpe: normalizeIntegerLike(day.target_rpe, 7),
                         notes_from_coach: day.notes_from_coach
                     })
                     .select()
@@ -1286,15 +1503,31 @@
                 }
 
                 if (day.exercises && day.exercises.length > 0) {
-                    const targets = day.exercises.map(ex => ({
-                        scheduled_workout_id: sw.id,
-                        exercise_name: ex.name,
-                        target_sets: ex.sets || 3,
-                        target_rep_range: String(ex.reps || ''),
-                        target_weight_lbs: ex.weight_lbs || null,
-                        progression_note: ex.note || null
-                    }));
-                    await supabaseClient.from('ft_exercise_targets').insert(targets);
+                    const targets = [];
+
+                    for (const ex of day.exercises) {
+                        const exerciseName = ex?.name?.trim();
+                        if (!exerciseName) continue;
+
+                        if (!exerciseIdByName.has(exerciseName)) {
+                            const exerciseId = await ensureExerciseRecord(exerciseName);
+                            if (exerciseId) exerciseIdByName.set(exerciseName, exerciseId);
+                        }
+
+                        targets.push({
+                            scheduled_workout_id: sw.id,
+                            exercise_id: exerciseIdByName.get(exerciseName) || null,
+                            exercise_name: exerciseName,
+                            target_sets: normalizeInteger(ex.sets, 3),
+                            target_rep_range: String(ex.reps || ''),
+                            target_weight_lbs: normalizeNumeric(ex.weight_lbs, null),
+                            progression_note: ex.note || null
+                        });
+                    }
+
+                    if (targets.length > 0) {
+                        await supabaseClient.from('ft_exercise_targets').insert(targets);
+                    }
                 }
             }
 
@@ -1334,49 +1567,187 @@
             if (profile.equipment_available) document.getElementById('profile-equipment').value = profile.equipment_available;
             if (profile.joint_sensitivities) document.getElementById('profile-sensitivities').value = profile.joint_sensitivities;
 
-            if (profile.exercise_ratings) {
-                try {
-                    currentExerciseRatings = typeof profile.exercise_ratings === 'string' ? JSON.parse(profile.exercise_ratings) : profile.exercise_ratings;
-                } catch(e) {
-                    currentExerciseRatings = {};
-                }
+            if (currentUser) {
+                await loadExercisePreferencesFromServer();
             } else {
                 const local = localStorage.getItem('ft_exercise_ratings');
                 if (local) {
-                    try { currentExerciseRatings = JSON.parse(local); } catch(e) {}
+                    try { currentExerciseRatings = JSON.parse(local); } catch(e) { currentExerciseRatings = {}; }
+                } else {
+                    currentExerciseRatings = {};
                 }
             }
         }
 
+        async function ensureExerciseRecord(name) {
+            if (!currentUser || !name) return null;
+
+            const trimmedName = name.trim();
+            if (!trimmedName) return null;
+
+            const { data: existingExercise, error: exerciseFetchErr } = await supabaseClient
+                .from('ft_exercises')
+                .select('id')
+                .eq('user_id', currentUser.id)
+                .eq('name', trimmedName)
+                .maybeSingle();
+
+            if (exerciseFetchErr) throw exerciseFetchErr;
+            if (existingExercise?.id) return existingExercise.id;
+
+            const { data: newExercise, error: exerciseInsertErr } = await supabaseClient
+                .from('ft_exercises')
+                .insert({
+                    user_id: currentUser.id,
+                    name: trimmedName,
+                    created_at: new Date().toISOString()
+                })
+                .select('id')
+                .single();
+
+            if (exerciseInsertErr) throw exerciseInsertErr;
+            return newExercise?.id || null;
+        }
+
+        async function loadExercisePreferencesFromServer() {
+            if (!currentUser) return;
+
+            try {
+                const { data: exerciseRows, error: exerciseErr } = await supabaseClient
+                    .from('ft_exercises')
+                    .select('id, name')
+                    .eq('user_id', currentUser.id)
+                    .order('name');
+
+                if (exerciseErr) throw exerciseErr;
+
+                const nextRatings = { ...(currentExerciseRatings || {}) };
+                const { data: prefRows, error: prefErr } = await supabaseClient
+                    .from('ft_exercise_preferences')
+                    .select('exercise_id, rating')
+                    .eq('user_id', currentUser.id);
+
+                if (prefErr) throw prefErr;
+
+                const exerciseMap = new Map((exerciseRows || []).map(ex => [ex.id, ex.name]));
+                (prefRows || []).forEach(pref => {
+                    const name = exerciseMap.get(pref.exercise_id);
+                    if (name && pref.rating) nextRatings[name] = pref.rating;
+                });
+
+                currentExerciseRatings = nextRatings;
+            } catch (err) {
+                console.warn('Could not load exercise preferences from server:', err);
+                currentExerciseRatings = currentExerciseRatings || {};
+            }
+        }
+
+        async function saveExercisePreferencesToServer() {
+            if (!currentUser) {
+                localStorage.setItem('ft_exercise_ratings', JSON.stringify(currentExerciseRatings || {}));
+                return;
+            }
+
+            const rawExerciseNames = Object.keys(currentExerciseRatings || {});
+            const exerciseNames = rawExerciseNames
+                .map(name => (name || '').trim())
+                .filter(Boolean);
+            const activeExerciseIds = new Set();
+
+            for (const name of exerciseNames) {
+                const exerciseId = await ensureExerciseRecord(name);
+                if (!exerciseId) continue;
+                activeExerciseIds.add(exerciseId);
+
+                const rating = currentExerciseRatings[name] || 'neutral';
+                const { data: existingPreference, error: prefFetchErr } = await supabaseClient
+                    .from('ft_exercise_preferences')
+                    .select('id')
+                    .eq('user_id', currentUser.id)
+                    .eq('exercise_id', exerciseId)
+                    .maybeSingle();
+
+                if (prefFetchErr) throw prefFetchErr;
+
+                const preferencePayload = {
+                    user_id: currentUser.id,
+                    exercise_id: exerciseId,
+                    rating: rating,
+                    updated_at: new Date().toISOString()
+                };
+
+                if (existingPreference?.id) {
+                    const { error: prefUpdateErr } = await supabaseClient
+                        .from('ft_exercise_preferences')
+                        .update(preferencePayload)
+                        .eq('id', existingPreference.id);
+                    if (prefUpdateErr) throw prefUpdateErr;
+                } else {
+                    const { error: prefInsertErr } = await supabaseClient
+                        .from('ft_exercise_preferences')
+                        .insert(preferencePayload);
+                    if (prefInsertErr) throw prefInsertErr;
+                }
+            }
+
+            const { data: stalePreferences, error: stalePrefErr } = await supabaseClient
+                .from('ft_exercise_preferences')
+                .select('id, exercise_id')
+                .eq('user_id', currentUser.id);
+
+            if (stalePrefErr) throw stalePrefErr;
+
+            const staleIds = (stalePreferences || [])
+                .filter(pref => pref.exercise_id && !activeExerciseIds.has(pref.exercise_id))
+                .map(pref => pref.id)
+                .filter(Boolean);
+
+            if (staleIds.length > 0) {
+                const { error: deleteErr } = await supabaseClient
+                    .from('ft_exercise_preferences')
+                    .delete()
+                    .in('id', staleIds);
+                if (deleteErr) throw deleteErr;
+            }
+
+            localStorage.setItem('ft_exercise_ratings', JSON.stringify(currentExerciseRatings || {}));
+        }
+
         window.saveProfileSettings = async function(e) {
             e.preventDefault();
-            if (!currentUser) return;
 
             const goals = document.getElementById('profile-goals').value.trim();
             const motivators = document.getElementById('profile-motivators').value.trim();
             const equipment = document.getElementById('profile-equipment').value.trim();
             const sensitivities = document.getElementById('profile-sensitivities').value.trim();
 
-            localStorage.setItem('ft_exercise_ratings', JSON.stringify(currentExerciseRatings));
+            try {
+                await saveExercisePreferencesToServer();
+            } catch (err) {
+                console.error('Failed to save exercise preferences:', err);
+                showToast('Could not save exercise preferences to the server.', 'error');
+                return;
+            }
 
             const payload = {
-                user_id: currentUser.id,
+                user_id: currentUser ? currentUser.id : null,
                 athlete_goals: goals,
                 motivators: motivators,
                 equipment_available: equipment,
-                joint_sensitivities: sensitivities,
-                exercise_ratings: JSON.stringify(currentExerciseRatings)
+                joint_sensitivities: sensitivities
             };
 
-            const { error } = await supabaseClient.from('ft_user_settings').upsert(payload, { onConflict: 'user_id' });
-
-            if (error) {
-                delete payload.exercise_ratings;
-                await supabaseClient.from('ft_user_settings').upsert(payload, { onConflict: 'user_id' });
+            if (currentUser) {
+                const { error } = await supabaseClient.from('ft_user_settings').upsert(payload, { onConflict: 'user_id' });
+                if (error) {
+                    console.warn('Could not save profile settings:', error);
+                    showToast('Profile saved locally, but some settings could not be synced to the server.', 'error');
+                    return;
+                }
             }
 
             toggleModal('profile-modal', false);
-            showToast("Athlete profile & exercise ratings saved!", "success");
+            showToast('Athlete profile & exercise ratings saved!', 'success');
         };
 
         window.switchProfileTab = function(tabName) {
