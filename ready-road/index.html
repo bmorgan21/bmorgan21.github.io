@@ -16,6 +16,8 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         /* Modern mobile wrapper fallback definitions */
         .app-screen { display: none; }
@@ -50,17 +52,31 @@
             padding-bottom: calc(1rem + env(safe-area-inset-bottom));
         }
         
+        @keyframes trackerPing {
+            75%, 100% { transform: scale(2.8); opacity: 0; }
+        }
+
+        @page { margin: 0.5in; }
+
         @media print {
     body * { visibility: hidden; }
     #printTemplate, #printTemplate * { visibility: visible; }
-    #printTemplate { 
-        position: absolute; 
-        top: 0; 
-        left: 0; 
-        width: 100%; 
-        background: white; 
-        color: black; 
-        display: block !important; 
+    #printTemplate {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: white;
+        color: black;
+        display: block !important;
+    }
+    #printCoverPage {
+        font-family: Arial, Helvetica, sans-serif;
+        display: flex;
+        flex-direction: column;
+        min-height: 10in;
+        box-sizing: border-box;
+        page-break-after: always;
     }
     .print-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
     .print-table th, .print-table td { border: 1px solid black; padding: 6px; text-align: left; }
@@ -86,14 +102,14 @@
     </div>
 
 
-    <div id="toastContainer" class="fixed top-4 left-4 right-4 z-[100] space-y-2 pointer-events-none"></div>
+    <div id="toastContainer" class="fixed top-4 left-4 right-4 z-[200] space-y-2 pointer-events-none"></div>
     <div id="globalLoadingOverlay" class="hidden fixed inset-0 z-[90] bg-slate-900/20 backdrop-blur-[1px] items-center justify-center">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 px-5 py-4 flex items-center gap-3 text-sm font-bold text-slate-700">
             <div class="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
             <span id="globalLoadingText">Working...</span>
         </div>
     </div>
-    <div id="confirmDialog" class="hidden fixed inset-0 z-[110] bg-slate-900/40 backdrop-blur-sm items-center justify-center p-4">
+    <div id="confirmDialog" class="hidden fixed inset-0 z-[130] bg-slate-900/40 backdrop-blur-sm items-center justify-center p-4">
         <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 p-5 space-y-4">
             <div>
                 <h2 id="confirmDialogTitle" class="text-lg font-black text-slate-800">Confirm action</h2>
@@ -105,6 +121,32 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- Drive Detail Modal -->
+    <div id="driveDetailModal" class="hidden fixed inset-0 z-[115] bg-slate-900/60 backdrop-blur-sm flex items-end justify-center sm:items-center sm:p-4" onclick="if(event.target===this)closeDriveDetail()">
+        <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col" style="max-height:92vh">
+            <div id="driveDetailMapContainer" style="height:240px;flex-shrink:0;background:#e2e8f0;position:relative;">
+                <div id="driveDetailMap" style="height:100%;width:100%;"></div>
+                <div id="driveDetailMapPlaceholder" class="hidden absolute inset-0 flex items-center justify-center text-slate-400 text-sm font-medium bg-slate-100">No location data for this drive</div>
+            </div>
+            <div class="p-5 space-y-4 overflow-y-auto">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <h2 id="driveDetailTitle" class="text-base font-black text-slate-800"></h2>
+                        <p id="driveDetailSubtitle" class="text-xs text-slate-400 mt-0.5"></p>
+                    </div>
+                    <button type="button" onclick="closeDriveDetail()" class="flex-shrink-0 w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 font-black transition text-lg leading-none">×</button>
+                </div>
+                <div id="driveDetailRoute" class="space-y-1 text-sm"></div>
+                <div id="driveDetailMeta" class="grid grid-cols-3 gap-2"></div>
+                <div id="driveDetailNotes" class="hidden bg-slate-50 rounded-xl p-3 text-sm text-slate-600 leading-relaxed"></div>
+                <div id="driveDetailActions" class="hidden grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="editDrive()" class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition">Edit Drive</button>
+                    <button type="button" onclick="deleteDrive()" class="py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl text-sm transition">Delete Drive</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="settingsDrawer" class="hidden fixed inset-0 z-[105] bg-slate-900/40 backdrop-blur-sm">
@@ -169,6 +211,14 @@
             </button>
         </header>
 
+        <div id="updateAvailableBanner" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-3">
+            <div class="min-w-0">
+                <div class="font-black text-blue-700 text-sm">Update Available</div>
+                <div class="text-xs text-blue-500 mt-0.5">A newer version of ReadyRoad is ready to install.</div>
+            </div>
+            <button onclick="reloadForUpdate()" class="shrink-0 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition">Update Now</button>
+        </div>
+
         <section id="authScreen" class="app-screen active bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
             <div class="flex gap-2 mb-6">
                 <button id="showLoginBtn" class="flex-1 py-2.5 font-bold rounded-xl bg-blue-600 text-white transition">Login</button>
@@ -203,7 +253,10 @@
 
             <div id="parentDriverSelectorCard" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
                 <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Active Target Driver</label>
-                <select id="childSelector" onchange="handleChildSelectionChange()" class="w-full border border-slate-200 p-2.5 rounded-lg bg-white text-sm"></select>
+                <div class="flex gap-2">
+                    <select id="childSelector" onchange="handleChildSelectionChange()" class="flex-1 border border-slate-200 p-2.5 rounded-lg bg-white text-sm"></select>
+                    <button onclick="unlinkTeen()" title="Unlink this teen driver" class="shrink-0 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-500 font-bold rounded-lg text-xs transition">Unlink</button>
+                </div>
             </div>
 
             <div id="parentLinkTeenCard" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
@@ -235,6 +288,24 @@
                 </div>
             </div>
 
+            <div id="parentRecentCard" class="parent-driver-dependent bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <h2 class="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wide">Recent Activity</h2>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-xl p-3 text-center">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-green-500 mb-1">Last 24 Hours</div>
+                        <div id="recentDayHours" class="text-2xl font-black text-green-700 leading-none">0.0</div>
+                        <div class="text-[10px] font-bold text-green-500 mt-0.5">hrs driven</div>
+                        <div id="recentDaySessions" class="text-[11px] text-slate-400 font-bold mt-1.5">0 sessions</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-3 text-center">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-blue-500 mb-1">Last 7 Days</div>
+                        <div id="recentWeekHours" class="text-2xl font-black text-blue-700 leading-none">0.0</div>
+                        <div class="text-[10px] font-bold text-blue-500 mt-0.5">hrs driven</div>
+                        <div id="recentWeekSessions" class="text-[11px] text-slate-400 font-bold mt-1.5">0 sessions</div>
+                    </div>
+                </div>
+            </div>
+
             <div id="parentActionsCard" class="parent-driver-dependent grid grid-cols-2 gap-3">
                 <button onclick="startGPSDriveFlow()" class="p-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-center text-sm shadow-sm transition">⏱️ Live GPS Drive</button>
                 <button onclick="openManualFormFlow()" class="p-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-center text-sm shadow-sm transition">📝 Manual Entry</button>
@@ -242,12 +313,44 @@
             </div>
 
             <div id="parentHistoryCard" class="parent-driver-dependent bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                <h2 class="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wide">Drive Log History</h2>
+                <h2 class="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wide">Drive Log History <span id="driveLogCount" class="normal-case font-normal text-slate-400 text-xs"></span></h2>
                 <div id="parentDriveList" class="space-y-2 max-h-60 overflow-y-auto"></div>
             </div>
         </section>
 
         <section id="trackerScreen" class="app-screen bg-white p-6 rounded-2xl shadow-sm border border-slate-100 text-center space-y-6">
+
+            <div id="preDriveInfoCard" class="space-y-2">
+                <div class="grid grid-cols-2 gap-2">
+                    <div id="locationInfoPanel" class="bg-gradient-to-br from-blue-50 to-slate-50 border border-blue-100 rounded-xl p-3 text-left">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-blue-400 mb-1.5 flex items-center gap-1">
+                            <span>📍</span> Location
+                        </div>
+                        <div id="locationText" class="text-sm font-bold text-slate-800 leading-snug">Detecting...</div>
+                        <div id="locationCoords" class="text-[10px] text-slate-400 mt-0.5 font-mono"></div>
+                    </div>
+                    <div id="weatherInfoPanel" class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-xl p-3 text-left">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1.5">
+                            <span id="weatherEmoji">🌤️</span> Weather
+                        </div>
+                        <div id="weatherTemp" class="text-2xl font-black text-slate-800 leading-none">--°F</div>
+                        <div id="weatherCondition" class="text-[11px] font-bold text-amber-700 mt-0.5">Fetching...</div>
+                    </div>
+                </div>
+                <div id="weatherDetailRow" class="hidden bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 flex items-center justify-around text-xs text-slate-500 font-bold">
+                    <span id="weatherWindDetail"></span>
+                    <span class="text-slate-200">|</span>
+                    <span id="weatherHumidityDetail"></span>
+                    <span class="text-slate-200">|</span>
+                    <span id="weatherVisibilityDetail"></span>
+                </div>
+            </div>
+
+            <div id="trackerMapContainer" class="rounded-xl overflow-hidden border border-slate-200" style="height:200px;position:relative;background:#e2e8f0;">
+                <div id="trackerMap" style="height:100%;width:100%;"></div>
+                <div id="trackerMapPlaceholder" class="absolute inset-0 flex items-center justify-center text-slate-400 text-sm font-medium pointer-events-none">Waiting for GPS fix…</div>
+            </div>
+
             <div class="flex justify-center items-center gap-2">
                 <div id="gpsStatus" class="w-3 h-3 rounded-full bg-red-500"></div>
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-400" id="gpsStatusText">GPS Standby</span>
@@ -259,6 +362,10 @@
 
         <section id="driveFormScreen" class="app-screen bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
             <h2 id="formTitle" class="font-black text-xl text-slate-800 border-b pb-2">Log Drive Details</h2>
+            <div id="formRouteMapContainer" class="hidden rounded-xl overflow-hidden border border-slate-200" style="height:160px;position:relative;background:#e2e8f0;">
+                <div id="formRouteMap" style="height:100%;width:100%;"></div>
+                <div id="formRouteMapPlaceholder" class="absolute inset-0 flex items-center justify-center text-slate-400 text-sm font-medium pointer-events-none">Loading route…</div>
+            </div>
             <form id="driveLogForm" onsubmit="handleFormSubmission(event)" class="space-y-3">
                 <input type="hidden" id="formMode" value="manual">
                 <input type="hidden" id="formStartLat"><input type="hidden" id="formStartLon">
@@ -314,6 +421,10 @@
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Supervisor Name</label>
                     <input id="formSupervisorName" type="text" required class="w-full border p-2 rounded-lg text-sm bg-slate-50">
                 </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Notes <span class="normal-case font-normal text-slate-300">(optional)</span></label>
+                    <textarea id="formNotes" rows="2" placeholder="e.g. First time on the highway, practiced parking" class="w-full border p-2 rounded-lg text-sm bg-slate-50 resize-none"></textarea>
+                </div>
                 <div class="grid grid-cols-2 gap-3 pt-2">
                     <button type="button" onclick="cancelFormEngine()" class="py-2.5 bg-slate-100 font-bold rounded-xl text-sm transition">Cancel</button>
                     <button type="submit" class="py-2.5 bg-green-600 text-white font-bold rounded-xl text-sm transition">Save Log Entry</button>
@@ -365,6 +476,97 @@
     </div>
 
     <div id="printTemplate" class="hidden print:block">
+
+        <!-- ═══════════════════════════════════════════════════════
+             COVER PAGE — Supervised Driving Log
+        ═══════════════════════════════════════════════════════ -->
+        <div id="printCoverPage">
+
+            <!-- Title -->
+            <div style="border-bottom:3px double #000; padding-bottom:14px; margin-bottom:22px;">
+                <div style="text-align:center;">
+                    <div style="font-size:11pt; text-transform:uppercase; letter-spacing:2px; color:#444; margin-bottom:8px;">State of New Hampshire</div>
+                    <div style="font-size:20pt; font-weight:900; letter-spacing:0.4px; line-height:1.1;">Supervised Driving Log</div>
+                </div>
+                <div style="text-align:right; font-size:8pt; color:#555; margin-top:10px;">Generated: <span id="coverGeneratedDate"></span></div>
+            </div>
+
+            <!-- Introductory text -->
+            <div style="font-size:10.5pt; line-height:1.7; margin-bottom:26px;">
+                <p style="margin:0 0 14px 0;">New Hampshire law requires a minimum of <strong>40 hours</strong> of practice driving with a licensed adult in addition to the Driver Education Program Certificate. At least <strong>10 hours</strong> of the supervised driving time must be completed during the period from one-half hour after sunset to one-half hour before sunrise. Parents are encouraged to practice as much as possible with their child. The student driver must be at least <strong>15 years and 6 months</strong> of age, and the supervising licensed driver must be at least <strong>25 years old</strong>.</p>
+                <p style="margin:0;">I certify that my child has received a minimum of <strong>40 hours</strong> of supervised driving practice with at least <strong>10 hours</strong> occurring during the period from one-half hour after sunset to one-half hour before sunrise.</p>
+            </div>
+
+            <!-- Signature section -->
+            <div style="display:flex; gap:40px; margin-bottom:8px; align-items:flex-end;">
+                <div style="flex:2;">
+                    <div style="border-bottom:1.5px solid #000; height:42px; margin-bottom:5px;"></div>
+                    <div style="font-size:9pt; font-weight:bold;">Parent/Guardian Signature</div>
+                </div>
+                <div style="flex:1;">
+                    <div style="border-bottom:1.5px solid #000; height:42px; margin-bottom:5px;"></div>
+                    <div style="font-size:9pt; font-weight:bold;">Date</div>
+                </div>
+            </div>
+            <p style="font-size:8.5pt; font-style:italic; color:#444; margin:0 0 30px 0;">This authorization form is signed under penalty of unsworn falsification pursuant to RSA 641:3.</p>
+
+            <!-- Student information -->
+            <div style="border:1.5px solid #333; padding:14px 18px; margin-bottom:28px;">
+                <div style="font-size:9.5pt; font-weight:bold; text-transform:uppercase; letter-spacing:0.8px; padding-bottom:10px; margin-bottom:16px; border-bottom:1px solid #ccc;">Student Information</div>
+                <div style="display:flex; gap:32px; font-size:9.5pt;">
+                    <!-- Left column -->
+                    <div style="flex:1;">
+                        <div style="margin-bottom:14px;">
+                            <div style="font-weight:bold; margin-bottom:3px;">Student Full Name:</div>
+                            <div style="border-bottom:1px solid #555; height:20px; padding-top:2px;"><span id="coverStudentName" style="font-size:9pt;"></span></div>
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <div style="font-weight:bold; margin-bottom:3px;">Parent Name:</div>
+                            <div style="border-bottom:1px solid #555; height:20px;"></div>
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <div style="font-weight:bold; margin-bottom:3px;">Telephone #:</div>
+                            <div style="border-bottom:1px solid #555; height:20px;"></div>
+                        </div>
+                        <div>
+                            <div style="font-weight:bold; margin-bottom:3px;">Name of Driving School Attending:</div>
+                            <div style="border-bottom:1px solid #555; height:20px;"></div>
+                        </div>
+                    </div>
+                    <!-- Right column -->
+                    <div style="flex:1;">
+                        <div style="margin-bottom:14px;">
+                            <div style="font-weight:bold; margin-bottom:3px;">Date of Birth:</div>
+                            <div style="border-bottom:1px solid #555; height:20px;"></div>
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <div style="font-weight:bold; margin-bottom:3px;">Total Driving Time:</div>
+                            <div style="border-bottom:1px solid #555; height:20px; padding-top:2px;"><span id="coverTotalHours" style="font-size:9pt;"></span></div>
+                        </div>
+                        <div>
+                            <div style="font-weight:bold; margin-bottom:3px;">Total Night Driving Time:</div>
+                            <div style="border-bottom:1px solid #555; height:20px; padding-top:2px;"><span id="coverNightHours" style="font-size:9pt;"></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vertical spacer pushes footer to bottom of page -->
+            <div style="flex:1;"></div>
+
+            <!-- Footer -->
+            <div style="border-top:1px solid #aaa; padding-top:12px;">
+                <div style="display:flex; gap:28px; align-items:flex-start;">
+                    <div style="flex:3; font-size:8pt; color:#444; line-height:1.6;">
+                        <div style="font-weight:bold; font-size:9pt; margin-bottom:5px;">New Hampshire</div>
+                        <p style="margin:0;">This driving log is a resource for families to utilize during the supervised driving process. Please refer to your state's rules and regulations to determine whether this log is required and accepted in your state.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <!-- END COVER PAGE -->
+
         <h1 style="text-align:center; font-size:18px; text-transform:uppercase; margin-bottom:2px;">State of New Hampshire</h1>
         <h2 style="text-align:center; font-size:14px; text-transform:uppercase; margin-bottom:15px; border-bottom:2px solid #000; padding-bottom:5px;">Teen Driver Certification Log</h2>
         
@@ -381,7 +583,7 @@
                     <th>Route & Driving Conditions</th>
                     <th>Day Mins</th>
                     <th>Night Mins</th>
-                    <th>Supervisor Printed Name & Signature Baseline</th>
+                    <th>Supervisor Name</th>
                 </tr>
             </thead>
             <tbody id="printTableBody"></tbody>
@@ -394,7 +596,7 @@
         const SUPABASE_KEY = "sb_publishable_4WsxVlvdM1ZIcJwG4uRIxQ_3GVHlivl";
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const APP_VERSION = '1.0.0';
+        const APP_VERSION = '1.8.0';
 
         let state = {
             user: null,
@@ -402,10 +604,21 @@
             linkedChildren: [],
             selectedChildId: null,
             currentDrives: [],
+            driveDetailMap: null,
+            viewingDrive: null,
+            editingDriveId: null,
+            trackerMap: null,
+            trackerMapLine: null,
+            trackerMapCurrentMarker: null,
+            trackerMapStartMarker: null,
+            trackerMapWatchCoords: [],
+            formRouteMap: null,
             tracker: {
                 active: false,
                 watchId: null,
                 timerInterval: null,
+                waypointWatchId: null,
+                wakeLock: null,
                 startTime: null,
                 startLat: null, startLon: null,
                 endLat: null, endLon: null,
@@ -415,7 +628,8 @@
                 weather: null,
                 childId: null,
                 loggedBy: null,
-                status: 'idle'
+                status: 'idle',
+                waypoints: []
             }
         };
 
@@ -547,10 +761,18 @@
             dialog.classList.add('flex');
             confirmBtn.focus();
 
+            // Leaflet maps live in their own stacking context and ignore backdrop-filter blur.
+            // Apply filter directly so they're visually dimmed like the rest of the page.
+            const blurMaps = ['formRouteMapContainer', 'trackerMapContainer']
+                .map(id => document.getElementById(id))
+                .filter(el => el && !el.classList.contains('hidden'));
+            blurMaps.forEach(el => { el.style.filter = 'blur(3px)'; el.style.transition = 'filter 0.15s'; });
+
             return new Promise(resolve => {
                 const cleanup = (value) => {
                     dialog.classList.add('hidden');
                     dialog.classList.remove('flex');
+                    blurMaps.forEach(el => { el.style.filter = ''; });
                     cancelBtn.removeEventListener('click', onCancel);
                     confirmBtn.removeEventListener('click', onConfirm);
                     dialog.removeEventListener('click', onBackdrop);
@@ -656,7 +878,8 @@
         function markUpdateAvailable(worker) {
             waitingServiceWorker = worker || waitingServiceWorker;
             document.getElementById('updateAvailableCard')?.classList.remove('hidden');
-            showToast('A ReadyRoad update is ready. Open settings to reload.', 'info', 6500);
+            document.getElementById('updateAvailableBanner')?.classList.remove('hidden');
+            showToast('A ReadyRoad update is ready.', 'info', 6500);
         }
 
         function reloadForUpdate() {
@@ -812,6 +1035,7 @@
                 document.getElementById('parentName').innerText = profile.display_name;
                 await fetchLinkedChildrenProfiles();
                 showAppScreen('parentDashboard');
+                await recoverActiveDriveOnBoot();
             } else {
                 document.getElementById('childName').innerText = profile.display_name;
                 document.getElementById('shareCodeDisplay').innerText = profile.share_code;
@@ -874,6 +1098,10 @@
             document.getElementById('nightHoursText').innerText = '0.0 / 10.0 Hours';
             document.getElementById('totalHoursBar').style.width = '0%';
             document.getElementById('nightHoursBar').style.width = '0%';
+            document.getElementById('recentDayHours').textContent = '0.0';
+            document.getElementById('recentDaySessions').textContent = '0 sessions';
+            document.getElementById('recentWeekHours').textContent = '0.0';
+            document.getElementById('recentWeekSessions').textContent = '0 sessions';
             document.getElementById('parentDriveList').innerHTML = '<div class="text-center text-xs py-6 text-slate-400">Link a teen driver to view drive history.</div>';
         }
 
@@ -1019,23 +1247,29 @@
     });
 }
 
-        async function linkChild2(event) {
-            const code = document.getElementById('shareCodeInput').value.trim();
-            if (!code) return showToast("Input child key string code.", 'warning');
-
-            const trigger = event?.currentTarget || event?.target;
-            return withActionLock('link-child-legacy', trigger, 'Linking...', async () => {
-                const { data: targetProfile, error } = await supabaseRequest('Finding teen driver...', () => supabaseClient.from('profiles').select('*').eq('share_code', code).eq('role', 'child').maybeSingle());
-                if (error || !targetProfile) return showToast("Driver identity verification error mismatch. Re-verify target key code.", 'error');
-
-                const { error: linkErr } = await supabaseRequest('Linking teen driver...', () => supabaseClient.from('parent_child_relationships').insert([{ parent_id: state.user.id, child_id: targetProfile.id }]));
-                if (linkErr) return showToast("Relational connection matrix already defined.", 'error');
-
-                showToast("Relational linking authenticated successfully.", 'success');
-                document.getElementById('shareCodeInput').value = '';
-                state.selectedChildId = targetProfile.id;
-                await fetchLinkedChildrenProfiles();
-            });
+        async function unlinkTeen() {
+            const childId = state.selectedChildId;
+            if (!childId) return showToast('No teen driver selected.', 'warning');
+            if (state.tracker.active || state.tracker.status === 'finalizing') {
+                return showToast('Finish or discard the active drive before unlinking.', 'warning');
+            }
+            const child = state.linkedChildren.find(c => c.id === childId);
+            const confirmed = await showConfirmDialog(
+                `Remove ${child?.display_name ?? 'this driver'} from your account? Their drive history is preserved and can be re-linked later with the same share code.`,
+                { title: 'Unlink teen driver?', confirmText: 'Unlink', cancelText: 'Keep',
+                  confirmClass: 'py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition' }
+            );
+            if (!confirmed) return;
+            const { error } = await supabaseRequest('Unlinking teen driver...', () =>
+                supabaseClient.from('parent_child_relationships')
+                    .delete()
+                    .eq('parent_id', state.user.id)
+                    .eq('child_id', childId)
+            );
+            if (error) return showToast('Failed to unlink: ' + error.message, 'error');
+            state.selectedChildId = null;
+            showToast(`${child?.display_name ?? 'Driver'} unlinked.`, 'success');
+            await fetchLinkedChildrenProfiles();
         }
 
         async function handleChildSelectionChange() {
@@ -1065,7 +1299,11 @@
             if (!state.selectedChildId) return;
             const { data: drives } = await supabaseRequest('Loading drive logs...', () => supabaseClient.from('drives').select('*').eq('child_id', state.selectedChildId).order('start_time', { ascending: false }));
             state.currentDrives = drives || [];
-            
+
+            const driveCount = state.currentDrives.length;
+            document.getElementById('driveLogCount').textContent =
+                driveCount > 0 ? `(${driveCount} drive${driveCount !== 1 ? 's' : ''})` : '';
+
             const container = document.getElementById('parentDriveList');
             container.innerHTML = '';
 
@@ -1075,9 +1313,9 @@
                 if(d.day_night === 'night') nightMins += d.duration_minutes || 0;
 
                 const row = document.createElement('div');
-                row.className = "p-3 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center text-xs";
-                // Change this line inside the loop:
-                row.innerHTML = `<div><div class="font-bold text-slate-800">${new Date(d.start_time).toLocaleDateString()} &bull; ${Math.round(d.duration_minutes)} mins</div><div class="text-slate-400 text-[11px] mt-0.5">${d.start_address} ➡️ ${d.end_address}</div></div><span class="px-2 py-0.5 font-bold uppercase rounded text-[10px] ${d.day_night === 'night'?'bg-indigo-50 text-indigo-600':'bg-amber-50 text-amber-600'}">${d.day_night}</span>`;
+                row.className = "p-3 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-xl flex justify-between items-center text-xs cursor-pointer transition";
+                row.innerHTML = `<div><div class="font-bold text-slate-800">${new Date(d.start_time).toLocaleDateString()} &bull; ${Math.round(d.duration_minutes)} mins</div><div class="text-slate-400 text-[11px] mt-0.5">${d.start_address} ➡️ ${d.end_address}</div></div><div class="flex items-center gap-2"><span class="px-2 py-0.5 font-bold uppercase rounded text-[10px] ${d.day_night === 'night'?'bg-indigo-50 text-indigo-600':'bg-amber-50 text-amber-600'}">${d.day_night}</span><svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg></div>`;
+                row.addEventListener('click', () => openDriveDetail(d));
                 container.appendChild(row);
             });
 
@@ -1087,6 +1325,49 @@
             document.getElementById('nightHoursText').innerText = `${nxtHrs} / 10.0 Hours`;
             document.getElementById('totalHoursBar').style.width = `${Math.min((totHrs / 40) * 100, 100)}%`;
             document.getElementById('nightHoursBar').style.width = `${Math.min((nxtHrs / 10) * 100, 100)}%`;
+
+            const now = Date.now();
+            const DAY_MS = 24 * 60 * 60 * 1000;
+            const WEEK_MS = 7 * DAY_MS;
+            let dayMins = 0, daySessions = 0, weekMins = 0, weekSessions = 0;
+            state.currentDrives.forEach(d => {
+                const age = now - new Date(d.start_time).getTime();
+                if (age <= DAY_MS)  { dayMins  += d.duration_minutes || 0; daySessions++; }
+                if (age <= WEEK_MS) { weekMins += d.duration_minutes || 0; weekSessions++; }
+            });
+            document.getElementById('recentDayHours').textContent = (dayMins / 60).toFixed(1);
+            document.getElementById('recentDaySessions').textContent = `${daySessions} session${daySessions !== 1 ? 's' : ''}`;
+            document.getElementById('recentWeekHours').textContent = (weekMins / 60).toFixed(1);
+            document.getElementById('recentWeekSessions').textContent = `${weekSessions} session${weekSessions !== 1 ? 's' : ''}`;
+
+            _checkDriveMilestones(state.selectedChildId, totalMins, nightMins);
+        }
+
+        function _checkDriveMilestones(childId, totalMins, nightMins) {
+            if (!childId) return;
+            const key = `readyroad.milestones.${childId}`;
+            let seen;
+            try { seen = new Set(JSON.parse(localStorage.getItem(key) || '[]')); }
+            catch { seen = new Set(); }
+
+            const totalHrs = totalMins / 60;
+            const nightHrs = nightMins / 60;
+            const milestones = [
+                { id: 'total-10',  met: totalHrs >= 10,  msg: '🎉 10 total hours reached! Great progress!' },
+                { id: 'total-20',  met: totalHrs >= 20,  msg: '🎉 20 total hours — halfway to the goal!' },
+                { id: 'night-10',  met: nightHrs >= 10,  msg: '🌙 10 night hours complete — requirement met!' },
+                { id: 'total-40',  met: totalHrs >= 40,  msg: '🏆 40 hours complete! Log ready for the DMV!' },
+            ];
+
+            let changed = false;
+            for (const m of milestones) {
+                if (m.met && !seen.has(m.id)) {
+                    seen.add(m.id);
+                    changed = true;
+                    showToast(m.msg, 'success', 7000);
+                }
+            }
+            if (changed) localStorage.setItem(key, JSON.stringify([...seen]));
         }
 
         async function refreshChildDashboardView() {
@@ -1101,9 +1382,9 @@
                     if(d.day_night === 'night') nightMins += d.duration_minutes || 0;
 
                     const row = document.createElement('div');
-                    row.className = "p-3 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center text-xs";
-                    // Change this line inside the loop:
-                    row.innerHTML = `<div><div class="font-bold text-slate-800">${new Date(d.start_time).toLocaleDateString()} &bull; ${Math.round(d.duration_minutes)} mins</div><div class="text-slate-400 text-[11px] mt-0.5">${d.start_address} ➡️ ${d.end_address}</div></div><span class="px-2 py-0.5 font-bold uppercase rounded text-[10px] ${d.day_night === 'night'?'bg-indigo-50 text-indigo-600':'bg-amber-50 text-amber-600'}">${d.day_night}</span>`;
+                    row.className = "p-3 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-xl flex justify-between items-center text-xs cursor-pointer transition";
+                    row.innerHTML = `<div><div class="font-bold text-slate-800">${new Date(d.start_time).toLocaleDateString()} &bull; ${Math.round(d.duration_minutes)} mins</div><div class="text-slate-400 text-[11px] mt-0.5">${d.start_address} ➡️ ${d.end_address}</div></div><div class="flex items-center gap-2"><span class="px-2 py-0.5 font-bold uppercase rounded text-[10px] ${d.day_night === 'night'?'bg-indigo-50 text-indigo-600':'bg-amber-50 text-amber-600'}">${d.day_night}</span><svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg></div>`;
+                    row.addEventListener('click', () => openDriveDetail(d));
                     list.appendChild(row);
                 });
             }
@@ -1140,6 +1421,7 @@
                 weather: state.tracker.weather,
                 status: state.tracker.status || 'active',
                 updatedAt: new Date().toISOString(),
+                waypoints: state.tracker.waypoints || [],
                 ...overrides
             };
         }
@@ -1212,6 +1494,7 @@
             state.tracker.stopTime = storedDrive.stopTime ? new Date(storedDrive.stopTime) : null;
             state.tracker.dayNight = storedDrive.dayNight ?? null;
             state.tracker.weather = storedDrive.weather ?? null;
+            state.tracker.waypoints = storedDrive.waypoints || [];
         }
 
         async function resumeFinalizingDrive(storedDrive) {
@@ -1244,8 +1527,11 @@
             showAppScreen('trackerScreen');
             document.getElementById('trackerButton').innerText = 'STOP DRIVE';
             document.getElementById('trackerButton').className = 'w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black text-lg rounded-xl transition shadow-md';
+            document.getElementById('preDriveInfoCard').classList.add('hidden');
             updateGPSIndicator(true, 'Drive recovered');
             startTrackerTimer();
+            acquireWakeLock();
+            _restartWaypointWatch();
         }
 
         async function startGPSDriveFlow() {
@@ -1261,13 +1547,34 @@
                 showAppScreen('trackerScreen');
                 document.getElementById('trackerButton').innerText = 'STOP DRIVE';
                 document.getElementById('trackerButton').className = 'w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black text-lg rounded-xl transition shadow-md';
+                document.getElementById('preDriveInfoCard').classList.add('hidden');
                 updateGPSIndicator(true, 'Drive resumed');
                 startTrackerTimer();
+                acquireWakeLock();
+                _restartWaypointWatch();
                 return;
             }
 
             if (findAnyActiveDrive()) return showToast('There is already an active drive. Finish or discard it before starting another one.', 'warning');
             showAppScreen('trackerScreen');
+            fetchPreDriveConditions();
+        }
+
+        function _restartWaypointWatch() {
+            if (state.tracker.waypointWatchId != null) navigator.geolocation.clearWatch(state.tracker.waypointWatchId);
+            if (!('geolocation' in navigator)) return;
+            state.tracker.waypointWatchId = navigator.geolocation.watchPosition(pos => {
+                if (!state.tracker.active) return;
+                const { latitude: lat, longitude: lon } = pos.coords;
+                updateTrackerMapLive(lat, lon);
+                const last = state.tracker.waypoints[state.tracker.waypoints.length - 1];
+                const msSinceLast = last ? Date.now() - new Date(last.ts).getTime() : Infinity;
+                const mFromLast  = last ? waypointMetersApart(last.lat, last.lon, lat, lon) : Infinity;
+                if (msSinceLast >= 25000 || mFromLast >= 40) {
+                    state.tracker.waypoints.push({ lat, lon, ts: new Date().toISOString() });
+                    persistActiveDrive();
+                }
+            }, null, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
         }
 
         function toggleGPSEngine() {
@@ -1287,21 +1594,38 @@
                 state.tracker.stopTime = null;
                 state.tracker.dayNight = null;
                 state.tracker.weather = null;
+                state.tracker.waypoints = [];
+                state.trackerMapWatchCoords = [];
                 persistActiveDrive();
 
                 document.getElementById('trackerButton').innerText = 'STOP DRIVE';
                 document.getElementById('trackerButton').className = 'w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black text-lg rounded-xl transition shadow-md';
+                document.getElementById('preDriveInfoCard').classList.add('hidden');
                 updateGPSIndicator(true, 'GPS Lock Active');
+                acquireWakeLock();
 
                 navigator.geolocation.getCurrentPosition(pos => {
                     state.tracker.startLat = pos.coords.latitude;
                     state.tracker.startLon = pos.coords.longitude;
                     persistActiveDrive();
+                    // Pin green start marker and swap current-position dot
+                    if (state.trackerMap) {
+                        if (state.trackerMapCurrentMarker) { state.trackerMapCurrentMarker.remove(); state.trackerMapCurrentMarker = null; }
+                        state.trackerMapStartMarker = L.marker([pos.coords.latitude, pos.coords.longitude], { icon: _pinIcon('#10b981') }).addTo(state.trackerMap);
+                        state.trackerMapCurrentMarker = L.marker([pos.coords.latitude, pos.coords.longitude], { icon: _trackerDotIcon() }).addTo(state.trackerMap);
+                    }
                 }, () => persistActiveDrive(), { enableHighAccuracy: true });
+
+                // watchPosition runs continuously via the OS location service — survives screen-off and
+                // app backgrounding, unlike setInterval which gets throttled by the browser.
+                _restartWaypointWatch();
 
                 startTrackerTimer();
             } else {
                 clearInterval(state.tracker.timerInterval);
+                if (state.tracker.waypointWatchId != null) navigator.geolocation.clearWatch(state.tracker.waypointWatchId);
+                state.tracker.waypointWatchId = null;
+                releaseWakeLock();
                 state.tracker.active = false;
                 state.tracker.status = 'finalizing';
                 const stopTime = state.tracker.stopTime ? new Date(state.tracker.stopTime) : new Date();
@@ -1323,12 +1647,20 @@
         }
 
         async function finalizeGPSTrackResult(start, end, sLat, sLon, eLat, eLon) {
-            const autoDayNight = await determineDriveDayNight(start, end, sLat, sLon, eLat, eLon);
-            const autoWeather = await determineDriveWeather(start, end, sLat, sLon, eLat, eLon);
+            // Kick off map route render in parallel with the day/night and weather API calls
+            const waypoints = [...(state.tracker.waypoints || [])];
+            finalizeTrackerMapRoute(waypoints, sLat, sLon, eLat, eLon);
+
+            const [autoDayNight, autoWeather] = await Promise.all([
+                determineDriveDayNight(start, end, sLat, sLon, eLat, eLon),
+                determineDriveWeather(start, end, sLat, sLon, eLat, eLon)
+            ]);
             openUnifiedForm({
                 mode: 'gps', start: formatDateLocalInput(new Date(start)), end: formatDateLocalInput(new Date(end)),
                 sLat, sLon, eLat, eLon, sAddr: 'Resolving address...', eAddr: 'Resolving address...', dayNight: autoDayNight, weather: autoWeather
             });
+            // Show route preview on the form screen (non-blocking)
+            if (sLat && sLon) showFormRouteMap(waypoints, sLat, sLon, eLat, eLon);
 
             if (sLat && sLon) document.getElementById('formStartAddress').value = await reverseGeocode(sLat, sLon);
             if (eLat && eLon) document.getElementById('formEndAddress').value = await reverseGeocode(eLat, eLon);
@@ -1351,9 +1683,12 @@
 
         function clearGPSEngineSettings(options = {}) {
             clearInterval(state.tracker.timerInterval);
+            if (state.tracker.waypointWatchId != null) navigator.geolocation.clearWatch(state.tracker.waypointWatchId);
+            releaseWakeLock();
             state.tracker.active = false;
             state.tracker.watchId = null;
             state.tracker.timerInterval = null;
+            state.tracker.waypointWatchId = null;
             state.tracker.startTime = null;
             state.tracker.startLat = null;
             state.tracker.startLon = null;
@@ -1366,11 +1701,15 @@
             state.tracker.childId = null;
             state.tracker.loggedBy = null;
             state.tracker.status = 'idle';
+            state.tracker.waypoints = [];
             if (options.clearStorage) removeActiveDrive();
+            destroyTrackerMap();
+            destroyFormRouteMap();
             document.getElementById('timerDisplay').innerText = '00:00';
             document.getElementById('trackerButton').disabled = false;
             document.getElementById('trackerButton').innerText = 'START DRIVE';
             document.getElementById('trackerButton').className = 'w-full py-4 bg-green-600 hover:bg-green-700 text-white font-black text-lg rounded-xl transition shadow-md';
+            document.getElementById('preDriveInfoCard').classList.remove('hidden');
             updateGPSIndicator(false, 'GPS Standby');
         }
 
@@ -1379,10 +1718,130 @@
             document.getElementById('gpsStatus').className = isLive ? 'w-3 h-3 rounded-full bg-green-500 animate-pulse' : 'w-3 h-3 rounded-full bg-red-500';
         }
 
+        async function acquireWakeLock() {
+            if (!('wakeLock' in navigator)) {
+                showToast('Screen lock prevention unavailable on this browser. Keep the screen on during tracking for best route accuracy.', 'warning', 7000);
+                return;
+            }
+            try {
+                state.tracker.wakeLock = await navigator.wakeLock.request('screen');
+                updateGPSIndicator(true, 'GPS Active · Screen Held');
+                state.tracker.wakeLock.addEventListener('release', () => {
+                    state.tracker.wakeLock = null;
+                    if (state.tracker.active) updateGPSIndicator(true, 'GPS Active · Screen Free');
+                });
+            } catch {
+                showToast('Could not hold the screen on — keep the display active during tracking for best route accuracy.', 'warning', 7000);
+            }
+        }
+
+        function releaseWakeLock() {
+            if (state.tracker.wakeLock) { state.tracker.wakeLock.release(); state.tracker.wakeLock = null; }
+        }
+
+        // Re-acquire wake lock when the user switches back to the app mid-drive
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && state.tracker.active && !state.tracker.wakeLock) {
+                acquireWakeLock();
+            }
+        });
+
+        function getWeatherDisplay(code) {
+            if (code === 0)  return { label: 'Clear Sky',      emoji: '☀️',  bg: 'from-amber-50 to-orange-50',   border: 'border-amber-100', text: 'text-amber-700' };
+            if (code === 1)  return { label: 'Mainly Clear',   emoji: '🌤️', bg: 'from-amber-50 to-orange-50',   border: 'border-amber-100', text: 'text-amber-700' };
+            if (code === 2)  return { label: 'Partly Cloudy',  emoji: '⛅',  bg: 'from-slate-50 to-blue-50',    border: 'border-slate-100', text: 'text-slate-600' };
+            if (code === 3)  return { label: 'Overcast',       emoji: '☁️',  bg: 'from-slate-100 to-slate-50',  border: 'border-slate-200', text: 'text-slate-600' };
+            if (code === 45 || code === 48) return { label: 'Foggy', emoji: '🌫️', bg: 'from-slate-100 to-slate-50', border: 'border-slate-200', text: 'text-slate-500' };
+            if (code >= 51 && code <= 57)   return { label: 'Drizzle',      emoji: '🌦️', bg: 'from-blue-50 to-slate-50',  border: 'border-blue-100',  text: 'text-blue-700' };
+            if (code >= 61 && code <= 67)   return { label: 'Rain',         emoji: '🌧️', bg: 'from-blue-50 to-indigo-50', border: 'border-blue-200',  text: 'text-blue-700' };
+            if (code >= 71 && code <= 77)   return { label: 'Snow',         emoji: '❄️',  bg: 'from-indigo-50 to-blue-50', border: 'border-indigo-100', text: 'text-indigo-700' };
+            if (code >= 80 && code <= 82)   return { label: 'Rain Showers', emoji: '🌧️', bg: 'from-blue-50 to-indigo-50', border: 'border-blue-200',  text: 'text-blue-700' };
+            if (code === 85 || code === 86) return { label: 'Snow Showers', emoji: '🌨️', bg: 'from-indigo-50 to-blue-50', border: 'border-indigo-100', text: 'text-indigo-700' };
+            if (code >= 95 && code <= 99)   return { label: 'Thunderstorm', emoji: '⛈️', bg: 'from-purple-50 to-slate-50', border: 'border-purple-100', text: 'text-purple-700' };
+            return { label: 'Conditions Unknown', emoji: '🌤️', bg: 'from-slate-50 to-amber-50', border: 'border-slate-100', text: 'text-slate-600' };
+        }
+
+        async function fetchPreDriveConditions() {
+            document.getElementById('locationText').textContent = 'Detecting location...';
+            document.getElementById('locationCoords').textContent = '';
+            document.getElementById('weatherTemp').textContent = '--°F';
+            document.getElementById('weatherCondition').textContent = 'Fetching...';
+            document.getElementById('weatherEmoji').textContent = '🌤️';
+            document.getElementById('weatherDetailRow').classList.add('hidden');
+
+            if (!('geolocation' in navigator)) {
+                document.getElementById('locationText').textContent = 'GPS unavailable';
+                document.getElementById('weatherCondition').textContent = 'Unavailable';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+
+                document.getElementById('locationCoords').textContent =
+                    `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+
+                initTrackerMap(lat, lon);
+
+                reverseGeocode(lat, lon).then(city => {
+                    document.getElementById('locationText').textContent = city;
+                }).catch(() => {
+                    document.getElementById('locationText').textContent = 'Location detected';
+                });
+
+                try {
+                    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+                        `&current=weather_code,temperature_2m,wind_speed_10m,relative_humidity_2m,visibility` +
+                        `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    if (data.current) {
+                        const code = data.current.weather_code;
+                        const temp = Math.round(data.current.temperature_2m);
+                        const wind = Math.round(data.current.wind_speed_10m);
+                        const humidity = Math.round(data.current.relative_humidity_2m);
+                        const vis = data.current.visibility;
+                        const display = getWeatherDisplay(code);
+
+                        const panel = document.getElementById('weatherInfoPanel');
+                        panel.className = `bg-gradient-to-br ${display.bg} border ${display.border} rounded-xl p-3 text-left`;
+                        document.getElementById('weatherEmoji').textContent = display.emoji;
+                        document.getElementById('weatherTemp').textContent = `${temp}°F`;
+                        document.getElementById('weatherCondition').textContent = display.label;
+                        document.getElementById('weatherCondition').className = `text-[11px] font-bold mt-0.5 ${display.text}`;
+
+                        const detailRow = document.getElementById('weatherDetailRow');
+                        document.getElementById('weatherWindDetail').textContent = `💨 ${wind} mph`;
+                        document.getElementById('weatherHumidityDetail').textContent = `💧 ${humidity}%`;
+                        if (vis !== undefined && vis !== null) {
+                            const visMiles = (vis / 1609).toFixed(1);
+                            document.getElementById('weatherVisibilityDetail').textContent = `👁️ ${visMiles} mi`;
+                        } else {
+                            document.getElementById('weatherVisibilityDetail').textContent = '';
+                        }
+                        detailRow.classList.remove('hidden');
+                    }
+                } catch {
+                    document.getElementById('weatherCondition').textContent = 'Unavailable';
+                }
+            }, () => {
+                document.getElementById('locationText').textContent = 'Permission denied';
+                document.getElementById('weatherCondition').textContent = 'Location required';
+            }, { enableHighAccuracy: false, timeout: 10000 });
+        }
+
+        // Nominatim enforces 1 req/s. Track the last call time and wait only what's remaining.
+        let _lastNominatimMs = 0;
+        async function _nominatimRateLimit() {
+            const wait = Math.max(0, 1050 - (Date.now() - _lastNominatimMs));
+            if (wait > 0) await new Promise(r => setTimeout(r, wait));
+            _lastNominatimMs = Date.now();
+        }
+
         async function reverseGeocode(lat, lon) {
             try {
-                // Throttle compliance timeout injection
-                await new Promise(r => setTimeout(r, 1000));
+                await _nominatimRateLimit();
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`, {
                     headers: { 'User-Agent': 'NH-DMV-Teen-Driving-Log-Tracker-SPA/1.0' }
                 });
@@ -1391,6 +1850,46 @@
             } catch { return 'Unknown Location'; }
         }
 
+        const _geocodeDetailCache = new Map();
+        async function reverseGeocodeDetailed(lat, lon) {
+            const key = `${lat.toFixed(5)},${lon.toFixed(5)}`;
+            if (_geocodeDetailCache.has(key)) return _geocodeDetailCache.get(key);
+            try {
+                await _nominatimRateLimit();
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`, {
+                    headers: { 'User-Agent': 'NH-DMV-Teen-Driving-Log-Tracker-SPA/1.0' }
+                });
+                const data = await res.json();
+                const a = data.address || {};
+
+                // Business/POI name: require a POI category AND place_rank >= 27 (roads are rank 26,
+                // buildings/POIs are rank 30) so we don't surface road names as place names.
+                const POI_CATEGORIES = ['amenity', 'shop', 'tourism', 'leisure', 'office', 'craft', 'healthcare', 'historic', 'sport'];
+                const name = POI_CATEGORIES.includes(data.category) && data.name && (data.place_rank >= 27) ? data.name : null;
+
+                const parts = [a.house_number, a.road].filter(Boolean);
+                const locality = a.city || a.town || a.village || a.hamlet || a.suburb;
+                if (locality) parts.push(locality);
+                if (a.state) parts.push(a.state);
+                const street = parts.join(' ').trim() || data.display_name?.split(',')[0] || 'Unknown Location';
+
+                const result = { name, street };
+                _geocodeDetailCache.set(key, result);
+                return result;
+            } catch {
+                return { name: null, street: 'Unknown Location' };
+            }
+        }
+
+
+        function waypointMetersApart(lat1, lon1, lat2, lon2) {
+            const R = 6371000;
+            const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(Δφ/2)**2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
 
         function formatDateParam(date) {
             return formatDateLocalInput(new Date(date)).slice(0, 10);
@@ -1435,18 +1934,38 @@
 
             if (!Number.isFinite(lat) || !Number.isFinite(lon) || !(end > start)) return fallback;
 
+            // NH DMV qualifying night: one-half hour AFTER sunset to one-half hour BEFORE sunrise.
+            // The 30-min dusk buffer (sunset→sunset+30) and dawn buffer (sunrise-30→sunrise)
+            // are twilight windows that count as neither qualifying day nor qualifying night.
+            const THIRTY_MIN_MS = 30 * 60 * 1000;
+
             try {
-                let dayMinutes = 0;
+                let qualifyingDayMinutes = 0;
+                let twilightMinutes = 0;
                 const dates = uniqueLocalDatesBetween(start, end);
                 for (const dateParam of dates) {
                     const { sunrise, sunset } = await fetchSunWindow(lat, lon, dateParam);
-                    const overlapStart = new Date(Math.max(start.getTime(), sunrise.getTime()));
-                    const overlapEnd = new Date(Math.min(end.getTime(), sunset.getTime()));
-                    dayMinutes += minutesBetween(overlapStart, overlapEnd);
+
+                    // Qualifying day: sunrise → sunset
+                    const dayOverlapStart = new Date(Math.max(start.getTime(), sunrise.getTime()));
+                    const dayOverlapEnd = new Date(Math.min(end.getTime(), sunset.getTime()));
+                    qualifyingDayMinutes += minutesBetween(dayOverlapStart, dayOverlapEnd);
+
+                    // Dusk buffer: sunset → sunset + 30 min
+                    const duskEnd = new Date(sunset.getTime() + THIRTY_MIN_MS);
+                    const duskOverlapStart = new Date(Math.max(start.getTime(), sunset.getTime()));
+                    const duskOverlapEnd = new Date(Math.min(end.getTime(), duskEnd.getTime()));
+                    twilightMinutes += minutesBetween(duskOverlapStart, duskOverlapEnd);
+
+                    // Dawn buffer: sunrise - 30 min → sunrise
+                    const dawnStart = new Date(sunrise.getTime() - THIRTY_MIN_MS);
+                    const dawnOverlapStart = new Date(Math.max(start.getTime(), dawnStart.getTime()));
+                    const dawnOverlapEnd = new Date(Math.min(end.getTime(), sunrise.getTime()));
+                    twilightMinutes += minutesBetween(dawnOverlapStart, dawnOverlapEnd);
                 }
                 const totalMinutes = minutesBetween(start, end);
-                const nightMinutes = Math.max(0, totalMinutes - dayMinutes);
-                return nightMinutes > dayMinutes ? 'night' : 'day';
+                const qualifyingNightMinutes = Math.max(0, totalMinutes - qualifyingDayMinutes - twilightMinutes);
+                return qualifyingNightMinutes > qualifyingDayMinutes ? 'night' : 'day';
             } catch (err) {
                 console.warn('Day/night auto-classification fallback used:', err);
                 return fallback;
@@ -1508,7 +2027,13 @@
         }
 
         function openUnifiedForm(cfg) {
+            const isEdit = cfg.mode === 'edit';
+            const isGps  = cfg.mode === 'gps';
+
             document.getElementById('formMode').value = cfg.mode;
+            document.getElementById('formTitle').textContent = isEdit ? 'Edit Drive' : 'Log Drive Details';
+            document.querySelector('#driveLogForm button[type="submit"]').textContent = isEdit ? 'Save Changes' : 'Save Log Entry';
+
             document.getElementById('formStartTime').value = cfg.start;
             document.getElementById('formEndTime').value = cfg.end;
             document.getElementById('formStartLat').value = cfg.sLat || '';
@@ -1517,15 +2042,17 @@
             document.getElementById('formEndLon').value = cfg.eLon || '';
             document.getElementById('formStartAddress').value = cfg.sAddr || '';
             document.getElementById('formEndAddress').value = cfg.eAddr || '';
-            document.getElementById('formSupervisorName').value = state.profile.display_name;
+            document.getElementById('formSupervisorName').value = cfg.supervisorName || state.profile.display_name;
+            document.getElementById('formNotes').value = cfg.notes || '';
+            if (cfg.roadType) document.getElementById('formRoadType').value = cfg.roadType;
 
-            document.getElementById('formDayNight').disabled = cfg.mode === 'gps';
-            document.getElementById('formDayNight').classList.toggle('opacity-60', cfg.mode === 'gps');
-            document.getElementById('formDayNight').title = cfg.mode === 'gps' ? 'Automatically calculated from GPS location, date, sunrise, and sunset.' : '';
-
+            // day_night: locked (greyed) only for GPS mode — editable for manual and edit
+            document.getElementById('formDayNight').disabled = isGps;
+            document.getElementById('formDayNight').classList.toggle('opacity-60', isGps);
+            document.getElementById('formDayNight').title = isGps ? 'Automatically calculated from GPS location, date, sunrise, and sunset.' : '';
             if (cfg.dayNight) {
                 document.getElementById('formDayNight').value = cfg.dayNight;
-            } else if(cfg.start) {
+            } else if (cfg.start) {
                 const hour = new Date(cfg.start).getHours();
                 document.getElementById('formDayNight').value = (hour >= 6 && hour < 18) ? 'day' : 'night';
             } else {
@@ -1535,15 +2062,23 @@
             }
 
             document.getElementById('formWeather').disabled = false;
-            document.getElementById('formWeather').classList.toggle('opacity-60', cfg.mode === 'gps' && !!cfg.weather);
-            document.getElementById('formWeather').title = cfg.mode === 'gps' && cfg.weather ? 'Automatically estimated from Open-Meteo using GPS location and drive time. You can still change it if needed.' : '';
+            document.getElementById('formWeather').classList.toggle('opacity-60', isGps && !!cfg.weather);
+            document.getElementById('formWeather').title = isGps && cfg.weather ? 'Automatically estimated from Open-Meteo using GPS location and drive time. You can still change it if needed.' : '';
             if (cfg.weather) document.getElementById('formWeather').value = cfg.weather;
 
             showAppScreen('driveFormScreen');
         }
 
         async function cancelFormEngine() {
-            if (document.getElementById('formMode').value === 'gps' && loadActiveDrive(state.selectedChildId)) {
+            const mode = document.getElementById('formMode').value;
+            if (mode === 'edit') {
+                state.editingDriveId = null;
+                document.getElementById('driveLogForm').reset();
+                destroyFormRouteMap();
+                showAppScreen('parentDashboard');
+                return;
+            }
+            if (mode === 'gps' && loadActiveDrive(state.selectedChildId)) {
                 const discard = await showConfirmDialog('Discard this finalized GPS drive instead of saving it?', {
                     title: 'Discard finalized drive?',
                     confirmText: 'Discard Drive',
@@ -1595,30 +2130,52 @@
                 }
             }
 
-            const payload = {
-                child_id: state.selectedChildId, logged_by: state.user.id,
+            const formMode  = document.getElementById('formMode').value;
+            const isGpsMode  = formMode === 'gps';
+            const isEditMode = formMode === 'edit';
+
+            const coreFields = {
                 start_time: start.toISOString(), end_time: end.toISOString(),
                 start_lat: parseFloat(document.getElementById('formStartLat').value) || null,
                 start_lon: parseFloat(document.getElementById('formStartLon').value) || null,
-                end_lat: parseFloat(document.getElementById('formEndLat').value) || null,
-                end_lon: parseFloat(document.getElementById('formEndLon').value) || null,
-                start_address: document.getElementById('formStartAddress').value || 'Manual Location',
-                end_address: document.getElementById('formEndAddress').value || 'Manual Location',
-                day_night: calculatedDayNight,
-                road_type: document.getElementById('formRoadType').value,
-                weather: calculatedWeather,
-                supervisor_name: document.getElementById('formSupervisorName').value
+                end_lat:   parseFloat(document.getElementById('formEndLat').value)   || null,
+                end_lon:   parseFloat(document.getElementById('formEndLon').value)   || null,
+                start_address:   document.getElementById('formStartAddress').value   || 'Manual Location',
+                end_address:     document.getElementById('formEndAddress').value     || 'Manual Location',
+                day_night:       calculatedDayNight,
+                road_type:       document.getElementById('formRoadType').value,
+                weather:         calculatedWeather,
+                supervisor_name: document.getElementById('formSupervisorName').value,
+                notes:           document.getElementById('formNotes').value.trim() || null
             };
 
-            const { error } = await supabaseRequest('Saving drive log...', () => supabaseClient.from('drives').insert([payload]));
-            if (error) return showToast("Transaction log drop bypassed sync: " + error.message, 'error');
-
-            if (document.getElementById('formMode').value === 'gps') {
-                removeActiveDrive();
-                clearGPSEngineSettings();
+            let error, data;
+            if (isEditMode) {
+                if (!state.editingDriveId) return showToast('No drive selected to edit.', 'error');
+                // .select() is required — without it Supabase returns null data whether 0 or 1 rows updated
+                ({ data, error } = await supabaseRequest('Updating drive...', () =>
+                    supabaseClient.from('drives').update(coreFields).eq('id', state.editingDriveId).select()
+                ));
+                if (!error && (!data || data.length === 0)) {
+                    return showToast('Update failed: no rows changed. Check Supabase RLS UPDATE policy.', 'error');
+                }
+            } else {
+                const payload = {
+                    ...coreFields,
+                    child_id: state.selectedChildId, logged_by: state.user.id,
+                    waypoints: isGpsMode && state.tracker.waypoints?.length ? state.tracker.waypoints : null
+                };
+                ({ error } = await supabaseRequest('Saving drive log...', () =>
+                    supabaseClient.from('drives').insert([payload])
+                ));
             }
-            showToast("Entry saved!", 'success');
+            if (error) return showToast('Failed to save: ' + error.message, 'error');
+
+            if (isEditMode) state.editingDriveId = null;
+            if (isGpsMode) { removeActiveDrive(); clearGPSEngineSettings(); }
+            showToast(isEditMode ? 'Drive updated.' : 'Entry saved!', 'success');
             document.getElementById('driveLogForm').reset();
+            destroyFormRouteMap();
             showAppScreen('parentDashboard');
             await refreshParentDashboardLogs();
             });
@@ -1649,17 +2206,25 @@
                 tr.innerHTML = `
                     <td>${new Date(d.start_time).toLocaleDateString()}</td>
                     <td>${new Date(d.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(d.end_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                    <td>${d.start_address} to ${d.end_address} (${d.road_type}, ${d.weather})</td>
+                    <td>${d.start_address} to ${d.end_address} (${d.road_type}, ${d.weather})${d.notes ? `<br><em style="font-size:10px;color:#555;">${d.notes}</em>` : ''}</td>
                     <td><center>${d.day_night==='day'?roundedMins:''}</center></td>
                     <td><center>${d.day_night==='night'?roundedMins:''}</center></td>
-                    <td style="padding-top:20px; vertical-align:bottom;"><small>${d.supervisor_name}</small><div style="border-bottom:1px dotted #000; width:100%; height:2px;"></div></td>
+                    <td>${d.supervisor_name}</td>
                 `;
                 tbody.appendChild(tr);
             });
             
-            // Inject calculated hour aggregates to one decimal place into print header elements
-            document.getElementById('printTotalHours').innerText = (totalMinutes / 60).toFixed(1);
-            document.getElementById('printNightHours').innerText = (nightMinutes / 60).toFixed(1);
+            // Inject calculated hour aggregates to one decimal place into print header and cover page
+            const totalHrs = (totalMinutes / 60).toFixed(1);
+            const nightHrs = (nightMinutes / 60).toFixed(1);
+            document.getElementById('printTotalHours').innerText = totalHrs;
+            document.getElementById('printNightHours').innerText = nightHrs;
+            document.getElementById('coverTotalHours').innerText = `${totalHrs} hrs`;
+            document.getElementById('coverNightHours').innerText = `${nightHrs} hrs`;
+
+            const selectedChild = state.linkedChildren.find(c => c.id === state.selectedChildId);
+            document.getElementById('coverStudentName').innerText = selectedChild?.display_name ?? '';
+            document.getElementById('coverGeneratedDate').innerText = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
             window.print();
         }
@@ -1670,6 +2235,347 @@
             }).catch(() => {
                 showToast("Failed to copy Share Code. Please try again.", 'error');
             });
+        }
+
+        // --- TRACKER SCREEN LIVE MAP ---
+        const _trackerDotIcon = () => L.divIcon({
+            className: '',
+            html: `<div style="width:16px;height:16px;position:relative">
+                <div style="position:absolute;inset:0;background:#3b82f6;border-radius:50%;opacity:0.35;animation:trackerPing 1.2s ease-out infinite"></div>
+                <div style="position:absolute;inset:3px;background:#3b82f6;border-radius:50%;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>
+            </div>`,
+            iconSize: [16, 16], iconAnchor: [8, 8]
+        });
+        const _pinIcon = color => L.divIcon({
+            className: '',
+            html: `<div style="width:12px;height:12px;background:${color};border:2.5px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>`,
+            iconSize: [12, 12], iconAnchor: [6, 6]
+        });
+
+        function initTrackerMap(lat, lon) {
+            document.getElementById('trackerMapPlaceholder').classList.add('hidden');
+            if (state.trackerMap) {
+                // Already initialized; just move the current-position marker
+                if (state.trackerMapCurrentMarker) state.trackerMapCurrentMarker.setLatLng([lat, lon]);
+                else state.trackerMapCurrentMarker = L.marker([lat, lon], { icon: _trackerDotIcon() }).addTo(state.trackerMap);
+                state.trackerMap.setView([lat, lon], 15);
+                return;
+            }
+            const map = L.map('trackerMap', { zoomControl: false, attributionControl: false }).setView([lat, lon], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+            state.trackerMap = map;
+            state.trackerMapCurrentMarker = L.marker([lat, lon], { icon: _trackerDotIcon() }).addTo(map);
+            setTimeout(() => map.invalidateSize(), 120);
+        }
+
+        function updateTrackerMapLive(lat, lon) {
+            if (!state.trackerMap) return;
+            state.trackerMapWatchCoords.push([lat, lon]);
+            // Move pulsing dot
+            if (state.trackerMapCurrentMarker) state.trackerMapCurrentMarker.setLatLng([lat, lon]);
+            // Grow live polyline
+            if (state.trackerMapWatchCoords.length >= 2) {
+                if (state.trackerMapLine) {
+                    state.trackerMapLine.setLatLngs(state.trackerMapWatchCoords);
+                } else {
+                    state.trackerMapLine = L.polyline(state.trackerMapWatchCoords, { color: '#3b82f6', weight: 3, opacity: 0.75 }).addTo(state.trackerMap);
+                }
+            }
+            // Gentle pan to follow
+            state.trackerMap.panTo([lat, lon], { animate: true, duration: 0.8 });
+        }
+
+        async function finalizeTrackerMapRoute(waypoints, sLat, sLon, eLat, eLon) {
+            if (!state.trackerMap) return;
+            // Swap live elements for finished markers
+            if (state.trackerMapLine) { state.trackerMapLine.remove(); state.trackerMapLine = null; }
+            if (state.trackerMapCurrentMarker) { state.trackerMapCurrentMarker.remove(); state.trackerMapCurrentMarker = null; }
+            state.trackerMapWatchCoords = [];
+
+            const startLL = [sLat, sLon];
+            const endLL   = eLat && eLon ? [eLat, eLon] : null;
+            L.marker(startLL, { icon: _pinIcon('#10b981') }).addTo(state.trackerMap);
+            if (endLL) L.marker(endLL, { icon: _pinIcon('#ef4444') }).addTo(state.trackerMap);
+
+            await _drawOsrmRouteOnMap(state.trackerMap, waypoints, sLat, sLon, eLat, eLon);
+        }
+
+        function destroyTrackerMap() {
+            if (state.trackerMap) { state.trackerMap.remove(); state.trackerMap = null; }
+            state.trackerMapLine = null;
+            state.trackerMapCurrentMarker = null;
+            state.trackerMapStartMarker = null;
+            state.trackerMapWatchCoords = [];
+            const ph = document.getElementById('trackerMapPlaceholder');
+            if (ph) ph.classList.remove('hidden');
+        }
+
+        async function showFormRouteMap(waypoints, sLat, sLon, eLat, eLon) {
+            const container = document.getElementById('formRouteMapContainer');
+            if (!container) return;
+            container.classList.remove('hidden');
+            if (state.formRouteMap) { state.formRouteMap.remove(); state.formRouteMap = null; }
+            document.getElementById('formRouteMap').innerHTML = '';
+
+            const map = L.map('formRouteMap', { zoomControl: false, attributionControl: false }).setView([sLat, sLon], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+            state.formRouteMap = map;
+
+            const endLL = eLat && eLon ? [eLat, eLon] : null;
+            L.marker([sLat, sLon], { icon: _pinIcon('#10b981') }).addTo(map);
+            if (endLL) L.marker(endLL, { icon: _pinIcon('#ef4444') }).addTo(map);
+
+            setTimeout(() => map.invalidateSize(), 60);
+            await _drawOsrmRouteOnMap(map, waypoints, sLat, sLon, eLat, eLon);
+
+            const ph = document.getElementById('formRouteMapPlaceholder');
+            if (ph) ph.classList.add('hidden');
+        }
+
+        function destroyFormRouteMap() {
+            if (state.formRouteMap) { state.formRouteMap.remove(); state.formRouteMap = null; }
+            const container = document.getElementById('formRouteMapContainer');
+            if (container) container.classList.add('hidden');
+            const ph = document.getElementById('formRouteMapPlaceholder');
+            if (ph) ph.classList.remove('hidden');
+        }
+
+        async function _drawOsrmRouteOnMap(map, waypoints, sLat, sLon, eLat, eLon) {
+            const endLL = eLat && eLon ? [eLat, eLon] : null;
+            if (!endLL) { map.setView([sLat, sLon], 14); return; }
+
+            const mid = waypoints?.length ? waypoints.map(wp => [wp.lon, wp.lat]) : [];
+            let stops = [[sLon, sLat], ...mid, [eLon, eLat]]
+                .filter((c, i, a) => i === 0 || c[0] !== a[i-1][0] || c[1] !== a[i-1][1]);
+            if (stops.length > 25) {
+                const step = (stops.length - 1) / 24;
+                stops = Array.from({ length: 25 }, (_, i) => stops[Math.round(i * step)]);
+            }
+            try {
+                const coordStr = stops.map(c => `${c[0]},${c[1]}`).join(';');
+                const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&geometries=geojson`);
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                if (!data.routes?.[0]) throw new Error();
+                const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                const line = L.polyline(coords, { color: '#3b82f6', weight: 4, opacity: 0.85 }).addTo(map);
+                map.fitBounds(line.getBounds().pad(0.2));
+            } catch {
+                const fallback = [[sLat, sLon], ...(waypoints || []).map(wp => [wp.lat, wp.lon]), ...(endLL ? [endLL] : [])];
+                const line = L.polyline(fallback, { color: '#94a3b8', weight: 2.5, dashArray: '6 5', opacity: 0.8 }).addTo(map);
+                map.fitBounds(line.getBounds().pad(0.25));
+            }
+        }
+
+        // --- DRIVE DETAIL MODAL ---
+        async function openDriveDetail(drive) {
+            state.viewingDrive = drive;
+            const modal = document.getElementById('driveDetailModal');
+            modal.classList.remove('hidden');
+
+            // Show edit/delete only for parents (children can only view their own logs)
+            const actionsEl = document.getElementById('driveDetailActions');
+            if (actionsEl) actionsEl.classList.toggle('hidden', state.profile?.role !== 'parent');
+
+            const start = new Date(drive.start_time);
+            const end = new Date(drive.end_time);
+            document.getElementById('driveDetailTitle').textContent = start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            document.getElementById('driveDetailSubtitle').textContent =
+                `${start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} – ${end.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} · ${Math.round(drive.duration_minutes)} min · ${drive.supervisor_name}`;
+
+            const hasStart = drive.start_lat != null && drive.start_lon != null;
+            const hasEnd   = drive.end_lat   != null && drive.end_lon   != null;
+
+            const coordTag = (lat, lon) => lat != null
+                ? `<span class="text-slate-400 text-[10px] font-mono block">${lat.toFixed(5)}, ${lon.toFixed(5)}</span>`
+                : '';
+            const locationBlock = (id, dotColor, ringColor, label, coordHtml) => `
+                <div class="flex items-start gap-2.5">
+                    <div class="mt-1 flex-shrink-0 w-3 h-3 rounded-full ${dotColor} border-2 border-white ${ringColor} shadow-sm"></div>
+                    <div id="${id}">${label}${coordHtml}</div>
+                </div>`;
+
+            document.getElementById('driveDetailRoute').innerHTML =
+                locationBlock('driveDetailStartAddr', 'bg-emerald-500', 'ring-1 ring-emerald-200',
+                    `<div class="font-semibold text-slate-800 text-sm">${drive.start_address}</div>`,
+                    coordTag(drive.start_lat, drive.start_lon)) +
+                `<div class="ml-1.5 border-l-2 border-dashed border-slate-200 h-4"></div>` +
+                locationBlock('driveDetailEndAddr', 'bg-red-500', 'ring-1 ring-red-200',
+                    `<div class="font-semibold text-slate-800 text-sm">${drive.end_address}</div>`,
+                    coordTag(drive.end_lat, drive.end_lon));
+
+            // Upgrade to full street addresses + business names async (Nominatim 1-req/s limit)
+            const upgradeAddr = async (lat, lon, elId, coordHtml) => {
+                if (lat == null) return;
+                const geo = await reverseGeocodeDetailed(lat, lon);
+                const nameHtml = geo.name
+                    ? `<div class="font-black text-slate-800 text-sm">${geo.name}</div><div class="text-slate-500 text-xs">${geo.street}</div>`
+                    : `<div class="font-semibold text-slate-800 text-sm">${geo.street}</div>`;
+                const el = document.getElementById(elId);
+                if (el) el.innerHTML = nameHtml + coordHtml;
+            };
+            upgradeAddr(drive.start_lat, drive.start_lon, 'driveDetailStartAddr', coordTag(drive.start_lat, drive.start_lon));
+            // Sequential: wait 1.1 s so Nominatim rate limit isn't hit for the second call
+            setTimeout(() => upgradeAddr(drive.end_lat, drive.end_lon, 'driveDetailEndAddr', coordTag(drive.end_lat, drive.end_lon)), 1100);
+
+            const nightCls  = 'bg-indigo-50 text-indigo-700';
+            const dayCls    = 'bg-amber-50 text-amber-700';
+            const dnCls     = drive.day_night === 'night' ? nightCls : dayCls;
+            document.getElementById('driveDetailMeta').innerHTML = `
+                <div class="bg-slate-50 rounded-xl p-3 text-center">
+                    <div class="text-[9px] uppercase font-black tracking-wider text-slate-400 mb-1.5">Time of Day</div>
+                    <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${dnCls}">${drive.day_night}</span>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-3 text-center">
+                    <div class="text-[9px] uppercase font-black tracking-wider text-slate-400 mb-1.5">Weather</div>
+                    <div class="text-xs font-bold text-slate-700">${drive.weather}</div>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-3 text-center">
+                    <div class="text-[9px] uppercase font-black tracking-wider text-slate-400 mb-1.5">Road</div>
+                    <div class="text-xs font-bold text-slate-700">${drive.road_type}</div>
+                </div>`;
+
+            const notesEl = document.getElementById('driveDetailNotes');
+            if (drive.notes) {
+                notesEl.textContent = drive.notes;
+                notesEl.classList.remove('hidden');
+            } else {
+                notesEl.classList.add('hidden');
+            }
+
+            // Render map after a tick so the modal is visible and has dimensions
+            setTimeout(() => renderDriveDetailMap(drive), 50);
+        }
+
+        function closeDriveDetail() {
+            state.viewingDrive = null;
+            document.getElementById('driveDetailModal').classList.add('hidden');
+            if (state.driveDetailMap) {
+                state.driveDetailMap.remove();
+                state.driveDetailMap = null;
+            }
+        }
+
+        function editDrive() {
+            const drive = state.viewingDrive;
+            if (!drive || state.profile?.role !== 'parent') return;
+            closeDriveDetail();
+            state.editingDriveId = drive.id;
+            if (drive.start_lat && drive.start_lon) {
+                showFormRouteMap(drive.waypoints, drive.start_lat, drive.start_lon, drive.end_lat, drive.end_lon);
+            }
+            openUnifiedForm({
+                mode: 'edit',
+                start: formatDateLocalInput(new Date(drive.start_time)),
+                end: formatDateLocalInput(new Date(drive.end_time)),
+                sLat: drive.start_lat || '', sLon: drive.start_lon || '',
+                eLat: drive.end_lat   || '', eLon: drive.end_lon   || '',
+                sAddr: drive.start_address || '', eAddr: drive.end_address || '',
+                dayNight: drive.day_night, weather: drive.weather,
+                roadType: drive.road_type, supervisorName: drive.supervisor_name,
+                notes: drive.notes || ''
+            });
+        }
+
+        async function deleteDrive() {
+            const drive = state.viewingDrive;
+            if (!drive || state.profile?.role !== 'parent') return;
+            const confirmed = await showConfirmDialog(
+                `This will permanently delete the ${Math.round(drive.duration_minutes)}-minute drive on ${new Date(drive.start_time).toLocaleDateString()}. This cannot be undone.`,
+                { title: 'Delete this drive?', confirmText: 'Delete Drive', cancelText: 'Keep' }
+            );
+            if (!confirmed) return;
+            const { data, error } = await supabaseRequest('Deleting drive...', () =>
+                supabaseClient.from('drives').delete().eq('id', drive.id).select()
+            );
+            if (error) return showToast('Failed to delete: ' + error.message, 'error');
+            if (!data || data.length === 0) return showToast('Delete failed: no rows removed. Check Supabase RLS DELETE policy.', 'error');
+            closeDriveDetail();
+            showToast('Drive deleted.', 'success');
+            await refreshParentDashboardLogs();
+        }
+
+        async function renderDriveDetailMap(drive) {
+            const mapDiv         = document.getElementById('driveDetailMap');
+            const placeholder    = document.getElementById('driveDetailMapPlaceholder');
+            const hasStart = drive.start_lat != null && drive.start_lon != null;
+            const hasEnd   = drive.end_lat   != null && drive.end_lon   != null;
+
+            if (state.driveDetailMap) { state.driveDetailMap.remove(); state.driveDetailMap = null; }
+            mapDiv.innerHTML = '';
+            placeholder.classList.add('hidden');
+
+            if (!hasStart && !hasEnd) {
+                placeholder.classList.remove('hidden');
+                return;
+            }
+
+            const startLL = [drive.start_lat, drive.start_lon];
+            const endLL   = hasEnd ? [drive.end_lat, drive.end_lon] : null;
+            const center  = endLL ? [(startLL[0] + endLL[0]) / 2, (startLL[1] + endLL[1]) / 2] : startLL;
+
+            const map = L.map(mapDiv, { zoomControl: false }).setView(center, 13);
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            state.driveDetailMap = map;
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                maxZoom: 19
+            }).addTo(map);
+
+            const mkIcon = color => L.divIcon({
+                className: '',
+                html: `<div style="width:12px;height:12px;background:${color};border:2.5px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>`,
+                iconSize: [12, 12], iconAnchor: [6, 6]
+            });
+            L.marker(startLL, { icon: mkIcon('#10b981') }).addTo(map).bindPopup('Start: ' + drive.start_address);
+            if (endLL) L.marker(endLL, { icon: mkIcon('#ef4444') }).addTo(map).bindPopup('End: ' + drive.end_address);
+
+            if (endLL) {
+                // Build OSRM coordinate list: start → (waypoints as intermediate stops) → end.
+                // Passing waypoints to OSRM means the route snaps to real roads through each
+                // recorded position, rather than drawing straight segments between GPS points.
+                const buildOsrmUrl = (wps) => {
+                    // OSRM public server handles ~25 coords comfortably; subsample if needed.
+                    const MAX_STOPS = 23;
+                    let stops = wps;
+                    if (stops.length > MAX_STOPS) {
+                        const step = (stops.length - 1) / (MAX_STOPS - 1);
+                        stops = Array.from({ length: MAX_STOPS }, (_, i) => stops[Math.round(i * step)]);
+                    }
+                    const coordStr = stops.map(c => `${c[0]},${c[1]}`).join(';');
+                    return `https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&geometries=geojson`;
+                };
+
+                const hasWaypoints = drive.waypoints && drive.waypoints.length >= 1;
+                const midPoints = hasWaypoints
+                    ? drive.waypoints.map(wp => [wp.lon, wp.lat])
+                    : [];
+                // Deduplicate consecutive identical coords to avoid OSRM rejecting duplicate stops
+                const allStops = [[drive.start_lon, drive.start_lat], ...midPoints, [drive.end_lon, drive.end_lat]]
+                    .filter((c, i, arr) => i === 0 || c[0] !== arr[i-1][0] || c[1] !== arr[i-1][1]);
+
+                try {
+                    const res = await fetch(buildOsrmUrl(allStops));
+                    if (!res.ok) throw new Error('osrm-http');
+                    const data = await res.json();
+                    if (!data.routes?.[0]) throw new Error('osrm-empty');
+                    const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                    const line = L.polyline(coords, { color: '#3b82f6', weight: 4, opacity: 0.85 }).addTo(map);
+                    map.fitBounds(line.getBounds().pad(0.25));
+                } catch {
+                    // Fallback: raw GPS polyline or straight line
+                    const fallback = hasWaypoints
+                        ? drive.waypoints.map(wp => [wp.lat, wp.lon])
+                        : [startLL, endLL];
+                    const line = L.polyline([startLL, ...fallback, endLL], { color: '#94a3b8', weight: 2.5, dashArray: '6 5', opacity: 0.8 }).addTo(map);
+                    map.fitBounds(line.getBounds().pad(0.35));
+                }
+            } else {
+                map.setView(startLL, 14);
+            }
+
+            map.invalidateSize();
         }
 
         function formatDateLocalInput(date) {
@@ -1703,7 +2609,11 @@ if ('serviceWorker' in navigator) {
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (refreshingForUpdate) return;
                 refreshingForUpdate = true;
-                window.location.reload();
+                if (isSafeToReloadForUpdate()) {
+                    window.location.reload();
+                } else {
+                    markUpdateAvailable(null);
+                }
             });
 
             await reg.update();
