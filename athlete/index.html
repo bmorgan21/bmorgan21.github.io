@@ -256,7 +256,7 @@
                 </div>
 
                 <div id="ai-review-status" class="hidden text-xs p-3 rounded-xl bg-brand-500/10 text-brand-300 border border-brand-500/20 font-mono">
-                    Analyzing multi-week actuals & exercise preferences to generate next week's split...
+                    Reviewing your recent training history and preferences to shape next week’s plan...
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2">
@@ -271,24 +271,32 @@
     <div id="ai-plan-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-start justify-center p-4 hidden z-50 overflow-y-auto">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full my-6 sm:my-10 p-6 space-y-4 shadow-2xl">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 class="text-base font-bold text-white">Import / AI Generate Plan</h3>
+                <h3 class="text-base font-bold text-white">Create / Recreate / Import Plan</h3>
                 <button onclick="toggleModal('ai-plan-modal', false)" class="text-slate-400 hover:text-white text-xl p-1 transition">&times;</button>
             </div>
             
-            <p class="text-xs text-slate-400">Paste your raw weekly workout text or coach guidance below. Gemini AI will parse it into structured targets, respecting your rated exercise preferences, and publish it to Supabase.</p>
+            <p class="text-xs text-slate-400">Use this to create a fresh plan from your trainer memory, recreate a specific week's plan with updated preferences, or import a pasted program and convert it into structured targets.</p>
 
             <form onsubmit="submitAiPlanImport(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Plan Mode</label>
+                    <select id="plan-mode" onchange="updatePlanModeUI()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
+                        <option value="generate">Create a fresh plan from scratch</option>
+                        <option value="recreate">Recreate plan for the selected week</option>
+                        <option value="import">Import / parse pasted text</option>
+                    </select>
+                </div>
                 <div>
                     <label class="block text-xs font-medium text-slate-300 mb-1">Week Start Date (Monday)</label>
                     <input type="date" id="import-start-date" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-300 mb-1">Raw Training Program Text</label>
-                    <textarea id="import-plan-text" rows="8" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white font-mono text-xs focus:outline-none focus:border-brand-500" placeholder="Paste Tuesday upper pump, Thursday lower body, Monday/Wed/Sat runs..."></textarea>
+                    <label id="plan-text-label" class="block text-xs font-medium text-slate-300 mb-1">Optional Guidance / Notes</label>
+                    <textarea id="import-plan-text" rows="8" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white font-mono text-xs focus:outline-none focus:border-brand-500" placeholder="Optional guidance for a generated plan. Paste program text when using the import mode."></textarea>
                 </div>
 
                 <div id="ai-import-status" class="hidden text-xs p-3 rounded-xl bg-brand-500/10 text-brand-300 border border-brand-500/20 font-mono">
-                    AI formatting plan and writing to database...
+                    Preparing your plan details and saving them to your training record...
                 </div>
 
                 <div id="ai-import-error" class="hidden text-xs p-3 rounded-xl bg-rose-500/10 text-rose-300 border border-rose-500/20 font-mono break-words">
@@ -296,7 +304,7 @@
 
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="toggleModal('ai-plan-modal', false)" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs hover:bg-slate-700 transition">Cancel</button>
-                    <button id="ai-import-submit-btn" type="submit" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-brand-500/20">AI Generate & Publish Plan</button>
+                    <button id="ai-import-submit-btn" type="submit" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-brand-500/20">Generate & Publish Plan</button>
                 </div>
             </form>
         </div>
@@ -334,7 +342,7 @@
             <!-- TABS HEADER -->
             <div class="flex items-center gap-4 border-b border-slate-800 text-xs">
                 <button type="button" id="profile-tab-goals" onclick="switchProfileTab('goals')" class="pb-2 font-bold border-b-2 border-brand-500 text-brand-400 transition">
-                    1. Goals & Constraints
+                    1. Trainer Memory
                 </button>
                 <button type="button" id="profile-tab-exercises" onclick="switchProfileTab('exercises')" class="pb-2 font-medium text-slate-400 hover:text-slate-200 transition">
                     2. Exercise Ratings (Love / Dislike)
@@ -342,29 +350,28 @@
             </div>
 
             <form onsubmit="saveProfileSettings(event)" class="space-y-4">
-                <!-- TAB 1: GOALS & CONSTRAINTS -->
+                <!-- TAB 1: TRAINER MEMORY -->
                 <div id="profile-content-goals" class="space-y-4">
-                    <p class="text-xs text-slate-400">Define your core goals, motivators, equipment, and joint sensitivities. Gemini AI uses this context during weekly reviews.</p>
+                    <p class="text-xs text-slate-400">Use markdown headings and bullet points for the athlete's long-term trainer memory. Add or remove sections as needed so the coach can plan around the athlete's preferences and weekly rhythm.</p>
 
                     <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">Primary Training Goals</label>
-                        <textarea id="profile-goals" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500" placeholder="e.g. Hypertrophy focus on chest & upper back, run 15-20 miles per week"></textarea>
-                    </div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Trainer Memory (Markdown)</label>
+                        <textarea id="profile-memory" rows="14" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-brand-500" placeholder="# Athlete Trainer Memory
 
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">What Motivates You / Mindset</label>
-                        <textarea id="profile-motivators" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500" placeholder="e.g. Love progressive overload, hitting PRs, metric tracking"></textarea>
-                    </div>
+## Recommendations
+- Primary training goals:
+- Motivators:
+- Equipment available:
+- Joint sensitivities / dislikes:
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-1">Available Equipment</label>
-                            <textarea id="profile-equipment" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500" placeholder="e.g. Dumbbells up to 50 lbs, Barbell, Dip Bar, Treadmill"></textarea>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-1">Joint Sensitivities / Dislikes</label>
-                            <textarea id="profile-sensitivities" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500" placeholder="e.g. Heavy overhead barbell pressing, extreme knee flexion"></textarea>
-                        </div>
+## Weekly Structure
+- Monday:
+- Tuesday:
+- Wednesday:
+- Thursday:
+- Friday:
+- Saturday:
+- Sunday:"></textarea>
                     </div>
                 </div>
 
@@ -430,6 +437,14 @@
             }, 4000);
         };
 
+        function syncModalScrollLock() {
+            const modalSelectors = '#log-modal, #end-week-modal, #ai-plan-modal, #ai-key-modal, #profile-modal';
+            const hasVisibleModal = Array.from(document.querySelectorAll(modalSelectors)).some(modal => !modal.classList.contains('hidden'));
+
+            document.body.classList.toggle('overflow-hidden', hasVisibleModal);
+            document.documentElement.classList.toggle('overflow-hidden', hasVisibleModal);
+        }
+
         window.toggleModal = function(id, show) {
             const modal = document.getElementById(id);
             if (!modal) return;
@@ -439,6 +454,7 @@
             } else {
                 modal.classList.add('hidden');
             }
+            syncModalScrollLock();
         };
 
         // GLOBAL ESC KEY LISTENER TO CLOSE MODALS
@@ -447,6 +463,7 @@
                 document.querySelectorAll('#log-modal, #end-week-modal, #ai-plan-modal, #ai-key-modal, #profile-modal').forEach(modal => {
                     modal.classList.add('hidden');
                 });
+                syncModalScrollLock();
             }
         });
 
@@ -503,6 +520,77 @@
                 }
             }
             return fallback;
+        }
+
+        function normalizeExerciseName(name) {
+            let value = (name || '').toString().trim();
+            if (!value) return '';
+
+            value = value.replace(/\s+/g, ' ');
+            value = value.replace(/\s*\([^)]*\)/g, '');
+            value = value.replace(/\s+/g, ' ').trim();
+
+            const aliasMap = {
+                'db flyes': 'Dumbbell Flyes',
+                'dumbbell flyes': 'Dumbbell Flyes',
+                'db curls': 'Dumbbell Curls',
+                'dumbbell curls': 'Dumbbell Curls',
+                'incline db bench': 'Incline Dumbbell Bench Press',
+                'incline db bench press': 'Incline Dumbbell Bench Press',
+                'incline dumbbell bench press': 'Incline Dumbbell Bench Press',
+                'incline db curls': 'Incline Dumbbell Curls',
+                'incline dumbbell curls': 'Incline Dumbbell Curls',
+                'overhead db triceps ext': 'Overhead Dumbbell Triceps Extension',
+                'overhead db triceps extension': 'Overhead Dumbbell Triceps Extension',
+                'overhead dumbbell triceps extension': 'Overhead Dumbbell Triceps Extension',
+                'suitcase / farmer carry': 'Suitcase Carry',
+                'suitcase farmer carry': 'Suitcase Carry',
+                'suitcase carry': 'Suitcase Carry',
+                'good mornings (light bb)': 'Good Mornings',
+                'good mornings light bb': 'Good Mornings',
+                'good mornings': 'Good Mornings',
+                'dips (bodyweight)': 'Dips',
+                'dips bodyweight': 'Dips',
+                'dips': 'Dips',
+                'pull ups': 'Pull-ups',
+                'pull-ups': 'Pull-ups',
+                'push ups': 'Push-ups',
+                'push-ups': 'Push-ups',
+                'warm-up jog': 'Warm-up Jog',
+                'warm up jog': 'Warm-up Jog',
+                'cool-down jog': 'Cool-down Jog',
+                'cool down jog': 'Cool-down Jog',
+                'continuous aerobic run': 'Continuous Aerobic Run',
+                'long aerobic run': 'Long Aerobic Run',
+                'light walking & mobility': 'Light Walking & Mobility',
+                'light walking and mobility': 'Light Walking & Mobility',
+                'goblet squats': 'Goblet Squats',
+                'barbell row': 'Barbell Row',
+                'arnold press': 'Arnold Press',
+                'hanging knee raises': 'Hanging Knee Raises',
+                'threshold intervals': 'Threshold Intervals',
+                'threshold intervals (4 x 1 mile)': 'Threshold Intervals',
+                'barbell bench press': 'Barbell Bench Press'
+            };
+
+            const lookupKey = value.toLowerCase();
+            if (aliasMap[lookupKey]) return aliasMap[lookupKey];
+
+            value = value.replace(/\bdb\b/gi, 'Dumbbell');
+            value = value.replace(/\bbb\b/gi, 'Barbell');
+            value = value.replace(/\bpull ups\b/gi, 'Pull-ups');
+            value = value.replace(/\bpush ups\b/gi, 'Push-ups');
+            value = value.replace(/\s+/g, ' ').trim();
+            return value;
+        }
+
+        function normalizeExerciseRatings(ratings = {}) {
+            const normalized = {};
+            Object.entries(ratings || {}).forEach(([name, rating]) => {
+                const canonicalName = normalizeExerciseName(name);
+                if (canonicalName) normalized[canonicalName] = rating;
+            });
+            return normalized;
         }
 
         function normalizeNumeric(value, fallback = null) {
@@ -663,7 +751,7 @@
                     id, week_start_date, focus_summary, status, coach_commentary, athlete_review_text,
                     ft_scheduled_workouts (
                         id, day_of_week, workout_type, target_rpe, notes_from_coach,
-                        ft_exercise_targets ( id, exercise_name, target_sets, target_rep_range, target_weight_lbs, progression_note ),
+                        ft_exercise_targets ( id, exercise_name, exercise_order, target_sets, target_rep_range, target_weight_lbs, progression_note ),
                         ft_workout_actuals ( id, date_completed, actual_rpe, athlete_notes, one_line_summary,
                             ft_lifting_set_actuals ( id, exercise_name, set_number, reps_completed, weight_used_lbs ),
                             ft_run_telemetry ( id, run_mode, distance_miles, duration_seconds, avg_pace_min_mile, avg_hr, primary_limiter )
@@ -769,6 +857,23 @@
             return Boolean(plan?.coach_commentary || plan?.athlete_review_text);
         }
 
+        function sortExerciseTargets(targets = []) {
+            if (!Array.isArray(targets)) return [];
+
+            const ordered = [...targets];
+            ordered.sort((a, b) => {
+                const aOrder = Number.isFinite(Number(a?.exercise_order)) ? Number(a.exercise_order) : null;
+                const bOrder = Number.isFinite(Number(b?.exercise_order)) ? Number(b.exercise_order) : null;
+
+                if (aOrder != null && bOrder != null) return aOrder - bOrder;
+                if (aOrder != null) return -1;
+                if (bOrder != null) return 1;
+                return 0;
+            });
+
+            return ordered;
+        }
+
         function renderDashboard(plan) {
             document.getElementById('plan-focus-summary').innerText = plan.focus_summary || 'No focus summary provided.';
 
@@ -822,10 +927,11 @@
                 card.className = `border rounded-2xl p-5 transition ${isCompleted ? 'bg-slate-900/40 border-emerald-500/30' : 'bg-slate-900/70 border-slate-800'}`;
 
                 let exercisesHtml = '';
-                if (workout.ft_exercise_targets && workout.ft_exercise_targets.length > 0) {
+                const orderedTargets = sortExerciseTargets(workout.ft_exercise_targets);
+                if (orderedTargets.length > 0) {
                     exercisesHtml = `
                         <div class="mt-3 pt-3 border-t border-slate-800 space-y-1.5">
-                            ${workout.ft_exercise_targets.map(e => `
+                            ${orderedTargets.map(e => `
                                 <div class="flex items-center justify-between text-xs">
                                     <span class="text-slate-200 font-medium">${e.exercise_name}</span>
                                     <span class="text-slate-400">${e.target_sets} sets × ${e.target_rep_range || ''} ${e.target_weight_lbs ? '@ ' + e.target_weight_lbs + ' lbs' : ''}</span>
@@ -856,13 +962,21 @@
                             <h3 class="text-base font-bold text-white">${workout.workout_type}</h3>
                             ${workout.notes_from_coach ? `<p class="text-xs text-slate-400 mt-0.5">${workout.notes_from_coach}</p>` : ''}
                         </div>
-                        <button onclick='openLogModal(${JSON.stringify(workout)}, ${JSON.stringify(actual)})' class="text-xs bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 border border-brand-500/20 px-3 py-1.5 rounded-xl font-medium transition shrink-0">
-                            ${isCompleted ? 'Edit Log' : 'Log Workout'}
-                        </button>
+                        <div data-log-button-slot></div>
                     </div>
                     ${exercisesHtml}
                     ${summaryHtml}
                 `;
+
+                const logButtonSlot = card.querySelector('[data-log-button-slot]');
+                if (logButtonSlot) {
+                    const logButton = document.createElement('button');
+                    logButton.type = 'button';
+                    logButton.className = 'text-xs bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 border border-brand-500/20 px-3 py-1.5 rounded-xl font-medium transition shrink-0';
+                    logButton.textContent = isCompleted ? 'Edit Log' : 'Log Workout';
+                    logButton.addEventListener('click', () => openLogModal(workout, actual));
+                    logButtonSlot.appendChild(logButton);
+                }
 
                 grid.appendChild(card);
             });
@@ -906,7 +1020,7 @@
                     existingSetMap[s.exercise_name].push(s);
                 });
 
-                (workout.ft_exercise_targets || []).forEach(ex => {
+                sortExerciseTargets(workout.ft_exercise_targets || []).forEach(ex => {
                     const exCard = document.createElement('div');
                     exCard.className = 'bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 space-y-2.5';
                     
@@ -1225,11 +1339,27 @@
             };
         }
 
+        window.updatePlanModeUI = function() {
+            const mode = document.getElementById('plan-mode').value;
+            const label = document.getElementById('plan-text-label');
+            const textarea = document.getElementById('import-plan-text');
+            if (!label || !textarea) return;
+
+            if (mode === 'import') {
+                label.textContent = 'Raw Training Program Text';
+                textarea.placeholder = 'Paste Tuesday upper pump, Thursday lower body, Monday/Wed/Sat runs...';
+            } else {
+                label.textContent = 'Optional Guidance / Notes';
+                textarea.placeholder = 'Optional guidance for the AI coach. Leave blank to create a plan from your memory and recent history.';
+            }
+        };
+
         window.submitAiPlanImport = async function(e) {
             e.preventDefault();
             
             const startDate = document.getElementById('import-start-date').value;
-            const rawText = document.getElementById('import-plan-text').value;
+            const rawText = document.getElementById('import-plan-text').value.trim();
+            const mode = document.getElementById('plan-mode').value;
             const statusDiv = document.getElementById('ai-import-status');
             const errorDiv = document.getElementById('ai-import-error');
             const submitButton = document.getElementById('ai-import-submit-btn');
@@ -1237,42 +1367,150 @@
             errorDiv.classList.add('hidden');
             errorDiv.innerText = '';
 
-            console.group("🚀 AI Plan Import Process");
+            if (!startDate) {
+                errorDiv.innerText = 'Please choose a week start date.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (mode === 'import' && !rawText) {
+                errorDiv.innerText = 'Please paste training text when using the import mode.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            console.group("🚀 AI Plan Generation Process");
             if (submitButton) {
                 submitButton.disabled = true;
                 submitButton.classList.add('opacity-60', 'cursor-not-allowed');
             }
 
             const apiKey = await getGeminiApiKey();
-            showGeminiStatusMessage('ai-import-status', 'AI formatting plan and writing to database... This can take up to a minute.', 'info');
+            if (!apiKey && mode !== 'import') {
+                errorDiv.innerText = 'Please save your Gemini API key first before generating a plan.';
+                errorDiv.classList.remove('hidden');
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('opacity-60', 'cursor-not-allowed');
+                }
+                console.groupEnd();
+                return;
+            }
 
+            const statusMessage = mode === 'import'
+                ? 'I’m turning your notes into a structured week and saving it to your plan history.'
+                : mode === 'recreate'
+                    ? 'I’m rebuilding this week’s plan with your latest preferences, memory, and recent progress.'
+                    : 'I’m drafting a fresh week from your trainer memory, preferences, and recent training history.';
+            showGeminiStatusMessage('ai-import-status', statusMessage, 'info');
+
+            const profileData = await getProfileSettings();
             const prefSummary = getExercisePreferenceSummary();
             let planJson = null;
 
             if (apiKey) {
                 try {
-                    const prompt = `Parse this workout plan text starting Monday ${startDate} into structured JSON matching this schema:
-                    {
-                      "week_start_date": "${startDate}",
-                      "focus_summary": "Summary of week focus",
-                      "days": [
+                    const recentPlans = await getRecentPlanContext();
+                    const existingPlan = allWeeklyPlans.find(plan => plan.week_start_date === startDate) || null;
+                    const existingPlanContext = existingPlan ? `Existing plan for this week (use this as the starting draft, but update it as needed):\n${JSON.stringify(existingPlan, null, 2)}` : 'No existing plan is currently stored for this week.';
+
+                    const prompt = mode === 'import'
+                        ? `Parse this workout plan text starting Monday ${startDate} into structured JSON matching this schema:
                         {
-                          "day_of_week": "Monday",
-                          "workout_type": "Threshold Run / Upper Pump / etc",
-                          "target_rpe": 8,
-                          "notes_from_coach": "Coach notes",
-                          "exercises": [
-                            { "name": "Exercise Name", "sets": 3, "reps": "10-12", "weight_lbs": 50, "note": "tempo" }
+                          "week_start_date": "${startDate}",
+                          "focus_summary": "Summary of week focus",
+                          "days": [
+                            {
+                              "day_of_week": "Monday",
+                              "workout_type": "Threshold Run / Upper Pump / etc",
+                              "target_rpe": 8,
+                              "notes_from_coach": "Coach notes",
+                              "exercises": [
+                                { "name": "Exercise Name", "sets": 3, "reps": "10-12", "weight_lbs": 50, "note": "tempo" }
+                              ]
+                            }
                           ]
                         }
-                      ]
-                    }
-                    
-                    ATHLETE EXERCISE PREFERENCES:
-                    - Preferred Exercises (❤️ Love / 👍 Like): ${prefSummary.loved}, ${prefSummary.liked}
-                    - Disliked Exercises (🚫 Avoid): ${prefSummary.disliked}
+                        
+                        ATHLETE EXERCISE PREFERENCES:
+                        - Preferred Exercises (❤️ Love / 👍 Like): ${prefSummary.loved}, ${prefSummary.liked}
+                        - Disliked Exercises (🚫 Avoid): ${prefSummary.disliked}
 
-                    Text: ${rawText}`;
+                        IMPORTANT:
+                        - Respect the athlete's stated preferences first, but you may introduce a new exercise if it is justified by their progress, goals, or training needs.
+                        - New exercises should be used sparingly and only when they meaningfully improve the plan.
+
+                        Text: ${rawText}`
+                        : mode === 'recreate'
+                            ? `Recreate the weekly training plan for week starting ${startDate}. Use the athlete's trainer memory, exercise preferences, recent history, and any existing plan draft as a starting point. Make a fresh plan for this week that reflects the latest preferences and current progress while preserving the athlete's preferred weekly structure if there is one.
+
+                            ATHLETE TRAINER MEMORY:
+${getAthleteProfileMemorySummary(profileData)}
+
+                            EXERCISE PREFERENCES:
+                            - Loved / Prioritized Movements (❤️): ${prefSummary.loved}
+                            - Liked Movements (👍): ${prefSummary.liked}
+                            - Disliked / Avoid Movements (🚫): ${prefSummary.disliked}
+
+                            IMPORTANT:
+                            - Respect the athlete's stated preferences first, but you may introduce a new exercise when it is justified by recent progress, weak points, or a better fit for the plan.
+                            - Avoid 🚫 disliked exercises, but do not avoid reasonable new exercises simply because they are unfamiliar.
+
+                            ${existingPlanContext}
+
+                            RECENT TRAINING HISTORY:
+                            ${JSON.stringify(recentPlans || [], null, 2)}
+
+                            Return JSON matching this schema:
+                            {
+                              "week_start_date": "${startDate}",
+                              "focus_summary": "Summary of week focus",
+                              "days": [
+                                {
+                                  "day_of_week": "Monday",
+                                  "workout_type": "Threshold Run / Upper Pump / etc",
+                                  "target_rpe": 8,
+                                  "notes_from_coach": "Coach notes",
+                                  "exercises": [
+                                    { "name": "Exercise Name", "sets": 3, "reps": "10-12", "weight_lbs": 50, "note": "tempo" }
+                                  ]
+                                }
+                              ]
+                            }`
+                            : `Create a fresh weekly training plan for week starting ${startDate} from scratch. Use the athlete's trainer memory, exercise preferences, and recent training history to design a sensible week. Respect the athlete's preferences first, but you may introduce a new exercise when it is justified by progress, goals, or training needs.
+
+                            ATHLETE TRAINER MEMORY:
+${getAthleteProfileMemorySummary(profileData)}
+
+                            EXERCISE PREFERENCES:
+                            - Loved / Prioritized Movements (❤️): ${prefSummary.loved}
+                            - Liked Movements (👍): ${prefSummary.liked}
+                            - Disliked / Avoid Movements (🚫): ${prefSummary.disliked}
+
+                            OPTIONAL GUIDANCE:
+                            ${rawText || 'No additional guidance provided.'}
+
+                            RECENT TRAINING HISTORY:
+                            ${JSON.stringify(recentPlans || [], null, 2)}
+
+                            Return JSON matching this schema:
+                            {
+                              "week_start_date": "${startDate}",
+                              "focus_summary": "Summary of week focus",
+                              "days": [
+                                {
+                                  "day_of_week": "Monday",
+                                  "workout_type": "Threshold Run / Upper Pump / etc",
+                                  "target_rpe": 8,
+                                  "notes_from_coach": "Coach notes",
+                                  "exercises": [
+                                    { "name": "Exercise Name", "sets": 3, "reps": "10-12", "weight_lbs": 50, "note": "tempo" }
+                                  ]
+                                }
+                              ]
+                            }
+
+                            IMPORTANT: Preserve the exact intended order of exercises within each day. The first exercise should stay first in the array and the later exercises should remain in the same sequence.`;
 
                     const payload = {
                         contents: [{ parts: [{ text: prompt }] }],
@@ -1290,16 +1528,28 @@
                         return;
                     }
 
-                    console.info("Gemini import failed, falling back to local parser.", err);
+                    console.info("Gemini plan generation failed.", err);
                 }
             }
 
             if (!planJson) {
-                try {
-                    planJson = parsePlanTextClientSide(rawText, startDate);
-                    showToast("Parsed plan using local smart parser fallback!", "info");
-                } catch (fallbackErr) {
-                    errorDiv.innerText = "Import Error: Gemini API rate limit reached. Please wait 60s or check key settings.";
+                if (mode === 'import') {
+                    try {
+                        planJson = parsePlanTextClientSide(rawText, startDate);
+                        showToast("Parsed plan using local smart parser fallback!", "info");
+                    } catch (fallbackErr) {
+                        errorDiv.innerText = "Import Error: Gemini API rate limit reached. Please wait 60s or check key settings.";
+                        errorDiv.classList.remove('hidden');
+                        hideGeminiStatusMessage('ai-import-status');
+                        if (submitButton) {
+                            submitButton.disabled = false;
+                            submitButton.classList.remove('opacity-60', 'cursor-not-allowed');
+                        }
+                        console.groupEnd();
+                        return;
+                    }
+                } else {
+                    errorDiv.innerText = "Plan generation failed. Please check your Gemini key or try again.";
                     errorDiv.classList.remove('hidden');
                     hideGeminiStatusMessage('ai-import-status');
                     if (submitButton) {
@@ -1322,7 +1572,7 @@
                     submitButton.classList.remove('opacity-60', 'cursor-not-allowed');
                 }
                 
-                showToast("Weekly training plan generated and published!", "success");
+                showToast(mode === 'recreate' ? 'Weekly plan recreated and published!' : mode === 'import' ? 'Weekly training plan imported and published!' : 'Fresh weekly training plan created and published!', "success");
                 await loadDashboardData();
                 console.groupEnd();
             } catch (err) {
@@ -1358,7 +1608,7 @@
                 return;
             }
 
-            showGeminiStatusMessage('ai-review-status', 'Generating your weekly review and next-week plan... This can take up to a minute.', 'info');
+            showGeminiStatusMessage('ai-review-status', 'I’m reviewing your week’s actuals and turning that into a thoughtful next-week plan.', 'info');
 
             try {
                 const { data: recentPlans, error: fetchErr } = await supabaseClient
@@ -1367,7 +1617,7 @@
                         id, week_start_date, focus_summary, status,
                         ft_scheduled_workouts (
                             id, day_of_week, workout_type, target_rpe, notes_from_coach,
-                            ft_exercise_targets ( id, exercise_name, target_sets, target_rep_range, target_weight_lbs, progression_note ),
+                            ft_exercise_targets ( id, exercise_name, exercise_order, target_sets, target_rep_range, target_weight_lbs, progression_note ),
                             ft_workout_actuals ( id, date_completed, actual_rpe, athlete_notes, one_line_summary,
                                 ft_lifting_set_actuals ( id, exercise_name, set_number, reps_completed, weight_used_lbs ),
                                 ft_run_telemetry ( id, run_mode, distance_miles, duration_seconds, avg_pace_min_mile, avg_hr, primary_limiter )
@@ -1387,16 +1637,17 @@
 
                 const prompt = `Evaluate the athlete's multi-week training performance trends alongside their subjective weekly feedback and overarching athlete profile.
 
-                ATHLETE PROFILE & CONSTRAINTS:
-                - Primary Goals: ${profileData.athlete_goals || 'Not specified'}
-                - Core Motivators: ${profileData.motivators || 'Not specified'}
-                - Equipment Available: ${profileData.equipment_available || 'Standard gym equipment'}
-                - Joint Sensitivities / Dislikes: ${profileData.joint_sensitivities || 'None specified'}
+                ATHLETE TRAINER MEMORY:
+${getAthleteProfileMemorySummary(profileData)}
 
                 EXERCISE PREFERENCES:
                 - Loved / Prioritized Movements (❤️): ${prefSummary.loved}
                 - Liked Movements (👍): ${prefSummary.liked}
                 - Disliked / Avoid Movements (🚫): ${prefSummary.disliked}
+
+                IMPORTANT:
+                - Respect the athlete's stated preferences first, but you may introduce a new exercise when it is justified by recent progress, weak points, or a better fit for the plan.
+                - Avoid 🚫 disliked exercises, but do not avoid reasonable new exercises simply because they are unfamiliar.
                 
                 Athlete Weekly Feedback: "${comments}"
                 Recent Multi-Week Training History (Recent 3-4 Weeks Targets vs Actuals):
@@ -1409,7 +1660,9 @@
                   "week_start_date": "${nextMonday}",
                   "focus_summary": "Focus for next week",
                   "days": [ { "day_of_week": "Monday", "workout_type": "...", "target_rpe": 8, "notes_from_coach": "...", "exercises": [ { "name": "...", "sets": 3, "reps": "...", "weight_lbs": 50, "note": "..." } ] } ]
-                }`;
+                }
+
+                IMPORTANT: Preserve the exact intended order of exercises within each day. The first exercise should stay first in the array and the later exercises should remain in the same sequence.`;
 
                 const payload = {
                     contents: [{ parts: [{ text: prompt }] }],
@@ -1505,8 +1758,8 @@
                 if (day.exercises && day.exercises.length > 0) {
                     const targets = [];
 
-                    for (const ex of day.exercises) {
-                        const exerciseName = ex?.name?.trim();
+                    for (const [index, ex] of day.exercises.entries()) {
+                        const exerciseName = normalizeExerciseName(ex?.name);
                         if (!exerciseName) continue;
 
                         if (!exerciseIdByName.has(exerciseName)) {
@@ -1518,6 +1771,7 @@
                             scheduled_workout_id: sw.id,
                             exercise_id: exerciseIdByName.get(exerciseName) || null,
                             exercise_name: exerciseName,
+                            exercise_order: index + 1,
                             target_sets: normalizeInteger(ex.sets, 3),
                             target_rep_range: String(ex.reps || ''),
                             target_weight_lbs: normalizeNumeric(ex.weight_lbs, null),
@@ -1549,6 +1803,62 @@
             if (key) document.getElementById('cfg-gemini-key').value = key;
         }
 
+        async function getRecentPlanContext() {
+            if (!currentUser) return [];
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('ft_weekly_plans')
+                    .select(`
+                        id, week_start_date, focus_summary, coach_commentary, athlete_review_text,
+                        ft_scheduled_workouts (
+                            id, day_of_week, workout_type, target_rpe, notes_from_coach,
+                            ft_exercise_targets ( id, exercise_name, exercise_order, target_sets, target_rep_range, target_weight_lbs, progression_note )
+                        )
+                    `)
+                    .eq('user_id', currentUser.id)
+                    .order('week_start_date', { ascending: false })
+                    .limit(4);
+
+                if (error) throw error;
+                return data || [];
+            } catch (err) {
+                console.warn('Could not fetch recent plan context:', err);
+                return [];
+            }
+        }
+
+        function defaultProfileMemoryMarkdown() {
+            return ['## Recommendations', '- Primary training goals:', '- Motivators:', '- Equipment available:', '- Joint sensitivities / dislikes:'].join('\n');
+        }
+
+        function normalizeProfileMemoryText(rawValue) {
+            const trimmed = (rawValue || '').toString().trim();
+            if (!trimmed) return defaultProfileMemoryMarkdown();
+
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (parsed && typeof parsed === 'object') {
+                    const bulletLines = [];
+                    if (parsed.primary_training_goals || parsed.athlete_goals) bulletLines.push(`- Primary training goals: ${parsed.primary_training_goals || parsed.athlete_goals}`);
+                    if (parsed.motivators) bulletLines.push(`- Motivators: ${parsed.motivators}`);
+                    if (parsed.equipment_available) bulletLines.push(`- Equipment available: ${parsed.equipment_available}`);
+                    if (parsed.joint_sensitivities) bulletLines.push(`- Joint sensitivities / dislikes: ${parsed.joint_sensitivities}`);
+                    return ['## Recommendations', ...bulletLines].join('\n');
+                }
+            } catch (err) {
+                // Preserve any existing markdown text as-is.
+            }
+
+            return trimmed;
+        }
+
+        function getAthleteProfileMemorySummary(profileData = {}) {
+            const memoryText = normalizeProfileMemoryText(profileData.athlete_profile_memory || '');
+            const cleaned = memoryText.trim();
+            return cleaned || 'No structured athlete memory has been saved yet.';
+        }
+
         async function getProfileSettings() {
             if (!currentUser) return {};
             try {
@@ -1562,17 +1872,18 @@
 
         async function loadProfileSettings() {
             const profile = await getProfileSettings();
-            if (profile.athlete_goals) document.getElementById('profile-goals').value = profile.athlete_goals;
-            if (profile.motivators) document.getElementById('profile-motivators').value = profile.motivators;
-            if (profile.equipment_available) document.getElementById('profile-equipment').value = profile.equipment_available;
-            if (profile.joint_sensitivities) document.getElementById('profile-sensitivities').value = profile.joint_sensitivities;
+            const memoryInput = document.getElementById('profile-memory');
+            const persistedMemory = localStorage.getItem('ft_profile_memory') || '';
+            if (memoryInput) {
+                memoryInput.value = normalizeProfileMemoryText(profile.athlete_profile_memory || persistedMemory || '');
+            }
 
             if (currentUser) {
                 await loadExercisePreferencesFromServer();
             } else {
                 const local = localStorage.getItem('ft_exercise_ratings');
                 if (local) {
-                    try { currentExerciseRatings = JSON.parse(local); } catch(e) { currentExerciseRatings = {}; }
+                    try { currentExerciseRatings = normalizeExerciseRatings(JSON.parse(local)); } catch(e) { currentExerciseRatings = {}; }
                 } else {
                     currentExerciseRatings = {};
                 }
@@ -1582,14 +1893,14 @@
         async function ensureExerciseRecord(name) {
             if (!currentUser || !name) return null;
 
-            const trimmedName = name.trim();
-            if (!trimmedName) return null;
+            const canonicalName = normalizeExerciseName(name);
+            if (!canonicalName) return null;
 
             const { data: existingExercise, error: exerciseFetchErr } = await supabaseClient
                 .from('ft_exercises')
                 .select('id')
                 .eq('user_id', currentUser.id)
-                .eq('name', trimmedName)
+                .eq('name', canonicalName)
                 .maybeSingle();
 
             if (exerciseFetchErr) throw exerciseFetchErr;
@@ -1599,7 +1910,7 @@
                 .from('ft_exercises')
                 .insert({
                     user_id: currentUser.id,
-                    name: trimmedName,
+                    name: canonicalName,
                     created_at: new Date().toISOString()
                 })
                 .select('id')
@@ -1621,7 +1932,7 @@
 
                 if (exerciseErr) throw exerciseErr;
 
-                const nextRatings = { ...(currentExerciseRatings || {}) };
+                const nextRatings = normalizeExerciseRatings(currentExerciseRatings || {});
                 const { data: prefRows, error: prefErr } = await supabaseClient
                     .from('ft_exercise_preferences')
                     .select('exercise_id, rating')
@@ -1629,7 +1940,7 @@
 
                 if (prefErr) throw prefErr;
 
-                const exerciseMap = new Map((exerciseRows || []).map(ex => [ex.id, ex.name]));
+                const exerciseMap = new Map((exerciseRows || []).map(ex => [ex.id, normalizeExerciseName(ex.name)]));
                 (prefRows || []).forEach(pref => {
                     const name = exerciseMap.get(pref.exercise_id);
                     if (name && pref.rating) nextRatings[name] = pref.rating;
@@ -1648,9 +1959,10 @@
                 return;
             }
 
-            const rawExerciseNames = Object.keys(currentExerciseRatings || {});
+            const normalizedRatings = normalizeExerciseRatings(currentExerciseRatings || {});
+            const rawExerciseNames = Object.keys(normalizedRatings || {});
             const exerciseNames = rawExerciseNames
-                .map(name => (name || '').trim())
+                .map(name => normalizeExerciseName(name))
                 .filter(Boolean);
             const activeExerciseIds = new Set();
 
@@ -1659,7 +1971,7 @@
                 if (!exerciseId) continue;
                 activeExerciseIds.add(exerciseId);
 
-                const rating = currentExerciseRatings[name] || 'neutral';
+                const rating = normalizedRatings[name] || 'neutral';
                 const { data: existingPreference, error: prefFetchErr } = await supabaseClient
                     .from('ft_exercise_preferences')
                     .select('id')
@@ -1710,16 +2022,15 @@
                 if (deleteErr) throw deleteErr;
             }
 
-            localStorage.setItem('ft_exercise_ratings', JSON.stringify(currentExerciseRatings || {}));
+            localStorage.setItem('ft_exercise_ratings', JSON.stringify(normalizedRatings || {}));
         }
 
         window.saveProfileSettings = async function(e) {
             e.preventDefault();
 
-            const goals = document.getElementById('profile-goals').value.trim();
-            const motivators = document.getElementById('profile-motivators').value.trim();
-            const equipment = document.getElementById('profile-equipment').value.trim();
-            const sensitivities = document.getElementById('profile-sensitivities').value.trim();
+            const memoryInput = document.getElementById('profile-memory');
+            const rawMemory = memoryInput ? memoryInput.value : '';
+            const normalizedMemory = normalizeProfileMemoryText(rawMemory);
 
             try {
                 await saveExercisePreferencesToServer();
@@ -1731,23 +2042,21 @@
 
             const payload = {
                 user_id: currentUser ? currentUser.id : null,
-                athlete_goals: goals,
-                motivators: motivators,
-                equipment_available: equipment,
-                joint_sensitivities: sensitivities
+                athlete_profile_memory: normalizedMemory
             };
 
+            let serverSaved = true;
             if (currentUser) {
                 const { error } = await supabaseClient.from('ft_user_settings').upsert(payload, { onConflict: 'user_id' });
                 if (error) {
+                    serverSaved = false;
                     console.warn('Could not save profile settings:', error);
-                    showToast('Profile saved locally, but some settings could not be synced to the server.', 'error');
-                    return;
                 }
             }
 
+            localStorage.setItem('ft_profile_memory', normalizedMemory);
             toggleModal('profile-modal', false);
-            showToast('Athlete profile & exercise ratings saved!', 'success');
+            showToast(serverSaved ? 'Athlete memory & exercise ratings saved!' : 'Athlete memory saved locally. Run the schema migration so it can sync to the server.', 'success');
         };
 
         window.switchProfileTab = function(tabName) {
@@ -1775,11 +2084,11 @@
             (allWeeklyPlans || []).forEach(plan => {
                 (plan.ft_scheduled_workouts || []).forEach(sw => {
                     (sw.ft_exercise_targets || []).forEach(et => {
-                        if (et.exercise_name) set.add(et.exercise_name);
+                        if (et.exercise_name) set.add(normalizeExerciseName(et.exercise_name));
                     });
                 });
             });
-            Object.keys(currentExerciseRatings || {}).forEach(name => set.add(name));
+            Object.keys(currentExerciseRatings || {}).forEach(name => set.add(normalizeExerciseName(name)));
             return Array.from(set).sort();
         }
 
@@ -1819,7 +2128,8 @@
 
         window.setExerciseRating = function(name, rating) {
             if (!currentExerciseRatings) currentExerciseRatings = {};
-            currentExerciseRatings[name] = rating;
+            const canonicalName = normalizeExerciseName(name);
+            currentExerciseRatings[canonicalName] = rating;
             renderExerciseRatingsList();
         };
 
@@ -1827,9 +2137,10 @@
             const input = document.getElementById('new-exercise-name');
             const name = input ? input.value.trim() : '';
             if (!name) return;
+            const canonicalName = normalizeExerciseName(name);
             if (!currentExerciseRatings) currentExerciseRatings = {};
-            if (!currentExerciseRatings[name]) {
-                currentExerciseRatings[name] = 'neutral';
+            if (!currentExerciseRatings[canonicalName]) {
+                currentExerciseRatings[canonicalName] = 'neutral';
             }
             input.value = '';
             renderExerciseRatingsList();
