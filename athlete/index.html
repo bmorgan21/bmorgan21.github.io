@@ -60,6 +60,10 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Import Plan
                 </button>
+                <button onclick="openAiCoachModal()" class="text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-3 py-2 rounded-xl flex items-center gap-1.5 transition font-medium">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4v-4H9z"/></svg>
+                    Chat with Coach
+                </button>
                 <button onclick="toggleModal('ai-key-modal', true)" title="Gemini API Key Settings" class="p-2 text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
                 </button>
@@ -326,6 +330,31 @@
         </div>
     </div>
 
+    <!-- AI COACH CHAT MODAL -->
+    <div id="ai-coach-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-start justify-center p-4 hidden z-50 overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full my-6 sm:my-10 p-6 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div>
+                    <h3 class="text-base font-bold text-white">AI Coach Chat</h3>
+                    <p class="text-xs text-slate-400 mt-1">Ask about your plan, recent performance, fatigue, or next-week adjustments. The coach will use your active plan and conversation history.</p>
+                </div>
+                <button onclick="toggleModal('ai-coach-modal', false)" class="text-slate-400 hover:text-white text-xl p-1 transition">&times;</button>
+            </div>
+
+            <div id="ai-coach-messages" class="max-h-[420px] overflow-y-auto space-y-3 rounded-xl border border-slate-800 bg-slate-950/60 p-3"></div>
+
+            <div id="ai-coach-status" class="hidden text-xs p-3 rounded-xl bg-brand-500/10 text-brand-300 border border-brand-500/20 font-mono"></div>
+
+            <form onsubmit="sendAiCoachMessage(event)" class="space-y-3">
+                <textarea id="ai-coach-input" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500" placeholder="Ask your coach about the week, how you felt, or what to adjust next..."></textarea>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="toggleModal('ai-coach-modal', false)" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs hover:bg-slate-700 transition">Close</button>
+                    <button type="submit" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold transition">Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- ATHLETE PROFILE & EXERCISE PREFERENCES MODAL -->
     <div id="profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-start justify-center p-4 hidden z-50 overflow-y-auto">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full my-6 sm:my-10 p-6 space-y-4 shadow-2xl">
@@ -411,6 +440,9 @@
         let currentPlanIndex = 0;
         let currentExerciseRatings = {};
         let autosaveTimer = null;
+        let aiCoachMessages = [];
+        let aiCoachConversationId = null;
+        let aiCoachPersisted = false;
         window.authAction = 'signin';
 
         // TOAST NOTIFICATION HELPER
@@ -438,7 +470,7 @@
         };
 
         function syncModalScrollLock() {
-            const modalSelectors = '#log-modal, #end-week-modal, #ai-plan-modal, #ai-key-modal, #profile-modal';
+            const modalSelectors = '#log-modal, #end-week-modal, #ai-plan-modal, #ai-key-modal, #ai-coach-modal, #profile-modal';
             const hasVisibleModal = Array.from(document.querySelectorAll(modalSelectors)).some(modal => !modal.classList.contains('hidden'));
 
             document.body.classList.toggle('overflow-hidden', hasVisibleModal);
@@ -451,6 +483,7 @@
             if (show) {
                 modal.classList.remove('hidden');
                 if (id === 'profile-modal') renderExerciseRatingsList();
+                if (id === 'ai-coach-modal') renderAiCoachMessages();
             } else {
                 modal.classList.add('hidden');
             }
@@ -460,7 +493,7 @@
         // GLOBAL ESC KEY LISTENER TO CLOSE MODALS
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape' || e.key === 'Esc') {
-                document.querySelectorAll('#log-modal, #end-week-modal, #ai-plan-modal, #ai-key-modal, #profile-modal').forEach(modal => {
+                document.querySelectorAll('#log-modal, #end-week-modal, #ai-plan-modal, #ai-key-modal, #ai-coach-modal, #profile-modal').forEach(modal => {
                     modal.classList.add('hidden');
                 });
                 syncModalScrollLock();
@@ -661,6 +694,316 @@
             return message.includes('rate-limited') || message.includes('rate limited') || message.includes('429') || message.includes('quota');
         }
 
+        function buildCompactCoachProfileSummary(text = '') {
+            const raw = (text || '').toString().trim();
+            if (!raw) {
+                return {g:['running + leaner/defined physique + durability'],m:['pace/hr/cadence','pump/energy/mood','consistency'],w:['Mon:threshold run','Tue:upper body pump','Wed:aerobic run','Thu:athletic lower body + shoulders','Fri:arms/core/finisher','Sat:long aerobic run','Sun:recovery'],e:['home gym','barbell','bench','dumbbells max 50 lb'],c:['shoulder soreness','elbow soreness','grip fatigue']};
+            }
+
+            const lines = raw.split(/\n/).map(line => line.trim()).filter(Boolean);
+            const goals = lines
+                .filter(line => /^Primary Goal #\d+ – /i.test(line))
+                .slice(0, 3)
+                .map(line => line.replace(/^Primary Goal #\d+ – /i, '').trim());
+
+            const motivators = lines
+                .filter(line => line.startsWith('*'))
+                .filter(line => /pace|heart rate|cadence|economy|pump|energy|mood|stress|confidence|consistency|adhere|motivat/i.test(line))
+                .slice(0, 4)
+                .map(line => line.replace(/^\*\s*/, '').trim());
+
+            const weekOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const weekly = weekOrder.map(day => {
+                const entry = lines.find(line => new RegExp(`^${day} –`, 'i').test(line));
+                if (!entry) return null;
+                return `${day.slice(0, 3)}:${entry.replace(new RegExp(`^${day} –`, 'i'), '').trim()}`;
+            }).filter(Boolean);
+
+            const equipment = lines
+                .filter(line => /power rack|olympic barbell|adjustable bench|pull-up bar|adjustable dumbbells|home gym|cable machine|resistance bands|dumbbells heavier than 50 lb/i.test(line))
+                .slice(0, 4)
+                .map(line => line.replace(/^\*\s*/, '').trim());
+
+            const considerations = lines
+                .filter(line => /shoulder|elbow|grip|soreness|fatigue|sensitivity/i.test(line))
+                .slice(0, 3)
+                .map(line => line.replace(/^\*\s*/, '').trim());
+
+            return {
+                g: goals.length > 0 ? goals : ['running + leaner/defined physique + durability'],
+                m: motivators.length > 0 ? motivators : ['pace/hr/cadence','pump/energy/mood','consistency'],
+                w: weekly.length > 0 ? weekly : ['Mon:threshold run','Tue:upper body pump','Wed:aerobic run','Thu:athletic lower body + shoulders','Fri:arms/core/finisher','Sat:long aerobic run','Sun:recovery'],
+                e: equipment.length > 0 ? equipment : ['home gym','barbell','bench','dumbbells max 50 lb'],
+                c: considerations.length > 0 ? considerations : ['shoulder soreness','elbow soreness','grip fatigue']
+            };
+        }
+
+        function cacheCompactCoachProfileSummary(summary) {
+            try {
+                localStorage.setItem('ft_ai_coach_profile_summary', JSON.stringify(summary));
+            } catch (err) {
+                console.warn('Could not cache AI coach profile summary:', err);
+            }
+        }
+
+        function getCompactCoachProfileSummary(text = '') {
+            const summary = buildCompactCoachProfileSummary(text);
+            cacheCompactCoachProfileSummary(summary);
+            return summary;
+        }
+
+        function buildAiCoachContextSummary() {
+            const profileMemory = (document.getElementById('profile-memory')?.value || '').trim();
+            const compactProfileSummary = getCompactCoachProfileSummary(profileMemory);
+            const activeWeek = activeWeeklyPlan ? {
+                d: activeWeeklyPlan.week_start_date,
+                f: (activeWeeklyPlan.focus_summary || '').slice(0, 90)
+            } : null;
+
+            const parts = [];
+            if (activeWeek) {
+                parts.push(`week:${activeWeek.d}:${activeWeek.f}`);
+            }
+            parts.push(`goals:${(compactProfileSummary.g || []).slice(0, 2).join(' + ')}`);
+            parts.push(`mot:${(compactProfileSummary.m || []).slice(0, 2).join(' + ')}`);
+            parts.push(`wk:${(compactProfileSummary.w || []).slice(0, 4).join(' / ')}`);
+            parts.push(`eq:${(compactProfileSummary.e || []).slice(0, 3).join(' + ')}`);
+            parts.push(`care:${(compactProfileSummary.c || []).slice(0, 2).join(' + ')}`);
+
+            return parts.join(' | ');
+        }
+
+        function buildAiCoachFallbackResponse(userMessage = '') {
+            const message = (userMessage || '').toLowerCase();
+            if (message.includes('85') || message.includes('good morning') || message.includes('weight')) {
+                return 'That jump was too aggressive. I’d scale it back to a load you can control well and reassess after a few sessions.';
+            }
+            if (message.includes('plan') || message.includes('adjust')) {
+                return 'I’d keep the plan mostly intact and make one conservative adjustment rather than a big jump.';
+            }
+            return 'I’d keep it simple: use the load you can control well, keep the form crisp, and reassess after a week.';
+        }
+
+        function buildAiCoachPrompt(userMessage, compactMode = false) {
+            const recentHistory = aiCoachMessages.slice(-2);
+            const transcript = recentHistory.length > 0
+                ? recentHistory
+                    .map(entry => `${entry.role === 'user' ? 'User' : 'Coach'}: ${entry.content}`)
+                    .join('\n')
+                    .slice(0, 700)
+                : 'No prior messages yet.';
+
+            const instruction = compactMode
+                ? 'Answer in one short sentence, max 15 words.'
+                : 'Answer in one short sentence.';
+
+            return `You are the athlete's AI coach. Keep it practical and brief. Do not explain your reasoning. ${instruction}
+
+Recent conversation:
+${transcript}
+
+Latest user message:
+${userMessage}
+
+Context:
+${buildAiCoachContextSummary()}
+
+Rules:
+- Be brief and directly useful.
+- Reference the current week when relevant.
+- Avoid repeating the whole plan.
+- If details are missing, say so clearly.
+`;
+        }
+
+        function renderAiCoachMessages() {
+            const container = document.getElementById('ai-coach-messages');
+            if (!container) return;
+
+            if (aiCoachMessages.length === 0) {
+                container.innerHTML = '<div class="rounded-xl border border-dashed border-slate-700 p-3 text-sm text-slate-400">Start a conversation with your coach about your plan, how you felt this week, or what to adjust next.</div>';
+                return;
+            }
+
+            container.innerHTML = aiCoachMessages.map(message => {
+                const isUser = message.role === 'user';
+                return `
+                    <div class="flex ${isUser ? 'justify-end' : 'justify-start'}">
+                        <div class="max-w-[85%] rounded-2xl px-3 py-2.5 text-sm leading-relaxed ${isUser ? 'bg-brand-500/20 text-brand-100 border border-brand-500/30' : 'bg-slate-800/80 text-slate-200 border border-slate-700'}">
+                            <div class="text-[10px] uppercase tracking-[0.2em] mb-1 opacity-70">${isUser ? 'You' : 'Coach'}</div>
+                            <div class="whitespace-pre-wrap">${message.content}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function setAiCoachStatus(message, tone = 'info') {
+            const el = document.getElementById('ai-coach-status');
+            if (!el) return;
+            if (!message) {
+                el.classList.add('hidden');
+                el.innerHTML = '';
+                return;
+            }
+
+            el.classList.remove('hidden');
+            el.classList.remove('bg-brand-500/10', 'text-brand-300', 'border-brand-500/20', 'bg-amber-500/10', 'text-amber-300', 'border-amber-500/20', 'bg-rose-500/10', 'text-rose-300', 'border-rose-500/20');
+            if (tone === 'warning') {
+                el.classList.add('bg-amber-500/10', 'text-amber-300', 'border-amber-500/20');
+            } else if (tone === 'error') {
+                el.classList.add('bg-rose-500/10', 'text-rose-300', 'border-rose-500/20');
+            } else {
+                el.classList.add('bg-brand-500/10', 'text-brand-300', 'border-brand-500/20');
+            }
+            el.innerHTML = message;
+        }
+
+        async function loadAiCoachConversation() {
+            if (!currentUser) {
+                try {
+                    const cached = localStorage.getItem('ft_ai_coach_messages');
+                    if (cached) aiCoachMessages = JSON.parse(cached);
+                    else aiCoachMessages = [];
+                    aiCoachConversationId = null;
+                    renderAiCoachMessages();
+                } catch (err) {
+                    aiCoachMessages = [];
+                    renderAiCoachMessages();
+                }
+                return;
+            }
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('ft_ai_coach_conversations')
+                    .select('id, messages')
+                    .eq('user_id', currentUser.id)
+                    .maybeSingle();
+
+                if (error) throw error;
+
+                if (data?.messages) {
+                    aiCoachMessages = Array.isArray(data.messages) ? data.messages : [];
+                    aiCoachConversationId = data.id || null;
+                } else {
+                    aiCoachMessages = [];
+                    aiCoachConversationId = null;
+                }
+
+                localStorage.setItem('ft_ai_coach_messages', JSON.stringify(aiCoachMessages));
+                renderAiCoachMessages();
+            } catch (err) {
+                console.warn('Could not load AI coach conversation from Supabase:', err);
+                try {
+                    const cached = localStorage.getItem('ft_ai_coach_messages');
+                    if (cached) aiCoachMessages = JSON.parse(cached);
+                    else aiCoachMessages = [];
+                } catch (parseErr) {
+                    aiCoachMessages = [];
+                }
+                aiCoachConversationId = null;
+                renderAiCoachMessages();
+            }
+        }
+
+        async function persistAiCoachConversation() {
+            const payload = JSON.stringify(aiCoachMessages);
+            localStorage.setItem('ft_ai_coach_messages', payload);
+
+            if (!currentUser) return;
+
+            try {
+                const record = {
+                    user_id: currentUser.id,
+                    messages: aiCoachMessages,
+                    updated_at: new Date().toISOString()
+                };
+
+                if (aiCoachConversationId) {
+                    const { error } = await supabaseClient
+                        .from('ft_ai_coach_conversations')
+                        .update(record)
+                        .eq('id', aiCoachConversationId);
+                    if (error) throw error;
+                } else {
+                    const { data, error } = await supabaseClient
+                        .from('ft_ai_coach_conversations')
+                        .insert(record)
+                        .select('id')
+                        .single();
+                    if (error) throw error;
+                    aiCoachConversationId = data?.id || null;
+                }
+                aiCoachPersisted = true;
+            } catch (err) {
+                aiCoachPersisted = false;
+                console.warn('Could not persist AI coach conversation to Supabase:', err);
+            }
+        }
+
+        window.openAiCoachModal = function() {
+            toggleModal('ai-coach-modal', true);
+            renderAiCoachMessages();
+            setAiCoachStatus('');
+            loadAiCoachConversation();
+        };
+
+        window.sendAiCoachMessage = async function(event) {
+            event.preventDefault();
+            const input = document.getElementById('ai-coach-input');
+            const content = (input?.value || '').trim();
+            if (!content) return;
+
+            aiCoachMessages.push({ role: 'user', content });
+            input.value = '';
+            renderAiCoachMessages();
+            setAiCoachStatus('Coach is thinking…', 'info');
+
+            try {
+                const apiKey = await getGeminiApiKey();
+                if (!apiKey) {
+                    setAiCoachStatus('Please save your Gemini API key in settings first.', 'error');
+                    return;
+                }
+
+                const prompt = buildAiCoachPrompt(content);
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        temperature: 0.2,
+                        maxOutputTokens: 24,
+                        topP: 0.9,
+                        thinkingConfig: { thinkingBudget: 0 }
+                    }
+                };
+
+                let resData = await callGeminiAPI(apiKey, payload, 'ai-coach-status');
+                let assistantText = resData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+                const finishReason = resData?.candidates?.[0]?.finishReason;
+
+                if ((!assistantText || finishReason === 'MAX_TOKENS') && content) {
+                    const fallbackResponse = buildAiCoachFallbackResponse(content);
+                    assistantText = fallbackResponse;
+                }
+
+                const responseText = assistantText || "I’m not sure how to answer that right now. Try asking about your plan, your recent workouts, or how you felt this week.";
+
+                aiCoachMessages.push({ role: 'assistant', content: responseText });
+                renderAiCoachMessages();
+                await persistAiCoachConversation();
+                setAiCoachStatus('');
+            } catch (err) {
+                console.error('AI coach chat error:', err);
+                aiCoachMessages.push({ role: 'assistant', content: 'I hit a snag while composing a reply. Please try again in a moment.' });
+                renderAiCoachMessages();
+                await persistAiCoachConversation();
+                setAiCoachStatus(err.message || 'Unable to respond right now.', 'error');
+            }
+        };
+
         function initApp() {
             try {
                 supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -703,6 +1046,7 @@
                 loadDashboardData();
                 loadGeminiKey();
                 loadProfileSettings();
+                loadAiCoachConversation();
             } else {
                 authView.classList.remove('hidden');
                 dashboardView.classList.add('hidden');
@@ -780,6 +1124,7 @@
                 activeWeeklyPlan = allWeeklyPlans[currentPlanIndex];
                 renderDashboard(activeWeeklyPlan);
                 populateWeekSelect();
+                loadAiCoachConversation();
             } else {
                 allWeeklyPlans = [];
                 activeWeeklyPlan = null;
@@ -1228,13 +1573,7 @@
             }
 
             const candidateModels = [
-                'gemini-2.5-flash',
-                'gemini-3.5-flash',
-                'gemini-3.6-flash',
-                'gemini-3-flash',
-                'gemini-3.1-flash-lite',
-                'gemini-2.5-flash-lite',
-                'gemini-3.5-flash-lite'
+                'gemini-3.5-flash'
             ];
             let errorLogs = [];
 
@@ -1714,6 +2053,45 @@ ${getAthleteProfileMemorySummary(profileData)}
             }
         };
 
+        async function ensureExercisesExist(names) {
+            if (!currentUser || !Array.isArray(names) || names.length === 0) return new Map();
+
+            const canonicalNames = [...new Set(names.map(name => normalizeExerciseName(name)).filter(Boolean))];
+            if (canonicalNames.length === 0) return new Map();
+
+            const { data: existingRows, error: fetchErr } = await supabaseClient
+                .from('ft_exercises')
+                .select('id, name')
+                .eq('user_id', currentUser.id)
+                .in('name', canonicalNames);
+
+            if (fetchErr) throw fetchErr;
+
+            const exerciseIdByName = new Map((existingRows || []).map(row => [normalizeExerciseName(row.name), row.id]));
+            const missingNames = canonicalNames.filter(name => !exerciseIdByName.has(name));
+
+            if (missingNames.length > 0) {
+                const insertRows = missingNames.map(name => ({
+                    user_id: currentUser.id,
+                    name,
+                    created_at: new Date().toISOString()
+                }));
+
+                const { data: insertedRows, error: insertErr } = await supabaseClient
+                    .from('ft_exercises')
+                    .insert(insertRows)
+                    .select('id, name');
+
+                if (insertErr) throw insertErr;
+
+                (insertedRows || []).forEach(row => {
+                    exerciseIdByName.set(normalizeExerciseName(row.name), row.id);
+                });
+            }
+
+            return exerciseIdByName;
+        }
+
         async function publishPlanToSupabase(planData) {
             console.group("💾 Publishing Plan to Supabase");
 
@@ -1735,53 +2113,56 @@ ${getAthleteProfileMemorySummary(profileData)}
 
             await supabaseClient.from('ft_scheduled_workouts').delete().eq('weekly_plan_id', plan.id);
 
-            const exerciseIdByName = new Map();
+            const scheduledWorkoutRows = (planData.days || []).map(day => ({
+                weekly_plan_id: plan.id,
+                day_of_week: day.day_of_week,
+                workout_type: day.workout_type,
+                target_rpe: normalizeIntegerLike(day.target_rpe, 7),
+                notes_from_coach: day.notes_from_coach
+            }));
 
-            for (const day of planData.days) {
-                const { data: sw, error: swErr } = await supabaseClient
-                    .from('ft_scheduled_workouts')
-                    .insert({
-                        weekly_plan_id: plan.id,
-                        day_of_week: day.day_of_week,
-                        workout_type: day.workout_type,
-                        target_rpe: normalizeIntegerLike(day.target_rpe, 7),
-                        notes_from_coach: day.notes_from_coach
-                    })
-                    .select()
-                    .single();
+            const { data: scheduledWorkouts, error: swErr } = await supabaseClient
+                .from('ft_scheduled_workouts')
+                .insert(scheduledWorkoutRows)
+                .select('id');
 
-                if (swErr) {
+            if (swErr) {
+                console.groupEnd();
+                throw swErr;
+            }
+
+            const exerciseNames = (planData.days || []).flatMap(day =>
+                (day.exercises || []).map(ex => normalizeExerciseName(ex?.name)).filter(Boolean)
+            );
+            const exerciseIdByName = await ensureExercisesExist(exerciseNames);
+
+            const targetRows = [];
+            (planData.days || []).forEach((day, dayIndex) => {
+                const scheduledWorkout = scheduledWorkouts?.[dayIndex];
+                if (!scheduledWorkout) return;
+
+                (day.exercises || []).forEach((ex, index) => {
+                    const exerciseName = normalizeExerciseName(ex?.name);
+                    if (!exerciseName) return;
+
+                    targetRows.push({
+                        scheduled_workout_id: scheduledWorkout.id,
+                        exercise_id: exerciseIdByName.get(exerciseName) || null,
+                        exercise_name: exerciseName,
+                        exercise_order: index + 1,
+                        target_sets: normalizeInteger(ex.sets, 3),
+                        target_rep_range: String(ex.reps || ''),
+                        target_weight_lbs: normalizeNumeric(ex.weight_lbs, null),
+                        progression_note: ex.note || null
+                    });
+                });
+            });
+
+            if (targetRows.length > 0) {
+                const { error: targetErr } = await supabaseClient.from('ft_exercise_targets').insert(targetRows);
+                if (targetErr) {
                     console.groupEnd();
-                    throw swErr;
-                }
-
-                if (day.exercises && day.exercises.length > 0) {
-                    const targets = [];
-
-                    for (const [index, ex] of day.exercises.entries()) {
-                        const exerciseName = normalizeExerciseName(ex?.name);
-                        if (!exerciseName) continue;
-
-                        if (!exerciseIdByName.has(exerciseName)) {
-                            const exerciseId = await ensureExerciseRecord(exerciseName);
-                            if (exerciseId) exerciseIdByName.set(exerciseName, exerciseId);
-                        }
-
-                        targets.push({
-                            scheduled_workout_id: sw.id,
-                            exercise_id: exerciseIdByName.get(exerciseName) || null,
-                            exercise_name: exerciseName,
-                            exercise_order: index + 1,
-                            target_sets: normalizeInteger(ex.sets, 3),
-                            target_rep_range: String(ex.reps || ''),
-                            target_weight_lbs: normalizeNumeric(ex.weight_lbs, null),
-                            progression_note: ex.note || null
-                        });
-                    }
-
-                    if (targets.length > 0) {
-                        await supabaseClient.from('ft_exercise_targets').insert(targets);
-                    }
+                    throw targetErr;
                 }
             }
 
@@ -1896,28 +2277,8 @@ ${getAthleteProfileMemorySummary(profileData)}
             const canonicalName = normalizeExerciseName(name);
             if (!canonicalName) return null;
 
-            const { data: existingExercise, error: exerciseFetchErr } = await supabaseClient
-                .from('ft_exercises')
-                .select('id')
-                .eq('user_id', currentUser.id)
-                .eq('name', canonicalName)
-                .maybeSingle();
-
-            if (exerciseFetchErr) throw exerciseFetchErr;
-            if (existingExercise?.id) return existingExercise.id;
-
-            const { data: newExercise, error: exerciseInsertErr } = await supabaseClient
-                .from('ft_exercises')
-                .insert({
-                    user_id: currentUser.id,
-                    name: canonicalName,
-                    created_at: new Date().toISOString()
-                })
-                .select('id')
-                .single();
-
-            if (exerciseInsertErr) throw exerciseInsertErr;
-            return newExercise?.id || null;
+            const exerciseIdByName = await ensureExercisesExist([canonicalName]);
+            return exerciseIdByName.get(canonicalName) || null;
         }
 
         async function loadExercisePreferencesFromServer() {
@@ -1964,42 +2325,30 @@ ${getAthleteProfileMemorySummary(profileData)}
             const exerciseNames = rawExerciseNames
                 .map(name => normalizeExerciseName(name))
                 .filter(Boolean);
-            const activeExerciseIds = new Set();
 
-            for (const name of exerciseNames) {
-                const exerciseId = await ensureExerciseRecord(name);
-                if (!exerciseId) continue;
-                activeExerciseIds.add(exerciseId);
+            const exerciseIdByName = await ensureExercisesExist(exerciseNames);
+            const activeExerciseIds = new Set(Array.from(exerciseIdByName.values()).filter(Boolean));
 
-                const rating = normalizedRatings[name] || 'neutral';
-                const { data: existingPreference, error: prefFetchErr } = await supabaseClient
+            const preferencePayloads = exerciseNames
+                .map(name => {
+                    const exerciseId = exerciseIdByName.get(name);
+                    if (!exerciseId) return null;
+
+                    return {
+                        user_id: currentUser.id,
+                        exercise_id: exerciseId,
+                        rating: normalizedRatings[name] || 'neutral',
+                        updated_at: new Date().toISOString()
+                    };
+                })
+                .filter(Boolean);
+
+            if (preferencePayloads.length > 0) {
+                const { error: prefUpsertErr } = await supabaseClient
                     .from('ft_exercise_preferences')
-                    .select('id')
-                    .eq('user_id', currentUser.id)
-                    .eq('exercise_id', exerciseId)
-                    .maybeSingle();
+                    .upsert(preferencePayloads, { onConflict: 'user_id, exercise_id' });
 
-                if (prefFetchErr) throw prefFetchErr;
-
-                const preferencePayload = {
-                    user_id: currentUser.id,
-                    exercise_id: exerciseId,
-                    rating: rating,
-                    updated_at: new Date().toISOString()
-                };
-
-                if (existingPreference?.id) {
-                    const { error: prefUpdateErr } = await supabaseClient
-                        .from('ft_exercise_preferences')
-                        .update(preferencePayload)
-                        .eq('id', existingPreference.id);
-                    if (prefUpdateErr) throw prefUpdateErr;
-                } else {
-                    const { error: prefInsertErr } = await supabaseClient
-                        .from('ft_exercise_preferences')
-                        .insert(preferencePayload);
-                    if (prefInsertErr) throw prefInsertErr;
-                }
+                if (prefUpsertErr) throw prefUpsertErr;
             }
 
             const { data: stalePreferences, error: stalePrefErr } = await supabaseClient
