@@ -445,6 +445,20 @@
             document.documentElement.classList.toggle('overflow-hidden', hasVisibleModal);
         }
 
+        function resetRunTelemetryFields() {
+            document.getElementById('run-mode').value = 'outdoor';
+            document.getElementById('run-distance').value = '';
+            document.getElementById('run-duration').value = '';
+            document.getElementById('run-pace').value = '';
+            document.getElementById('run-avg-hr').value = '';
+            document.getElementById('run-limiter').value = 'none';
+        }
+
+        function resetLiftingSetFields() {
+            const setsContainer = document.getElementById('lifting-sets-container');
+            if (setsContainer) setsContainer.innerHTML = '';
+        }
+
         window.toggleModal = function(id, show) {
             const modal = document.getElementById(id);
             if (!modal) return;
@@ -990,6 +1004,9 @@
             document.getElementById('log-rpe').value = existingActual?.actual_rpe || '';
             document.getElementById('log-athlete-notes').value = existingActual?.athlete_notes || '';
 
+            resetRunTelemetryFields();
+            resetLiftingSetFields();
+
             const isRun = workout.workout_type.toLowerCase().includes('run');
             const runSection = document.getElementById('log-run-section');
             const strengthSection = document.getElementById('log-strength-section');
@@ -998,6 +1015,7 @@
                 runSection.classList.remove('hidden');
                 strengthSection.classList.add('hidden');
 
+                resetRunTelemetryFields();
                 const telemetry = existingActual?.ft_run_telemetry?.[0];
                 if (telemetry) {
                     document.getElementById('run-mode').value = telemetry.run_mode || 'outdoor';
