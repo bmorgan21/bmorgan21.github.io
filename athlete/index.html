@@ -123,6 +123,10 @@
                         <h2 id="plan-focus-summary" class="text-base font-medium text-slate-200">No active weekly plan loaded.</h2>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="openNutritionModal()" class="text-xs bg-brand-500/10 hover:bg-brand-500/20 text-brand-300 border border-brand-500/20 px-3 py-2.5 rounded-xl flex items-center gap-1.5 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M7 4v6m10-6v6M6 11h12a2 2 0 012 2v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5a2 2 0 012-2z"/></svg>
+                            Log Nutrition
+                        </button>
                         <button id="end-week-review-btn" onclick="openEndWeekModal()" class="text-xs bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/20">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                             End Week & Review
@@ -243,6 +247,54 @@
         </div>
     </div>
 
+    <!-- DAILY NUTRITION LOG MODAL -->
+    <div id="nutrition-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-start justify-center p-4 hidden z-50 overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full my-6 sm:my-10 p-6 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white">Daily Nutrition Log</h3>
+                <button onclick="toggleModal('nutrition-modal', false)" class="text-slate-400 hover:text-white text-xl p-1 transition">&times;</button>
+            </div>
+
+            <form onsubmit="submitNutritionEntry(event)" class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Date</label>
+                        <input type="date" id="nutrition-date" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Meal Type</label>
+                        <select id="nutrition-meal-type" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
+                            <option value="Breakfast">Breakfast</option>
+                            <option value="Lunch">Lunch</option>
+                            <option value="Dinner">Dinner</option>
+                            <option value="Snack">Snack</option>
+                            <option value="Shake">Shake</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">What did you eat?</label>
+                    <textarea id="nutrition-notes" rows="4" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500" placeholder="e.g. Protein shake with 8oz skim milk. Half everything bagel with light butter. Chicken & rice bowl from Cava with light garlic dressing."></textarea>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="toggleModal('nutrition-modal', false)" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs hover:bg-slate-700 transition">Close</button>
+                    <button type="submit" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-brand-500/20">Save Entry</button>
+                </div>
+            </form>
+
+            <div class="border-t border-slate-800 pt-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Recent Entries</h4>
+                    <button type="button" onclick="refreshNutritionEntries()" class="text-[11px] text-brand-300 hover:text-brand-200 transition">Refresh</button>
+                </div>
+                <div id="nutrition-entries-list" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- END WEEK & AI REVIEW MODAL -->
     <div id="end-week-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-start justify-center p-4 hidden z-50 overflow-y-auto">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full my-6 sm:my-10 p-6 space-y-4 shadow-2xl">
@@ -251,7 +303,7 @@
                 <button onclick="toggleModal('end-week-modal', false)" class="text-slate-400 hover:text-white text-xl p-1 transition">&times;</button>
             </div>
             
-            <p class="text-xs text-slate-400">Summarize your overall feel, joint health, or energy levels for this week. Gemini AI will evaluate your multi-week targets vs actuals and exercise preferences to spot trends, provide feedback, and publish next week's plan.</p>
+            <p class="text-xs text-slate-400">Summarize your overall feel, joint health, or energy levels for this week. Gemini AI will evaluate your multi-week targets vs actuals, nutrition log, and exercise preferences to spot trends and publish next week's plan.</p>
 
             <form onsubmit="submitEndWeekReview(event)" class="space-y-4">
                 <div>
@@ -546,6 +598,76 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+        }
+
+        function inlineMarkdownToHtml(text) {
+            let html = escapeHtml(text || '');
+
+            html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+                '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-brand-300 underline underline-offset-2">$1</a>');
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+            html = html.replace(/(^|[^*])\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '$1<em>$2</em>');
+            html = html.replace(/(^|[^_])_(?!_)(.+?)(?<!_)_(?!_)/g, '$1<em>$2</em>');
+            html = html.replace(/`([^`]+)`/g, '<code class="rounded bg-slate-950/80 px-1.5 py-0.5 text-[11px] text-brand-200 border border-slate-700">$1</code>');
+
+            return html;
+        }
+
+        function markdownToHtml(markdown) {
+            const source = String(markdown ?? '').replace(/\r\n/g, '\n').trim();
+            if (!source) {
+                return '<p class="text-xs text-slate-300 leading-relaxed">No commentary provided.</p>';
+            }
+
+            const blocks = source.split(/\n\s*\n/).map(block => block.trim()).filter(Boolean);
+            const htmlParts = [];
+
+            blocks.forEach((block) => {
+                const lines = block.split(/\n/).map(line => line.trim());
+
+                if (/^#{1,6}\s+/.test(lines[0])) {
+                    const match = lines[0].match(/^(#{1,6})\s+(.*)$/);
+                    if (match) {
+                        const level = match[1].length;
+                        const text = inlineMarkdownToHtml(match[2]);
+                        htmlParts.push(`<h${level} class="mt-2 text-xs font-semibold text-white">${text}</h${level}>`);
+                    }
+                    return;
+                }
+
+                if (lines.every(line => /^([-*+]\s+|\d+\.\s+)/.test(line))) {
+                    const tagName = lines.every(line => /^\d+\.\s+/.test(line)) ? 'ol' : 'ul';
+                    const items = lines.map((line) => {
+                        const match = line.match(/^(?:[-*+]|\d+\.)\s+(.*)$/);
+                        const item = match ? match[1] : line;
+                        return `<li class="ml-4 list-disc leading-relaxed">${inlineMarkdownToHtml(item)}</li>`;
+                    }).join('');
+                    htmlParts.push(`<${tagName} class="mt-2 space-y-1 text-xs text-slate-200 leading-relaxed">${items}</${tagName}>`);
+                    return;
+                }
+
+                const paragraph = lines.join(' ').replace(/\s+/g, ' ').trim();
+                htmlParts.push(`<p class="mt-2 text-xs text-slate-200 leading-relaxed">${inlineMarkdownToHtml(paragraph)}</p>`);
+            });
+
+            return htmlParts.join('');
+        }
+
+        function getPlainTextFromMarkdown(markdown) {
+            return String(markdown ?? '')
+                .replace(/[#>*_`~\[\]()]/g, '')
+                .replace(/\n+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function truncateMarkdownText(markdown, maxLength = 260) {
+            const plainText = getPlainTextFromMarkdown(markdown);
+            if (plainText.length <= maxLength) {
+                return markdown;
+            }
+            return plainText.slice(0, maxLength).trim() + '…';
         }
 
         function normalizeInteger(value, fallback) {
@@ -1233,7 +1355,59 @@ Rules:
             return ordered;
         }
 
-        function renderDashboard(plan) {
+        function getDateForWorkoutDay(weekStartDate, dayOfWeek) {
+            if (!weekStartDate || !dayOfWeek) return null;
+
+            const baseDate = new Date(`${weekStartDate}T12:00:00`);
+            const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const targetIndex = dayOrder.indexOf(dayOfWeek);
+            if (targetIndex === -1) return null;
+
+            const currentMondayIndex = (baseDate.getDay() + 6) % 7;
+            const offset = targetIndex - currentMondayIndex;
+            const result = new Date(baseDate);
+            result.setDate(baseDate.getDate() + offset);
+            return result.toISOString().split('T')[0];
+        }
+
+        async function getNutritionByDateForWeek(plan) {
+            if (!plan?.week_start_date || !currentUser) {
+                return new Map();
+            }
+
+            const startDate = plan.week_start_date;
+            const endDate = getDateForWorkoutDay(startDate, 'Sunday');
+            if (!startDate || !endDate) {
+                return new Map();
+            }
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('ft_daily_nutrition_log')
+                    .select('log_date, meal_type, notes')
+                    .eq('user_id', currentUser.id)
+                    .gte('log_date', startDate)
+                    .lte('log_date', endDate)
+                    .order('log_date', { ascending: true })
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+
+                const map = new Map();
+                (data || []).forEach(entry => {
+                    const key = entry.log_date;
+                    if (!map.has(key)) map.set(key, []);
+                    map.get(key).push(entry);
+                });
+
+                return map;
+            } catch (err) {
+                console.warn('Could not load weekly nutrition for dashboard:', err);
+                return new Map();
+            }
+        }
+
+        async function renderDashboard(plan) {
             document.getElementById('plan-focus-summary').innerText = plan.focus_summary || 'No focus summary provided.';
 
             const endWeekButton = document.getElementById('end-week-review-btn');
@@ -1244,26 +1418,75 @@ Rules:
             const reviewSection = document.getElementById('plan-review-section');
             const reviewCards = [];
 
-            if (plan?.coach_commentary) {
-                reviewCards.push(`
-                    <div class="w-full rounded-xl border border-brand-500/20 bg-brand-500/10 p-3">
-                        <div class="text-[10px] uppercase tracking-wider text-brand-300">Coach Commentary</div>
-                        <p class="mt-1 text-xs text-slate-200 leading-relaxed">${escapeHtml(plan.coach_commentary)}</p>
+            function renderReviewCard(title, text, labelClasses, panelClasses, defaultExpanded = false) {
+                const trimmedText = String(text ?? '').trim();
+                if (!trimmedText) return '';
+
+                const plainText = getPlainTextFromMarkdown(trimmedText);
+                const shouldTruncate = plainText.length > 260;
+                const collapsedText = shouldTruncate ? truncateMarkdownText(trimmedText, 260) : trimmedText;
+                const cardId = `review-card-${Math.random().toString(36).slice(2, 10)}`;
+                const summaryHtml = markdownToHtml(collapsedText);
+                const fullHtml = markdownToHtml(trimmedText);
+
+                return `
+                    <div class="w-full rounded-xl border ${panelClasses} p-3">
+                        <div class="text-[10px] uppercase tracking-wider ${labelClasses}">${title}</div>
+                        <div id="${cardId}-content" class="mt-2">
+                            <div class="review-collapsed ${shouldTruncate && !defaultExpanded ? '' : 'hidden'}">${summaryHtml}</div>
+                            <div class="review-expanded ${shouldTruncate && !defaultExpanded ? 'hidden' : ''}">${fullHtml}</div>
+                        </div>
+                        ${shouldTruncate ? `
+                            <button
+                                type="button"
+                                data-review-toggle="${cardId}"
+                                data-expanded="${defaultExpanded ? 'true' : 'false'}"
+                                class="mt-3 text-[11px] font-medium text-brand-300 hover:text-brand-200 transition"
+                            >${defaultExpanded ? 'Show less' : 'Read more'}</button>
+                        ` : ''}
                     </div>
-                `);
+                `;
+            }
+
+            if (plan?.coach_commentary) {
+                reviewCards.push(renderReviewCard(
+                    'Coach Commentary',
+                    plan.coach_commentary,
+                    'text-brand-300',
+                    'border-brand-500/20 bg-brand-500/10',
+                    false
+                ));
             }
 
             if (plan?.athlete_review_text) {
-                reviewCards.push(`
-                    <div class="w-full rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3">
-                        <div class="text-[10px] uppercase tracking-wider text-emerald-300">Your Week Review</div>
-                        <p class="mt-1 text-xs text-slate-200 leading-relaxed">${escapeHtml(plan.athlete_review_text)}</p>
-                    </div>
-                `);
+                reviewCards.push(renderReviewCard(
+                    'Your Week Review',
+                    plan.athlete_review_text,
+                    'text-emerald-300',
+                    'border-emerald-500/20 bg-emerald-500/10',
+                    false
+                ));
             }
 
             if (reviewCards.length > 0) {
                 reviewSection.innerHTML = reviewCards.join('');
+                reviewSection.querySelectorAll('[data-review-toggle]').forEach((button) => {
+                    button.addEventListener('click', function() {
+                        const cardId = this.dataset.reviewToggle;
+                        const content = document.getElementById(`${cardId}-content`);
+                        if (!content) return;
+
+                        const collapsed = content.querySelector('.review-collapsed');
+                        const expanded = content.querySelector('.review-expanded');
+                        const isExpanded = this.dataset.expanded === 'true';
+
+                        if (collapsed) collapsed.classList.toggle('hidden', !isExpanded);
+                        if (expanded) expanded.classList.toggle('hidden', isExpanded);
+
+                        this.dataset.expanded = String(!isExpanded);
+                        this.textContent = isExpanded ? 'Read more' : 'Show less';
+                    });
+                });
                 reviewSection.classList.remove('hidden');
             } else {
                 reviewSection.innerHTML = '';
@@ -1277,10 +1500,13 @@ Rules:
             const sortedWorkouts = [...(plan.ft_scheduled_workouts || [])].sort((a, b) => 
                 dayOrder.indexOf(a.day_of_week) - dayOrder.indexOf(b.day_of_week)
             );
+            const nutritionByDate = await getNutritionByDateForWeek(plan);
 
             sortedWorkouts.forEach(workout => {
                 const actual = workout.ft_workout_actuals?.[0] || null;
                 const isCompleted = !!actual;
+                const workoutDate = getDateForWorkoutDay(plan.week_start_date, workout.day_of_week);
+                const nutritionEntries = workoutDate ? (nutritionByDate.get(workoutDate) || []) : [];
 
                 const card = document.createElement('div');
                 card.className = `border rounded-2xl p-5 transition ${isCompleted ? 'bg-slate-900/40 border-emerald-500/30' : 'bg-slate-900/70 border-slate-800'}`;
@@ -1300,11 +1526,68 @@ Rules:
                     `;
                 }
 
-                let summaryHtml = '';
-                if (actual && actual.one_line_summary) {
-                    summaryHtml = `
-                        <div class="mt-3 bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 text-xs text-emerald-400 font-mono">
-                            ✓ ${actual.one_line_summary}
+                let actualHtml = '';
+                if (actual) {
+                    const actualMeta = [];
+                    if (actual.one_line_summary) {
+                        actualMeta.push(`✓ ${actual.one_line_summary}`);
+                    }
+
+                    const telemetry = actual.ft_run_telemetry?.[0];
+                    if (telemetry) {
+                        const distance = telemetry.distance_miles ? `${telemetry.distance_miles} mi` : '';
+                        const pace = telemetry.avg_pace_min_mile ? `@ ${telemetry.avg_pace_min_mile}/mi` : '';
+                        const duration = telemetry.duration_seconds ? `(${window.secondsToHms(telemetry.duration_seconds)})` : '';
+                        const hr = telemetry.avg_hr ? `HR ${telemetry.avg_hr}` : '';
+                        actualMeta.push([distance, pace, duration, hr].filter(Boolean).join(' '));
+                    }
+
+                    const sets = actual.ft_lifting_set_actuals || [];
+                    if (sets.length > 0) {
+                        const groupedByExercise = {};
+                        sets.forEach(s => {
+                            const key = s.exercise_name || 'Exercise';
+                            if (!groupedByExercise[key]) groupedByExercise[key] = [];
+                            groupedByExercise[key].push(s);
+                        });
+
+                        const exerciseSummaries = Object.entries(groupedByExercise).map(([exerciseName, exerciseSets]) => {
+                            const setSummary = exerciseSets.slice(0, 4).map(s => {
+                                const reps = s.reps_completed != null ? `${s.reps_completed}` : '';
+                                const weight = s.weight_used_lbs != null ? `${s.weight_used_lbs} lb` : '';
+                                const repsPart = reps ? `${reps}` : '';
+                                const weightPart = weight ? ` @ ${weight}` : '';
+                                return `${repsPart}${weightPart}`;
+                            }).join(' • ');
+                            return `${exerciseName}: ${setSummary}`;
+                        });
+
+                        actualMeta.push(...exerciseSummaries);
+                    }
+
+                    if (actual.athlete_notes) {
+                        actualMeta.push(`Notes: ${actual.athlete_notes}`);
+                    }
+
+                    actualHtml = `
+                        <div class="mt-3 bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                            <div class="text-[10px] uppercase tracking-wider text-emerald-300">Actual Workout</div>
+                            ${actualMeta.map(item => `<div class="text-xs text-slate-200 leading-relaxed">${escapeHtml(item)}</div>`).join('')}
+                        </div>
+                    `;
+                }
+
+                let nutritionHtml = '';
+                if (nutritionEntries.length > 0) {
+                    nutritionHtml = `
+                        <div class="mt-3 bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 space-y-2">
+                            <div class="text-[10px] uppercase tracking-wider text-brand-300">Nutrition</div>
+                            ${nutritionEntries.map(entry => `
+                                <div class="space-y-0.5">
+                                    <div class="text-[10px] uppercase tracking-wider text-slate-400">${escapeHtml(entry.meal_type)}</div>
+                                    <div class="text-xs text-slate-200 leading-relaxed">${escapeHtml(entry.notes)}</div>
+                                </div>
+                            `).join('')}
                         </div>
                     `;
                 }
@@ -1324,7 +1607,8 @@ Rules:
                         <div data-log-button-slot></div>
                     </div>
                     ${exercisesHtml}
-                    ${summaryHtml}
+                    ${actualHtml}
+                    ${nutritionHtml}
                 `;
 
                 const logButtonSlot = card.querySelector('[data-log-button-slot]');
@@ -1948,6 +2232,122 @@ ${getAthleteProfileMemorySummary(profileData)}
             toggleModal('end-week-modal', true);
         };
 
+        function formatMealTypeLabel(value) {
+            return String(value || '').trim() || 'Meal';
+        }
+
+        async function loadNutritionEntries(dateStr = null) {
+            const list = document.getElementById('nutrition-entries-list');
+            if (!list) return;
+
+            if (!currentUser) {
+                list.innerHTML = '<div class="rounded-xl border border-slate-800 bg-slate-950/40 p-3 text-xs text-slate-400">Sign in to log nutrition.</div>';
+                return;
+            }
+
+            const targetDate = dateStr || document.getElementById('nutrition-date')?.value || new Date().toISOString().split('T')[0];
+            if (!targetDate) {
+                list.innerHTML = '<div class="rounded-xl border border-slate-800 bg-slate-950/40 p-3 text-xs text-slate-400">Choose a date to view entries.</div>';
+                return;
+            }
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('ft_daily_nutrition_log')
+                    .select('id, log_date, meal_type, notes, created_at')
+                    .eq('user_id', currentUser.id)
+                    .eq('log_date', targetDate)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    list.innerHTML = '<div class="rounded-xl border border-slate-800 bg-slate-950/40 p-3 text-xs text-slate-400">No nutrition entries logged for this day yet.</div>';
+                    return;
+                }
+
+                list.innerHTML = data.map(entry => `
+                    <div class="rounded-xl border border-slate-800 bg-slate-950/40 p-3">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <div class="text-[10px] uppercase tracking-wider text-brand-300">${escapeHtml(formatMealTypeLabel(entry.meal_type))}</div>
+                                <div class="text-[11px] text-slate-400 mt-1">${escapeHtml(entry.log_date)}</div>
+                            </div>
+                            <button type="button" onclick="deleteNutritionEntry('${entry.id}')" class="text-[10px] text-rose-300 hover:text-rose-200 transition">Delete</button>
+                        </div>
+                        <p class="mt-2 text-xs text-slate-200 leading-relaxed">${escapeHtml(entry.notes || '')}</p>
+                    </div>
+                `).join('');
+            } catch (err) {
+                list.innerHTML = `<div class="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-200">Unable to load nutrition entries: ${escapeHtml(err.message || 'Unknown error')}</div>`;
+            }
+        }
+
+        function refreshNutritionEntries() {
+            const dateInput = document.getElementById('nutrition-date');
+            loadNutritionEntries(dateInput?.value || null);
+        }
+
+        window.openNutritionModal = function() {
+            const dateInput = document.getElementById('nutrition-date');
+            if (dateInput) {
+                if (!dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
+                dateInput.onchange = () => loadNutritionEntries(dateInput.value);
+            }
+            toggleModal('nutrition-modal', true);
+            refreshNutritionEntries();
+        };
+
+        window.submitNutritionEntry = async function(e) {
+            e.preventDefault();
+            if (!currentUser) {
+                showToast('Please sign in before logging nutrition.', 'error');
+                return;
+            }
+
+            const dateInput = document.getElementById('nutrition-date');
+            const mealType = document.getElementById('nutrition-meal-type')?.value || 'Meal';
+            const notes = document.getElementById('nutrition-notes')?.value || '';
+            const cleanedNotes = notes.trim();
+
+            if (!dateInput?.value || !cleanedNotes) {
+                showToast('Please add a date and the meal details.', 'error');
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from('ft_daily_nutrition_log')
+                    .insert([{ user_id: currentUser.id, log_date: dateInput.value, meal_type: mealType, notes: cleanedNotes }]);
+
+                if (error) throw error;
+
+                document.getElementById('nutrition-notes').value = '';
+                showToast('Nutrition entry saved.', 'success');
+                refreshNutritionEntries();
+            } catch (err) {
+                showToast('Nutrition log error: ' + err.message, 'error');
+            }
+        };
+
+        window.deleteNutritionEntry = async function(id) {
+            if (!id || !currentUser) return;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('ft_daily_nutrition_log')
+                    .delete()
+                    .eq('id', id)
+                    .eq('user_id', currentUser.id);
+
+                if (error) throw error;
+                refreshNutritionEntries();
+                showToast('Nutrition entry deleted.', 'info');
+            } catch (err) {
+                showToast('Unable to delete entry: ' + err.message, 'error');
+            }
+        };
+
         window.submitEndWeekReview = async function(e) {
             e.preventDefault();
             const comments = document.getElementById('end-week-comments').value;
@@ -1965,7 +2365,7 @@ ${getAthleteProfileMemorySummary(profileData)}
                 return;
             }
 
-            showGeminiStatusMessage('ai-review-status', 'I’m reviewing your week’s actuals and turning that into a thoughtful next-week plan.', 'info');
+            showGeminiStatusMessage('ai-review-status', 'I’m reviewing your week’s actuals, nutrition log, and training feedback to shape next week’s plan.', 'info');
 
             try {
                 const { data: recentPlans, error: fetchErr } = await supabaseClient
@@ -1986,13 +2386,27 @@ ${getAthleteProfileMemorySummary(profileData)}
 
                 if (fetchErr) console.warn("Could not fetch historical weeks for trend analysis:", fetchErr);
 
+                let nutritionContext = [];
+                if (currentUser) {
+                    const { data: nutritionData, error: nutritionErr } = await supabaseClient
+                        .from('ft_daily_nutrition_log')
+                        .select('log_date, meal_type, notes')
+                        .eq('user_id', currentUser.id)
+                        .gte('log_date', new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+                        .order('log_date', { ascending: false });
+
+                    if (!nutritionErr) {
+                        nutritionContext = nutritionData || [];
+                    }
+                }
+
                 const nextMonday = getNextMonday(activeWeeklyPlan?.week_start_date || new Date().toISOString().split('T')[0]);
                 const historyContext = (recentPlans && recentPlans.length > 0) ? recentPlans : [activeWeeklyPlan];
                 
                 const profileData = await getProfileSettings();
                 const prefSummary = getExercisePreferenceSummary();
 
-                const prompt = `Evaluate the athlete's multi-week training performance trends alongside their subjective weekly feedback and overarching athlete profile.
+                const prompt = `Evaluate the athlete's multi-week training performance trends alongside their weekly feedback, recent nutrition log, and overarching athlete profile.
 
                 ATHLETE TRAINER MEMORY:
 ${getAthleteProfileMemorySummary(profileData)}
@@ -2005,14 +2419,17 @@ ${getAthleteProfileMemorySummary(profileData)}
                 IMPORTANT:
                 - Respect the athlete's stated preferences first, but you may introduce a new exercise when it is justified by recent progress, weak points, or a better fit for the plan.
                 - Avoid 🚫 disliked exercises, but do not avoid reasonable new exercises simply because they are unfamiliar.
+                - The athlete is not tracking exact calories or ingredient labels; use the nutrition entries as practical, realistic intake observations for energy, recovery, and fat-loss context.
                 
                 Athlete Weekly Feedback: "${comments}"
+                Recent Food / Nutrition Log (last 14 days):
+                ${JSON.stringify(nutritionContext, null, 2) || 'No nutrition log entries recorded yet.'}
                 Recent Multi-Week Training History (Recent 3-4 Weeks Targets vs Actuals):
                 ${JSON.stringify(historyContext, null, 2)}
 
                 Provide:
-                1. "coach_commentary": High-level review analyzing multi-week trends (load progressions, volume tolerance, pacing consistency, HR responses, fatigue) and evaluating overall performance against targets while respecting their profile constraints and exercise preferences. Avoid any 🚫 Disliked exercises!
-                2. "next_week_plan": Full JSON structure for week starting ${nextMonday} with adjusted double-progression targets based on recent multi-week trends and profile preferences. Format matching schema:
+                1. "coach_commentary": High-level review analyzing multi-week trends (load progressions, volume tolerance, pacing consistency, HR responses, fatigue, recovery, and nutrition consistency) and evaluating overall performance against targets while respecting their profile constraints and exercise preferences. Mention food patterns only when they materially affect energy, recovery, or body composition goals. Avoid any 🚫 Disliked exercises!
+                2. "next_week_plan": Full JSON structure for week starting ${nextMonday} with adjusted double-progression targets based on recent multi-week trends, profile preferences, and the athlete's practical nutrition notes. Format matching schema:
                 {
                   "week_start_date": "${nextMonday}",
                   "focus_summary": "Focus for next week",
