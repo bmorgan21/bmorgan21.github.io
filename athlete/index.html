@@ -1552,14 +1552,32 @@ Rules:
                         });
 
                         const exerciseSummaries = Object.entries(groupedByExercise).map(([exerciseName, exerciseSets]) => {
-                            const setSummary = exerciseSets.slice(0, 4).map(s => {
+                            const areAllSetsEquivalent = exerciseSets.length > 0 && exerciseSets.every(set => {
+                                const sameReps = set.reps_completed == exerciseSets[0].reps_completed;
+                                const sameWeight = set.weight_used_lbs == exerciseSets[0].weight_used_lbs;
+                                return sameReps && sameWeight;
+                            });
+
+                            if (areAllSetsEquivalent) {
+                                const firstSet = exerciseSets[0] || {};
+                                const reps = firstSet.reps_completed != null ? Number(firstSet.reps_completed) : null;
+                                const weight = firstSet.weight_used_lbs != null ? Number(firstSet.weight_used_lbs) : null;
+                                const setCount = exerciseSets.length;
+                                const repsLabel = reps != null ? `${reps}` : '';
+                                const weightLabel = weight != null ? ` @ ${weight} lb` : '';
+                                const countLabel = setCount > 0 ? `${setCount} x ` : '';
+                                return `${exerciseName}: ${countLabel}${repsLabel}${weightLabel}`;
+                            }
+
+                            const detailedSummary = exerciseSets.slice(0, 4).map(s => {
                                 const reps = s.reps_completed != null ? `${s.reps_completed}` : '';
                                 const weight = s.weight_used_lbs != null ? `${s.weight_used_lbs} lb` : '';
                                 const repsPart = reps ? `${reps}` : '';
                                 const weightPart = weight ? ` @ ${weight}` : '';
                                 return `${repsPart}${weightPart}`;
                             }).join(' • ');
-                            return `${exerciseName}: ${setSummary}`;
+
+                            return `${exerciseName}: ${detailedSummary}`;
                         });
 
                         actualMeta.push(...exerciseSummaries);
