@@ -2351,6 +2351,9 @@ ${getAthleteProfileMemorySummary(profileData)}
                 document.getElementById('nutrition-notes').value = '';
                 showToast('Nutrition entry saved.', 'success');
                 refreshNutritionEntries();
+                if (activeWeeklyPlan) {
+                    await renderDashboard(activeWeeklyPlan);
+                }
             } catch (err) {
                 showToast('Nutrition log error: ' + err.message, 'error');
             }
@@ -2368,6 +2371,9 @@ ${getAthleteProfileMemorySummary(profileData)}
 
                 if (error) throw error;
                 refreshNutritionEntries();
+                if (activeWeeklyPlan) {
+                    await renderDashboard(activeWeeklyPlan);
+                }
                 showToast('Nutrition entry deleted.', 'info');
             } catch (err) {
                 showToast('Unable to delete entry: ' + err.message, 'error');
