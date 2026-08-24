@@ -624,7 +624,7 @@
             const htmlParts = [];
 
             blocks.forEach((block) => {
-                const lines = block.split(/\n/).map(line => line.trim());
+                let lines = block.split(/\n/).map(line => line.trim());
 
                 if (/^#{1,6}\s+/.test(lines[0])) {
                     const match = lines[0].match(/^(#{1,6})\s+(.*)$/);
@@ -633,7 +633,8 @@
                         const text = inlineMarkdownToHtml(match[2]);
                         htmlParts.push(`<h${level} class="mt-2 text-xs font-semibold text-white">${text}</h${level}>`);
                     }
-                    return;
+                    lines = lines.slice(1);
+                    if (lines.length === 0) return;
                 }
 
                 if (lines.every(line => /^([-*+]\s+|\d+\.\s+)/.test(line))) {
