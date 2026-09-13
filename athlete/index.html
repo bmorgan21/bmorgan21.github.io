@@ -252,7 +252,7 @@
         <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full my-6 sm:my-10 p-6 space-y-4 shadow-2xl">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h3 class="text-base font-bold text-white">Daily Nutrition Log</h3>
-                <button onclick="toggleModal('nutrition-modal', false)" class="text-slate-400 hover:text-white text-xl p-1 transition">&times;</button>
+                <button onclick="closeNutritionModal()" class="text-slate-400 hover:text-white text-xl p-1 transition">&times;</button>
             </div>
 
             <form onsubmit="submitNutritionEntry(event)" class="space-y-4">
@@ -275,12 +275,19 @@
                 </div>
 
                 <div>
+                    <label for="nutrition-previous-entry" class="block text-xs font-medium text-slate-300 mb-1">Use a previous entry</label>
+                    <input type="text" id="nutrition-previous-entry" list="nutrition-history-options" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500" placeholder="Start typing a meal or note to reuse it">
+                    <datalist id="nutrition-history-options"></datalist>
+                    <p class="text-[11px] text-slate-500 mt-1">Selecting one fills the fields so you can edit before saving.</p>
+                </div>
+
+                <div>
                     <label class="block text-xs font-medium text-slate-300 mb-1">What did you eat?</label>
                     <textarea id="nutrition-notes" rows="4" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500" placeholder="e.g. Protein shake with 8oz skim milk. Half everything bagel with light butter. Chicken & rice bowl from Cava with light garlic dressing."></textarea>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="toggleModal('nutrition-modal', false)" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs hover:bg-slate-700 transition">Close</button>
+                    <button type="button" onclick="closeNutritionModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs hover:bg-slate-700 transition">Close</button>
                     <button type="submit" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-brand-500/20">Save Entry</button>
                 </div>
             </form>
@@ -495,6 +502,7 @@
         let aiCoachMessages = [];
         let aiCoachConversationId = null;
         let aiCoachPersisted = false;
+        let nutritionHistoryEntries = [];
         window.authAction = 'signin';
 
         // TOAST NOTIFICATION HELPER
@@ -2263,6 +2271,64 @@ ${getAthleteProfileMemorySummary(profileData)}
             return String(value || '').trim() || 'Meal';
         }
 
+        function renderNutritionHistoryOptions(entries) {
+            const datalist = document.getElementById('nutrition-history-options');
+            if (!datalist) return;
+
+            const seenNotes = new Set();
+            nutritionHistoryEntries = (entries || []).filter(entry => {
+                const notes = String(entry.notes || '').trim();
+                const normalizedNotes = notes.toLowerCase();
+                if (!notes || seenNotes.has(normalizedNotes)) return false;
+                seenNotes.add(normalizedNotes);
+                return true;
+            });
+            datalist.innerHTML = nutritionHistoryEntries.map(entry => {
+                const notes = String(entry.notes || '').trim();
+                const label = `${formatMealTypeLabel(entry.meal_type)} - ${entry.log_date}`;
+                return `<option value="${escapeHtml(notes)}" label="${escapeHtml(label)}"></option>`;
+            }).join('');
+        }
+
+        function applyPreviousNutritionEntry(value) {
+            const selectedNotes = String(value || '').trim();
+            const entry = nutritionHistoryEntries.find(item => String(item.notes || '').trim() === selectedNotes);
+            if (!entry) return;
+
+            const mealTypeInput = document.getElementById('nutrition-meal-type');
+            const notesInput = document.getElementById('nutrition-notes');
+            if (mealTypeInput) mealTypeInput.value = entry.meal_type || 'Other';
+            if (notesInput) notesInput.value = entry.notes || '';
+            clearPreviousNutritionEntry();
+        }
+
+        function clearPreviousNutritionEntry() {
+            const previousEntryInput = document.getElementById('nutrition-previous-entry');
+            if (previousEntryInput) previousEntryInput.value = '';
+        }
+
+        function loadNutritionHistory() {
+            if (!currentUser) {
+                renderNutritionHistoryOptions([]);
+                return Promise.resolve();
+            }
+
+            return supabaseClient
+                .from('ft_daily_nutrition_log')
+                .select('id, log_date, meal_type, notes, created_at')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false })
+                .limit(100)
+                .then(({ data, error }) => {
+                    if (error) throw error;
+                    renderNutritionHistoryOptions(data || []);
+                })
+                .catch(err => {
+                    console.warn('Could not load nutrition history:', err);
+                    renderNutritionHistoryOptions([]);
+                });
+        }
+
         async function loadNutritionEntries(dateStr = null) {
             const list = document.getElementById('nutrition-entries-list');
             if (!list) return;
@@ -2313,6 +2379,7 @@ ${getAthleteProfileMemorySummary(profileData)}
         function refreshNutritionEntries() {
             const dateInput = document.getElementById('nutrition-date');
             loadNutritionEntries(dateInput?.value || null);
+            loadNutritionHistory();
         }
 
         window.openNutritionModal = function() {
@@ -2321,8 +2388,15 @@ ${getAthleteProfileMemorySummary(profileData)}
                 if (!dateInput.value) dateInput.value = toLocalDateInputValue(new Date());
                 dateInput.onchange = () => loadNutritionEntries(dateInput.value);
             }
+            const previousEntryInput = document.getElementById('nutrition-previous-entry');
+            if (previousEntryInput) previousEntryInput.onchange = () => applyPreviousNutritionEntry(previousEntryInput.value);
             toggleModal('nutrition-modal', true);
             refreshNutritionEntries();
+        };
+
+        window.closeNutritionModal = function() {
+            clearPreviousNutritionEntry();
+            toggleModal('nutrition-modal', false);
         };
 
         window.submitNutritionEntry = async function(e) {
@@ -2350,6 +2424,7 @@ ${getAthleteProfileMemorySummary(profileData)}
                 if (error) throw error;
 
                 document.getElementById('nutrition-notes').value = '';
+                clearPreviousNutritionEntry();
                 showToast('Nutrition entry saved.', 'success');
                 refreshNutritionEntries();
                 if (activeWeeklyPlan) {
