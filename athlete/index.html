@@ -64,6 +64,10 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4v-4H9z"/></svg>
                     Chat with Coach
                 </button>
+                <button onclick="openRecipeLibrary()" class="text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 px-3 py-2 rounded-xl flex items-center gap-1.5 transition font-medium">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5h16M4 9h16M4 13h10M4 17h7M17 14v6m3-3h-6"/></svg>
+                    Recipes
+                </button>
                 <button onclick="toggleModal('ai-key-modal', true)" title="Gemini API Key Settings" class="p-2 text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
                 </button>
@@ -302,6 +306,27 @@
         </div>
     </div>
 
+    <!-- RECIPE LIBRARY MODAL -->
+    <div id="recipe-library-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-start justify-center p-4 hidden z-50 overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full my-4 sm:my-8 p-5 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <div><h3 class="text-lg font-bold text-white">Recipe Library</h3><p class="text-xs text-slate-400 mt-1">Saved recipes sorted alphabetically by name.</p></div>
+                <button onclick="closeRecipeLibrary()" class="text-slate-400 hover:text-white text-xl p-1" aria-label="Close recipe library">&times;</button>
+            </div>
+            <div id="recipe-list-view" class="space-y-4">
+                <div class="flex gap-2"><select id="recipe-meal-filter" onchange="renderRecipeList()" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"><option value="all">All meals</option><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option><option value="dessert">Dessert</option><option value="other">Other</option></select><button onclick="openRecipeEditor()" class="bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl px-4 py-2 text-sm">+ New Recipe</button></div>
+                <div id="recipe-list" class="grid gap-3 sm:grid-cols-2"></div>
+            </div>
+            <form id="recipe-editor-view" onsubmit="saveRecipe(event)" class="hidden space-y-4">
+                <div class="flex justify-between"><h4 id="recipe-editor-title" class="font-bold text-white">New Recipe</h4><button type="button" onclick="showRecipeList()" class="text-xs text-slate-400">Back</button></div>
+                <div class="grid gap-3 sm:grid-cols-2"><input id="recipe-name" required maxlength="120" placeholder="Recipe name" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"><select id="recipe-meal" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"><option value="">No meal type</option><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option><option value="dessert">Dessert</option><option value="other">Other</option></select></div>
+                <textarea id="recipe-markdown" required rows="16" placeholder="# Ingredients\n\n- 1 cup...\n\n# Instructions\n\n1. Mix..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white font-mono"></textarea>
+                <div class="flex justify-end gap-2"><button type="button" onclick="showRecipeList()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-sm">Cancel</button><button class="px-4 py-2 bg-brand-500 text-white font-bold rounded-xl text-sm">Save Recipe</button></div>
+            </form>
+            <article id="recipe-viewer" class="hidden"><div class="border-b border-slate-800 pb-4 mb-5"><div class="relative flex items-center justify-between gap-3"><div id="recipe-viewer-meal" class="text-[10px] uppercase tracking-wider text-amber-300"></div><button type="button" onclick="toggleRecipeMenu(event)" title="Recipe actions" aria-label="Recipe actions" class="w-8 h-8 p-0 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition text-lg leading-none">&#8942;</button><div id="recipe-actions-menu" class="hidden absolute right-0 top-9 z-10 w-36 rounded-xl border border-slate-700 bg-slate-900 p-1 shadow-xl"><button type="button" onclick="editCurrentRecipe()" class="w-full rounded-lg px-3 py-2 text-left text-xs text-slate-200 hover:bg-slate-800">Edit recipe</button><button type="button" onclick="deleteCurrentRecipe()" class="w-full rounded-lg px-3 py-2 text-left text-xs text-rose-300 hover:bg-rose-500/10">Delete recipe</button><button type="button" onclick="showRecipeList()" class="w-full rounded-lg px-3 py-2 text-left text-xs text-slate-200 hover:bg-slate-800">Back to recipes</button></div></div><h4 id="recipe-viewer-title" class="text-xl font-bold text-white mt-1 break-words"></h4><p id="recipe-wake-status" class="text-[11px] text-emerald-300 mt-2 hidden"></p></div><div id="recipe-viewer-content"></div></article>
+        </div>
+    </div>
+
     <!-- END WEEK & AI REVIEW MODAL -->
     <div id="end-week-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-start justify-center p-4 hidden z-50 overflow-y-auto">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full my-6 sm:my-10 p-6 space-y-4 shadow-2xl">
@@ -503,6 +528,9 @@
         let aiCoachConversationId = null;
         let aiCoachPersisted = false;
         let nutritionHistoryEntries = [];
+        let recipes = [];
+        let currentRecipe = null;
+        let recipeWakeLock = null;
         window.authAction = 'signin';
 
         // TOAST NOTIFICATION HELPER
@@ -530,7 +558,7 @@
         };
 
         function syncModalScrollLock() {
-            const modalSelectors = '#log-modal, #end-week-modal, #ai-plan-modal, #ai-key-modal, #ai-coach-modal, #profile-modal';
+            const modalSelectors = '#log-modal, #nutrition-modal, #recipe-library-modal, #end-week-modal, #ai-plan-modal, #ai-key-modal, #ai-coach-modal, #profile-modal';
             const hasVisibleModal = Array.from(document.querySelectorAll(modalSelectors)).some(modal => !modal.classList.contains('hidden'));
 
             document.body.classList.toggle('overflow-hidden', hasVisibleModal);
@@ -567,7 +595,7 @@
         // GLOBAL ESC KEY LISTENER TO CLOSE MODALS
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape' || e.key === 'Esc') {
-                document.querySelectorAll('#log-modal, #end-week-modal, #ai-plan-modal, #ai-key-modal, #ai-coach-modal, #profile-modal').forEach(modal => {
+                document.querySelectorAll('#log-modal, #nutrition-modal, #recipe-library-modal, #end-week-modal, #ai-plan-modal, #ai-key-modal, #ai-coach-modal, #profile-modal').forEach(modal => {
                     modal.classList.add('hidden');
                 });
                 syncModalScrollLock();
@@ -623,7 +651,15 @@
         }
 
         function markdownToHtml(markdown) {
-            const source = String(markdown ?? '').replace(/\r\n/g, '\n').trim();
+            const source = String(markdown ?? '')
+                .replace(/\\n/g, '\n')
+                .replace(/\r\n?/g, '\n')
+                .replace(/\s*[•]\s+/g, '\n* ')
+                .replace(/([^\n])\s+\*\s+(?=\S)/g, '$1\n* ')
+                .replace(/([^\n])\s+(?=\d+\.\s)/g, '$1\n')
+                .replace(/(^|\n)(?!\*\s)([^\n]+)\n(?=\*\s)/g, '$1$2\n\n')
+                .replace(/(^|\n)(?!\d+\.\s)([^\n]+)\n(?=\d+\.\s)/g, '$1$2\n\n')
+                .trim();
             if (!source) {
                 return '<p class="text-xs text-slate-300 leading-relaxed">No commentary provided.</p>';
             }
@@ -650,9 +686,16 @@
                     const items = lines.map((line) => {
                         const match = line.match(/^(?:[-*+]|\d+\.)\s+(.*)$/);
                         const item = match ? match[1] : line;
-                        return `<li class="ml-4 list-disc leading-relaxed">${inlineMarkdownToHtml(item)}</li>`;
+                        return `<li class="leading-relaxed">${inlineMarkdownToHtml(item)}</li>`;
                     }).join('');
-                    htmlParts.push(`<${tagName} class="mt-2 space-y-1 text-xs text-slate-200 leading-relaxed">${items}</${tagName}>`);
+                    const listStyle = tagName === 'ol' ? 'decimal' : 'disc';
+                    htmlParts.push(`<${tagName} class="mt-2 space-y-1 text-xs text-slate-200 leading-relaxed" style="list-style-type: ${listStyle}; padding-left: 1.5rem;">${items}</${tagName}>`);
+                    return;
+                }
+
+                if (lines.every(line => /^>\s?/.test(line))) {
+                    const quote = lines.map(line => line.replace(/^>\s?/, '')).join(' ');
+                    htmlParts.push(`<blockquote class="mt-3 border-l-2 border-brand-400 pl-3 text-xs italic text-slate-300">${inlineMarkdownToHtml(quote)}</blockquote>`);
                     return;
                 }
 
@@ -1022,11 +1065,18 @@ Rules:
             }
 
             try {
-                const { data, error } = await supabaseClient
+                let conversationQuery = supabaseClient
                     .from('ft_ai_coach_conversations')
                     .select('id, messages')
                     .eq('user_id', currentUser.id)
+                    .limit(1)
                     .maybeSingle();
+
+                if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+                    conversationQuery = conversationQuery.abortSignal(AbortSignal.timeout(8000));
+                }
+
+                const { data, error } = await conversationQuery;
 
                 if (error) throw error;
 
@@ -2381,6 +2431,125 @@ ${getAthleteProfileMemorySummary(profileData)}
             loadNutritionEntries(dateInput?.value || null);
             loadNutritionHistory();
         }
+
+        function recipeMealLabel(value) {
+            return value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Other';
+        }
+
+        function showRecipeView(view) {
+            closeRecipeMenu();
+            ['recipe-list-view', 'recipe-editor-view', 'recipe-viewer'].forEach(id => {
+                document.getElementById(id)?.classList.toggle('hidden', id !== view);
+            });
+        }
+
+        window.toggleRecipeMenu = function(event) {
+            event.stopPropagation();
+            document.getElementById('recipe-actions-menu')?.classList.toggle('hidden');
+        };
+
+        function closeRecipeMenu() {
+            document.getElementById('recipe-actions-menu')?.classList.add('hidden');
+        }
+
+        document.addEventListener('click', closeRecipeMenu);
+
+        window.openRecipeLibrary = async function() {
+            if (!currentUser) { showToast('Please sign in before opening recipes.', 'error'); return; }
+            toggleModal('recipe-library-modal', true);
+            showRecipeView('recipe-list-view');
+            await loadRecipes();
+        };
+
+        window.closeRecipeLibrary = function() {
+            if (!document.getElementById('recipe-viewer')?.classList.contains('hidden')) {
+                showRecipeList();
+                return;
+            }
+            releaseRecipeWakeLock();
+            toggleModal('recipe-library-modal', false);
+        };
+
+        async function loadRecipes() {
+            const list = document.getElementById('recipe-list');
+            if (!list || !currentUser) return;
+            list.innerHTML = '<div class="text-xs text-slate-400">Loading recipes...</div>';
+            const { data, error } = await supabaseClient.from('ft_recipes').select('id, name, meal_type, content, created_at, updated_at').eq('user_id', currentUser.id).order('name', { ascending: true });
+            if (error) {
+                list.innerHTML = `<div class="sm:col-span-2 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-200">Unable to load recipes. Apply athlete/recipes.sql in Supabase first.<br>${escapeHtml(error.message)}</div>`;
+                return;
+            }
+            recipes = data || [];
+            renderRecipeList();
+        }
+
+        window.renderRecipeList = function() {
+            const list = document.getElementById('recipe-list');
+            const filter = document.getElementById('recipe-meal-filter')?.value || 'all';
+            if (!list) return;
+            const visible = recipes.filter(recipe => filter === 'all' || (recipe.meal_type || 'other') === filter).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+            if (visible.length === 0) {
+                list.innerHTML = '<div class="sm:col-span-2 rounded-xl border border-dashed border-slate-700 p-6 text-center text-sm text-slate-400">No recipes here yet. Add one to start your library.</div>';
+                return;
+            }
+            list.innerHTML = visible.map(recipe => `<button type="button" onclick="viewRecipe('${recipe.id}')" class="text-left rounded-xl border border-slate-800 bg-slate-950/50 p-4 hover:border-brand-500/50 transition"><div class="text-[10px] uppercase tracking-wider text-amber-300">${escapeHtml(recipeMealLabel(recipe.meal_type))}</div><div class="font-bold text-white mt-1">${escapeHtml(recipe.name)}</div><div class="text-xs text-slate-400 mt-2">${escapeHtml(truncateMarkdownText(getPlainTextFromMarkdown(recipe.content), 120))}</div></button>`).join('');
+        };
+
+        window.openRecipeEditor = function(recipe = null) {
+            currentRecipe = recipe;
+            document.getElementById('recipe-editor-title').textContent = recipe ? 'Edit Recipe' : 'New Recipe';
+            document.getElementById('recipe-name').value = recipe?.name || '';
+            document.getElementById('recipe-meal').value = recipe?.meal_type || '';
+            document.getElementById('recipe-markdown').value = recipe?.content || '';
+            showRecipeView('recipe-editor-view');
+        };
+
+        window.saveRecipe = async function(event) {
+            event.preventDefault();
+            if (!currentUser) return;
+            const payload = { user_id: currentUser.id, name: document.getElementById('recipe-name').value.trim(), meal_type: document.getElementById('recipe-meal').value || null, content: document.getElementById('recipe-markdown').value.trim(), updated_at: new Date().toISOString() };
+            const request = currentRecipe ? supabaseClient.from('ft_recipes').update(payload).eq('id', currentRecipe.id).eq('user_id', currentUser.id) : supabaseClient.from('ft_recipes').insert(payload);
+            const { error } = await request;
+            if (error) { showToast('Unable to save recipe: ' + error.message, 'error'); return; }
+            showToast('Recipe saved.', 'success');
+            await loadRecipes();
+            showRecipeView('recipe-list-view');
+        };
+
+        window.viewRecipe = async function(id) {
+            currentRecipe = recipes.find(recipe => recipe.id === id);
+            if (!currentRecipe) return;
+            document.getElementById('recipe-viewer-meal').textContent = recipeMealLabel(currentRecipe.meal_type);
+            document.getElementById('recipe-viewer-title').textContent = currentRecipe.name;
+            document.getElementById('recipe-viewer-content').innerHTML = markdownToHtml(currentRecipe.content);
+            showRecipeView('recipe-viewer');
+            await requestRecipeWakeLock();
+        };
+
+        window.editCurrentRecipe = function() { if (currentRecipe) openRecipeEditor(currentRecipe); };
+
+        window.deleteCurrentRecipe = async function() {
+            if (!currentRecipe || !confirm(`Delete “${currentRecipe.name}”? This cannot be undone.`)) return;
+            const { error } = await supabaseClient.from('ft_recipes').delete().eq('id', currentRecipe.id).eq('user_id', currentUser.id);
+            if (error) { showToast('Unable to delete recipe: ' + error.message, 'error'); return; }
+            releaseRecipeWakeLock();
+            currentRecipe = null;
+            showToast('Recipe deleted.', 'info');
+            await loadRecipes();
+            showRecipeView('recipe-list-view');
+        };
+
+        window.showRecipeList = async function() { releaseRecipeWakeLock(); showRecipeView('recipe-list-view'); if (recipes.length === 0) await loadRecipes(); else renderRecipeList(); };
+
+        async function requestRecipeWakeLock() {
+            const status = document.getElementById('recipe-wake-status');
+            if (!('wakeLock' in navigator)) { status.textContent = 'Screen wake lock is not available in this browser.'; status.classList.remove('hidden'); return; }
+            try { recipeWakeLock = await navigator.wakeLock.request('screen'); status.textContent = 'Screen will stay on while this recipe is open.'; status.classList.remove('hidden'); recipeWakeLock.addEventListener('release', () => { recipeWakeLock = null; }); } catch (error) { status.textContent = 'Allow screen wake lock in your browser to keep the screen on.'; status.classList.remove('hidden'); }
+        }
+
+        function releaseRecipeWakeLock() { if (recipeWakeLock) { recipeWakeLock.release(); recipeWakeLock = null; } }
+
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && currentRecipe && !document.getElementById('recipe-viewer')?.classList.contains('hidden')) requestRecipeWakeLock(); });
 
         window.openNutritionModal = function() {
             const dateInput = document.getElementById('nutrition-date');
