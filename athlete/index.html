@@ -92,14 +92,14 @@
                 <p class="text-xs text-slate-400 mt-1">Enter your credentials to access your personal training dashboard.</p>
             </div>
             
-            <form onsubmit="handleAuth(event)" class="space-y-4">
+            <form onsubmit="handleAuth(event)" autocomplete="on" class="space-y-4">
                 <div>
                     <label class="block text-xs font-medium text-slate-300 mb-1">Email Address</label>
-                    <input type="email" id="auth-email" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-brand-500 transition">
+                    <input type="email" id="auth-email" name="username" autocomplete="username" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-brand-500 transition">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-slate-300 mb-1">Password</label>
-                    <input type="password" id="auth-password" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-brand-500 transition">
+                    <input type="password" id="auth-password" name="password" autocomplete="current-password" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-brand-500 transition">
                 </div>
                 <div class="flex gap-2 pt-2">
                     <button type="submit" onclick="window.authAction = 'signin'" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-medium py-2.5 rounded-xl text-sm transition shadow-lg shadow-brand-500/20">Sign In</button>
@@ -263,7 +263,7 @@
                 <button onclick="closeNutritionModal()" class="text-slate-400 hover:text-white text-xl p-1 transition">&times;</button>
             </div>
 
-            <form onsubmit="submitNutritionEntry(event)" class="space-y-4">
+            <form onsubmit="submitNutritionEntry(event)" autocomplete="off" class="space-y-4">
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1">Date</label>
