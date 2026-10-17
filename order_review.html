@@ -1260,6 +1260,12 @@ details.a-disclosure[open] > summary::before {
 .cmp-colhead .num{text-align:right}
 .cmp-ml{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .cmp-legend{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
+.cmp-filter-tag{font:inherit;cursor:pointer;appearance:none;background:transparent}
+.cmp-filter-tag[aria-pressed="true"]{box-shadow:0 0 0 2px rgb(var(--bg-accent)/.3);border-color:rgb(var(--bg-accent))}
+.cmp-filter-tag:focus-visible{outline:2px solid rgb(var(--bg-accent));outline-offset:2px}
+.cmp-filter-clear{font:inherit;font-size:12px;padding:2px 8px}
+.cmp-filter-clear:disabled{cursor:default;opacity:.5}
+.cmp-filter-count{margin-left:auto;align-self:center;font-size:13px;color:rgb(var(--text-secondary));white-space:nowrap}
 .cmp-input{font:inherit;font-size:13px;padding:5px 8px;border:1px solid rgb(var(--border-primary));border-radius:var(--radius-sm);background:rgb(var(--bg-elevated));color:rgb(var(--text-primary));min-width:180px}
 .cmp-more{margin-top:8px}
 @media (max-width:640px){.cmp-order>summary,.cmp-colhead{grid-template-columns:1fr 1fr}.cmp-colhead{display:none}.cmp-ml{position:static;width:auto;height:auto;clip:auto;color:rgb(var(--text-secondary));font-size:12px}.cmp-order>summary .num{text-align:left}}
@@ -2552,6 +2558,10 @@ details.a-disclosure[open] > summary::before {
     var k = KIND[kind];
     return '<span class="cmp-tag cmp-tag--' + k[1] + '"><span aria-hidden="true">' + k[2] + "</span> " + k[0] + "</span>";
   }
+  function filterTag(kind) {
+    var k = KIND[kind];
+    return '<button class="cmp-tag cmp-tag--' + k[1] + ' cmp-filter-tag" type="button" data-kind="' + kind + '" aria-pressed="false"><span aria-hidden="true">' + k[2] + "</span> " + k[0] + "</button>";
+  }
 
   function productTable(p) {
     var pd = p.nw - p.lg;
@@ -2665,11 +2675,13 @@ details.a-disclosure[open] > summary::before {
         "</tbody></table></div></section>");
     }
 
-    H.push('<section class="a-section" aria-labelledby="ord-h"><h2 class="a-section__title" id="ord-h">Order-by-order comparison</h2><p class="a-section__note">Open an order to compare its line items side by side. Orders with a total change are open by default.</p>' +
+    H.push('<section class="a-section" aria-labelledby="ord-h"><h2 class="a-section__title" id="ord-h">Order-by-order comparison</h2><p class="a-section__note">Open an order to compare its line items side by side. Orders with a total change are open by default. Select one or more change types below to filter orders.</p>' +
       '<div class="a-toolbar"><label class="a-label" for="ord-filter">Show</label><select class="a-select" id="ord-filter"><option value="all">All orders (' + orders.length + ')</option><option value="changed">Total changed (' + changed.length + ')</option><option value="match">Totals match (' + (orders.length - changed.length) + ')</option></select>' +
       '<label class="a-label" for="ord-search">Order ID</label><input class="cmp-input" id="ord-search" type="search" placeholder="Search order or product ID" autocomplete="off" />' +
       '<button class="a-btn a-btn--outline" type="button" id="expand-all">Expand all</button><button class="a-btn a-btn--outline" type="button" id="collapse-all">Collapse all</button></div>' +
-      '<div class="cmp-legend" aria-label="Legend">' + Object.keys(KIND).filter(function (k) { return k !== "added_zero"; }).map(tag).join("") + "</div>" +
+      '<div class="cmp-legend" role="group" aria-label="Filter by change type">' + Object.keys(KIND).filter(function (k) { return k !== "added_zero"; }).map(filterTag).join("") +
+      '<button class="a-btn a-btn--outline cmp-filter-clear" type="button" id="clear-kind-filter" disabled>Clear change types</button>' +
+      '<span class="cmp-filter-count" id="orders-count" role="status" aria-live="polite" aria-atomic="true">Showing ' + plural(orders.length, "order") + "</span></div>" +
       '<div class="cmp-colhead" aria-hidden="true"><span>Order</span><span class="num">Legacy total</span><span class="num">New total</span><span class="num">Δ</span><span>Status</span></div><div id="orders">');
     orders.slice().sort(function (a, b) {
       if (a.status !== b.status) return a.status === "changed" ? -1 : 1;
@@ -2677,7 +2689,9 @@ details.a-disclosure[open] > summary::before {
     }).forEach(function (o) {
       var ch = o.status === "changed";
       var ids = [o.id].concat(o.prods.map(function (p) { return p.id; })).join(" ");
-      H.push('<details class="cmp-order" id="o-' + esc(o.id) + '" data-change="' + o.status + '" data-ids="' + esc(ids) + '"' + (ch ? " open" : "") + "><summary>" +
+      var kinds = {};
+      o.prods.forEach(function (p) { p.lines.forEach(function (ln) { kinds[ln.kind] = true; }); });
+      H.push('<details class="cmp-order" id="o-' + esc(o.id) + '" data-change="' + o.status + '" data-ids="' + esc(ids) + '" data-kinds="' + esc(Object.keys(kinds).join(" ")) + '"' + (ch ? " open" : "") + "><summary>" +
         "<span><strong>" + esc(o.id) + '</strong> <span class="a-label">· ' + plural(o.prods.length, "product") + "</span></span>" +
         '<span class="num"><span class="cmp-ml">Legacy </span>' + fmt(o.lg) + '</span><span class="num"><span class="cmp-ml">New </span>' + fmt(o.nw) + "</span>" +
         '<span class="num' + (ch ? " cmp-delta" : "") + '"><span class="cmp-ml">Δ </span>' + (o.delta ? fmtD(o.delta) : "—") + "</span>" +
@@ -2704,16 +2718,36 @@ details.a-disclosure[open] > summary::before {
       d.addEventListener("toggle", function () { if (d.open) fill(d); });
     });
     var filter = document.getElementById("ord-filter"), search = document.getElementById("ord-search");
+    var selectedKinds = {}, kindButtons = report.querySelectorAll(".cmp-filter-tag"), clearKinds = document.getElementById("clear-kind-filter");
     function apply() {
-      var v = filter.value, q = search.value.trim(), shown = 0;
+      var v = filter.value, q = search.value.trim(), selected = Object.keys(selectedKinds), shown = 0;
       report.querySelectorAll("#orders details").forEach(function (d) {
-        var ok = (v === "all" || d.getAttribute("data-change") === v) && (!q || d.getAttribute("data-ids").indexOf(q) >= 0);
+        var orderKinds = d.getAttribute("data-kinds").split(" ");
+        var hasKind = !selected.length || selected.some(function (kind) { return orderKinds.indexOf(kind) >= 0; });
+        var ok = (v === "all" || d.getAttribute("data-change") === v) && (!q || d.getAttribute("data-ids").indexOf(q) >= 0) && hasKind;
         d.hidden = !ok; if (ok) shown++;
       });
       document.getElementById("orders-empty").hidden = shown !== 0;
+      document.getElementById("orders-count").textContent = "Showing " + plural(shown, "order");
+      clearKinds.disabled = selected.length === 0;
     }
     filter.addEventListener("change", apply);
     search.addEventListener("input", apply);
+    kindButtons.forEach(function (button) {
+      button.addEventListener("click", function () {
+        var kind = button.getAttribute("data-kind");
+        if (selectedKinds[kind]) delete selectedKinds[kind];
+        else selectedKinds[kind] = true;
+        button.setAttribute("aria-pressed", selectedKinds[kind] ? "true" : "false");
+        apply();
+      });
+    });
+    function clearChangeTypes() {
+      selectedKinds = {};
+      kindButtons.forEach(function (button) { button.setAttribute("aria-pressed", "false"); });
+      apply();
+    }
+    clearKinds.addEventListener("click", clearChangeTypes);
     document.getElementById("expand-all").addEventListener("click", function () {
       report.querySelectorAll("#orders details:not([hidden])").forEach(function (d) { d.open = true; fill(d); });
     });
@@ -2725,7 +2759,7 @@ details.a-disclosure[open] > summary::before {
         e.preventDefault();
         var d = document.getElementById(a.getAttribute("href").slice(1));
         if (!d) return;
-        if (d.hidden) { filter.value = "all"; search.value = ""; apply(); }
+        if (d.hidden) { filter.value = "all"; search.value = ""; clearChangeTypes(); }
         d.open = true; fill(d);
         d.scrollIntoView({ behavior: "smooth", block: "start" });
         d.querySelector("summary").focus({ preventScroll: true });
