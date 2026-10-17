@@ -1253,6 +1253,7 @@ details.a-disclosure[open] > summary::before {
 .cmp-order[data-change="changed"]{border-left:3px solid rgb(var(--text-red))}
 .cmp-order>summary{cursor:pointer;display:grid;grid-template-columns:minmax(120px,1.2fr) 1fr 1fr 1fr auto;gap:calc(var(--unit)*3);align-items:center;padding:calc(var(--unit)*3) calc(var(--unit)*4);font-variant-numeric:tabular-nums}
 .cmp-order>summary .num{text-align:right}
+.cmp-order__address{display:block;margin-top:2px;color:rgb(var(--text-secondary));font-size:12px;line-height:16px}
 .cmp-order__body{padding:0 calc(var(--unit)*4) calc(var(--unit)*4)}
 .cmp-prod{margin-top:calc(var(--unit)*3)}
 .cmp-prod__head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-bottom:6px;font-size:13px}
@@ -1276,7 +1277,7 @@ details.a-disclosure[open] > summary::before {
   <h2 class="a-visually-hidden" id="up-h">Upload a comparison file</h2>
   <div class="cmp-drop" id="drop">
     <p class="cmp-drop__title">Drop a comparison CSV here</p>
-    <p>The file needs these columns: OrderId, CheckoutTotal, LegacyTotal, ComparedAt and OrderProducts (JSON). The file stays on your computer: it is read and processed in your browser.</p>
+    <p>The file needs these columns: OrderId, CheckoutTotal, LegacyTotal, ComparedAt and OrderProducts (JSON). Country, city, state and ZIP are read from address data in the JSON when present. The file stays on your computer: it is read and processed in your browser.</p>
     <label class="a-btn" for="file-input">Choose CSV file</label>
     <input type="file" id="file-input" accept=".csv,text/csv" class="a-visually-hidden" />
   </div>
@@ -2499,6 +2500,47 @@ details.a-disclosure[open] > summary::before {
     return lines;
   }
 
+  function orderAddress(data, products) {
+    var root = data && typeof data === "object" ? data : {};
+    var containers = [root];
+    (Array.isArray(products) ? products : []).forEach(function (product) {
+      if (!product || typeof product !== "object") return;
+      Object.keys(product).forEach(function (key) {
+        var value = product[key];
+        if (/address|shipto|shipping|delivery/i.test(key) && value && typeof value === "object" && !Array.isArray(value)) {
+          containers.unshift(value);
+        }
+      });
+    });
+    Object.keys(root).forEach(function (key) {
+      var value = root[key];
+      if (/address|shipto|shipping|delivery/i.test(key) && value && typeof value === "object" && !Array.isArray(value)) {
+        containers.unshift(value);
+      }
+    });
+    function value(names) {
+      var normalizedNames = names.map(function (name) { return name.toLowerCase().replace(/[^a-z0-9]/g, ""); });
+      for (var i = 0; i < containers.length; i++) {
+        var container = containers[i];
+        var keys = Object.keys(container);
+        for (var j = 0; j < keys.length; j++) {
+          var key = keys[j].toLowerCase().replace(/[^a-z0-9]/g, "");
+          var field = container[keys[j]];
+          if (normalizedNames.indexOf(key) >= 0 && (typeof field === "string" || typeof field === "number") && String(field).trim()) {
+            return String(field).trim();
+          }
+        }
+      }
+      return "—";
+    }
+    return {
+      country: value(["country", "countrycode", "countryname", "shipcountry", "shiptocountry", "shippingcountry"]),
+      city: value(["city", "shipcity", "shiptocity", "shippingcity"]),
+      state: value(["state", "statecode", "statename", "province", "region", "shipstate", "shiptostate", "shippingstate"]),
+      zip: value(["zip", "zipcode", "postalcode", "postcode", "shipzip", "shipzipcode", "shippingzip", "shippingzipcode"])
+    };
+  }
+
   function analyze(text) {
     var rows = parseCSV(text);
     if (rows.length < 2) throw new Error("The file has no data rows.");
@@ -2516,6 +2558,7 @@ details.a-disclosure[open] > summary::before {
       var data;
       try { data = JSON.parse(r[cJson]); } catch (e) { bad.push("Row " + (idx + 2) + " (order " + id + "): OrderProducts is not valid JSON"); return; }
       var ops = (data && data.OrderProducts) || [];
+      var address = orderAddress(data, ops);
       if (cAt >= 0 && r[cAt]) comparedAt.push(r[cAt]);
       var prods = ops.map(function (p) {
         var nItems = p.CheckoutLineItems || [], lItems = p.LegacyLineItems || [];
@@ -2540,7 +2583,7 @@ details.a-disclosure[open] > summary::before {
       if (prods.length && spn !== on) warnings.push("Order " + id + ": order products sum to " + fmt(spn) + " (new) but CheckoutTotal is " + fmt(on));
       if (prods.length && spl !== ol) warnings.push("Order " + id + ": order products sum to " + fmt(spl) + " (legacy) but LegacyTotal is " + fmt(ol));
       var changed = on !== ol || prods.some(function (p) { return p.nw !== p.lg; });
-      orders.push({ id: id, nw: on, lg: ol, delta: on - ol, prods: prods, status: changed ? "changed" : "match" });
+      orders.push({ id: id, nw: on, lg: ol, delta: on - ol, prods: prods, address: address, status: changed ? "changed" : "match" });
     });
     if (!orders.length) throw new Error("No rows could be read. " + bad.slice(0, 3).join("; "));
     return { orders: orders, bad: bad, warnings: warnings, counts: counts, renames: renames, comparedAt: comparedAt.sort() };
@@ -2695,7 +2738,7 @@ details.a-disclosure[open] > summary::before {
       var kinds = {};
       o.prods.forEach(function (p) { p.lines.forEach(function (ln) { kinds[ln.kind] = true; }); });
       H.push('<details class="cmp-order" id="o-' + esc(o.id) + '" data-change="' + o.status + '" data-ids="' + esc(ids) + '" data-kinds="' + esc(Object.keys(kinds).join(" ")) + '"' + (ch ? " open" : "") + "><summary>" +
-        "<span><strong>" + esc(o.id) + '</strong> <span class="a-label">· ' + plural(o.prods.length, "product") + "</span></span>" +
+        '<span><a href="' + esc("https://admin.wayfair.com/d/ox-ui/order-search/order-info/" + encodeURIComponent(o.id) + "#financials") + '" target="_blank" rel="noopener noreferrer"><strong>' + esc(o.id) + '</strong></a> <span class="a-label">· ' + plural(o.prods.length, "product") + '</span><span class="cmp-order__address">Country: ' + esc(o.address.country) + ' · City: ' + esc(o.address.city) + ' · State: ' + esc(o.address.state) + ' · ZIP: ' + esc(o.address.zip) + "</span></span>" +
         '<span class="num"><span class="cmp-ml">Legacy </span>' + fmt(o.lg) + '</span><span class="num"><span class="cmp-ml">New </span>' + fmt(o.nw) + "</span>" +
         '<span class="num' + (ch ? " cmp-delta" : "") + '"><span class="cmp-ml">Δ </span>' + (o.delta ? fmtD(o.delta) : "—") + "</span>" +
         '<span class="a-status" data-state="' + (ch ? "blocked" : "done") + '">' + (ch ? "Total changed" : "Totals match") + "</span></summary>" +
