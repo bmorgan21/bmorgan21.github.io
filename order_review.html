@@ -2459,7 +2459,10 @@ details.a-disclosure[open] > summary::before {
     function take(nIdx, lIdx) {
       usedN[nIdx] = true; usedL[lIdx] = true;
       var n = newItems[nIdx], l = legItems[lIdx];
-      var kind = cents(n.Amount) !== cents(l.Amount) ? "amount"
+      var newAmount = cents(n.Amount), legacyAmount = cents(l.Amount);
+      var kind = legacyAmount === 0 && newAmount !== 0 ? "added"
+        : newAmount === 0 && legacyAmount !== 0 ? "removed"
+        : newAmount !== legacyAmount ? "amount"
         : n.LineItemDescription !== l.LineItemDescription ? "renamed" : "same";
       lines.push({ n: n, l: l, kind: kind });
     }
@@ -2522,7 +2525,7 @@ details.a-disclosure[open] > summary::before {
           if (ln.n && ln.l && ln.n.LineItemDescription !== ln.l.LineItemDescription) {
             var key = [ln.l.LineItemDescription, ln.l.Category + " / " + ln.l.Subcategory, ln.n.LineItemDescription, ln.n.Category + " / " + ln.n.Subcategory].join("\u0000");
             var st = renames[key] || (renames[key] = { pairs: 0, diff: 0 });
-            st.pairs++; if (ln.kind === "amount") st.diff++;
+            st.pairs++; if (cents(ln.n.Amount) !== cents(ln.l.Amount)) st.diff++;
           }
         });
         var pn = cents(p.CheckoutTotal), pl = cents(p.LegacyTotal);
@@ -2675,11 +2678,11 @@ details.a-disclosure[open] > summary::before {
         "</tbody></table></div></section>");
     }
 
-    H.push('<section class="a-section" aria-labelledby="ord-h"><h2 class="a-section__title" id="ord-h">Order-by-order comparison</h2><p class="a-section__note">Open an order to compare its line items side by side. Orders with a total change are open by default. Select one or more change types below to filter orders.</p>' +
+    H.push('<section class="a-section" aria-labelledby="ord-h"><h2 class="a-section__title" id="ord-h">Order-by-order comparison</h2><p class="a-section__note">Open an order to compare its line items side by side. Orders with a total change are open by default. Select one or more change types below to filter orders. A $0-to-nonzero line is classified as only in new or only in legacy; $0 on both sides remains a match.</p>' +
       '<div class="a-toolbar"><label class="a-label" for="ord-filter">Show</label><select class="a-select" id="ord-filter"><option value="all">All orders (' + orders.length + ')</option><option value="changed">Total changed (' + changed.length + ')</option><option value="match">Totals match (' + (orders.length - changed.length) + ')</option></select>' +
       '<label class="a-label" for="ord-search">Order ID</label><input class="cmp-input" id="ord-search" type="search" placeholder="Search order or product ID" autocomplete="off" />' +
       '<button class="a-btn a-btn--outline" type="button" id="expand-all">Expand all</button><button class="a-btn a-btn--outline" type="button" id="collapse-all">Collapse all</button></div>' +
-      '<div class="cmp-legend" role="group" aria-label="Filter by change type">' + Object.keys(KIND).filter(function (k) { return k !== "added_zero"; }).map(filterTag).join("") +
+      '<div class="cmp-legend" role="group" aria-label="Filter by change type">' + Object.keys(KIND).map(filterTag).join("") +
       '<button class="a-btn a-btn--outline cmp-filter-clear" type="button" id="clear-kind-filter" disabled>Clear change types</button>' +
       '<span class="cmp-filter-count" id="orders-count" role="status" aria-live="polite" aria-atomic="true">Showing ' + plural(orders.length, "order") + "</span></div>" +
       '<div class="cmp-colhead" aria-hidden="true"><span>Order</span><span class="num">Legacy total</span><span class="num">New total</span><span class="num">Δ</span><span>Status</span></div><div id="orders">');
