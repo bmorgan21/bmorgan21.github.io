@@ -184,9 +184,19 @@ body #toast-container>div{border-radius:16px;border-width:2px;padding:12px 16px;
 .lg-ex{background:rgb(var(--s950));border:2px solid rgb(var(--s800));border-radius:20px;padding:14px;display:grid;gap:10px}
 .lg-target{font-size:.82rem;color:rgb(var(--s400));text-align:right;flex:none}
 .lg-cols,.set-row{display:grid;grid-template-columns:28px 1fr 1fr 28px;gap:6px;align-items:center}
+.lg-cols{padding:0 6px}
+.set-row{border:2px solid transparent;border-radius:16px;padding:4px;cursor:pointer;transition:opacity .15s,border-color .15s,background-color .15s}
+.set-row.active{border-color:rgb(var(--b500));background:rgb(var(--s900));cursor:default}
+.set-row:not(.active){opacity:.55}
+.set-row:not(.active) .stepper{pointer-events:none;background:rgb(var(--s950))}
+.set-row.active .set-badge{background:rgb(var(--pri));color:#fff}
+.stepper input::placeholder{color:rgb(var(--s500));opacity:.7;font-weight:500;-webkit-text-fill-color:rgb(var(--s500))}
+.stepper input:disabled{-webkit-text-fill-color:rgb(var(--s200));opacity:1}
+.stepper button:disabled{color:rgb(var(--s500))}
 .lg-cols span{font-size:.78rem;font-weight:600;color:rgb(var(--s400));text-align:center}
 .set-badge{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:.85rem;font-weight:700;background:rgb(var(--s800));color:rgb(var(--s400));transition:background .2s}
 .set-row.done .set-badge{background:rgb(var(--ok));color:rgb(var(--ok-ink))}
+button.set-badge{border:0;cursor:pointer;padding:0}
 .stepper{display:flex;align-items:stretch;background:rgb(var(--s900));border:2px solid rgb(var(--s800));border-radius:14px;overflow:hidden;min-width:0}
 .stepper:focus-within{border-color:rgb(var(--b500))}
 .stepper button{flex:none;width:30px;border:0;background:none;color:rgb(var(--b500));font-size:1.25rem;font-weight:700;line-height:1}
@@ -2008,12 +2018,16 @@ Rules:
                         <div id="sets-list-${ex.exercise_name.replace(/\s+/g, '-')}" class="space-y-2">
                             ${rowsHtml}
                         </div>
-                        <button type="button" data-exercise="${safeName}" onclick="addSetRow(this.dataset.exercise)" class="lg-add">+ Add set</button>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" onclick="nextSet(this)" class="lg-add">Next set</button>
+                            <button type="button" data-exercise="${safeName}" onclick="addSetRow(this.dataset.exercise)" class="lg-add">+ Add set</button>
+                        </div>
                     `;
                     setsContainer.appendChild(exCard);
                 });
             }
 
+            document.querySelectorAll('#lifting-sets-container [id^="sets-list-"]').forEach(activateDefaultSet);
             syncRpeChips();
             initLogBuddy();
             toggleModal('log-modal', true);
@@ -2022,22 +2036,51 @@ Rules:
         function createSetRowHtml(exerciseName, setNum, reps, weight, hintReps = '', hintWeight = '') {
             const val = (v) => (v !== undefined && v !== null ? escapeHtml(v) : '');
             return `
-                <div class="set-row" data-exercise="${escapeHtml(exerciseName)}" data-hint-reps="${escapeHtml(hintReps)}" data-hint-weight="${escapeHtml(hintWeight)}">
-                    <span class="set-badge">${setNum}</span>
+                <div class="set-row" onclick="selectSet(this)" data-exercise="${escapeHtml(exerciseName)}" data-hint-reps="${escapeHtml(hintReps)}" data-hint-weight="${escapeHtml(hintWeight)}">
+                    <button type="button" class="set-badge" onclick="event.stopPropagation(); selectSet(this.closest('.set-row'))" aria-label="Select set ${setNum}">${setNum}</button>
                     <div class="stepper">
-                        <button type="button" aria-label="Fewer reps" onclick="stepSet(this, 'reps', -1)">&minus;</button>
-                        <input type="number" inputmode="numeric" data-field="reps" value="${val(reps)}" placeholder="${escapeHtml(hintReps)}" aria-label="Reps, set ${setNum}">
-                        <button type="button" aria-label="More reps" onclick="stepSet(this, 'reps', 1)">+</button>
+                        <button type="button" disabled aria-label="Fewer reps" onclick="stepSet(this, 'reps', -1)">&minus;</button>
+                        <input type="number" inputmode="numeric" disabled data-field="reps" value="${val(reps)}" placeholder="${escapeHtml(hintReps)}" aria-label="Reps, set ${setNum}">
+                        <button type="button" disabled aria-label="More reps" onclick="stepSet(this, 'reps', 1)">+</button>
                     </div>
                     <div class="stepper">
-                        <button type="button" aria-label="Less weight" onclick="stepSet(this, 'weight', -1)">&minus;</button>
-                        <input type="number" inputmode="decimal" step="0.5" data-field="weight" value="${val(weight)}" placeholder="${escapeHtml(hintWeight)}" aria-label="Weight in pounds, set ${setNum}">
-                        <button type="button" aria-label="More weight" onclick="stepSet(this, 'weight', 1)">+</button>
+                        <button type="button" disabled aria-label="Less weight" onclick="stepSet(this, 'weight', -1)">&minus;</button>
+                        <input type="number" inputmode="decimal" step="0.5" disabled data-field="weight" value="${val(weight)}" placeholder="${escapeHtml(hintWeight)}" aria-label="Weight in pounds, set ${setNum}">
+                        <button type="button" disabled aria-label="More weight" onclick="stepSet(this, 'weight', 1)">+</button>
                     </div>
-                    <button type="button" onclick="removeSetRow(this)" class="set-x" aria-label="Remove set ${setNum}">&times;</button>
+                    <button type="button" onclick="event.stopPropagation(); removeSetRow(this)" class="set-x" aria-label="Remove set ${setNum}">&times;</button>
                 </div>
             `;
         }
+
+
+        // ----- One active set at a time -----
+        window.selectSet = function(row) {
+            if (!row || !row.isConnected) return;
+            const container = row.parentElement;
+            container.querySelectorAll('.set-row').forEach(r => {
+                const on = r === row;
+                r.classList.toggle('active', on);
+                r.querySelectorAll('input, .stepper button').forEach(el => { el.disabled = !on; });
+                const badge = r.querySelector('.set-badge');
+                if (badge) badge.setAttribute('aria-pressed', String(on));
+            });
+        };
+
+        function activateDefaultSet(container) {
+            const rows = [...container.querySelectorAll('.set-row')];
+            if (!rows.length) return;
+            const firstOpen = rows.find(r => !(parseInt(r.querySelector('[data-field="reps"]').value) > 0));
+            selectSet(firstOpen || rows[0]);
+        }
+
+        window.nextSet = function(btn) {
+            const container = btn.closest('.lg-ex').querySelector('[id^="sets-list-"]');
+            const rows = [...container.querySelectorAll('.set-row')];
+            const idx = rows.findIndex(r => r.classList.contains('active'));
+            if (idx >= 0 && idx < rows.length - 1) selectSet(rows[idx + 1]);
+            else showToast('That was the last set. Tap + Add set if you did more.', 'info');
+        };
 
         window.stepSet = function(btn, field, dir) {
             const row = btn.closest('.set-row');
@@ -2072,7 +2115,9 @@ Rules:
             const count = container.querySelectorAll('.set-row').length + 1;
             const div = document.createElement('div');
             div.innerHTML = createSetRowHtml(exerciseName, count, '', '', first?.dataset.hintReps || '', first?.dataset.hintWeight || '');
-            container.appendChild(div.firstElementChild);
+            const newRow = div.firstElementChild;
+            container.appendChild(newRow);
+            selectSet(newRow);
             handleLogFormInput();
         };
 
@@ -2082,6 +2127,7 @@ Rules:
                 const container = row.parentElement;
                 row.remove();
                 renumberSets(container);
+                if (!container.querySelector('.set-row.active')) activateDefaultSet(container);
                 handleLogFormInput();
             }
         };
@@ -4064,7 +4110,7 @@ ${getAthleteProfileMemorySummary(profileData)}
             else if (complete) { mood = 'cheer'; msg = rpe ? 'Great session. Nice work!' : 'Everything is logged! Rate the effort and you\u2019re done.'; }
             else if (isRun) msg = filled ? 'Nice! Add your distance and time to finish up.' : 'Log your distance and time. Pace and heart rate are a bonus.';
             else if (filled) msg = `${filled} of ${total} sets logged. Keep going!`;
-            else msg = 'Tap + on a set and I\u2019ll fill in your target.';
+            else msg = 'Tap + to log your first set. I\u2019ll fill in your target.';
 
             bar.style.width = (total ? Math.round((filled / total) * 100) : 0) + '%';
             bubble.textContent = msg;
