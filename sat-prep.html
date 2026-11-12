@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SAT Daily</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F4F2FF;--card:#fff;--ink:#1E1A4D;--mute:#6B679A;--pri:#5B3DF5;--pri-d:#3E24C9;--ok:#14935F;--ok-bg:#DDF7EC;--bad:#D62F49;--bad-bg:#FFE3E8;--sun:#FFB800;--line:#E2DEFA;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14112E;--card:#211C48;--ink:#F1EEFF;--mute:#A9A4D6;--pri:#7C63FF;--pri-d:#4A33C4;--ok:#3DDC9F;--ok-bg:#123D33;--bad:#FF7A90;--bad-bg:#4A1C2A;--line:#342E66;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14112E;--card:#211C48;--ink:#F1EEFF;--mute:#A9A4D6;--pri:#7C63FF;--pri-d:#4A33C4;--ok:#3DDC9F;--ok-bg:#123D33;--bad:#FF7A90;--bad-bg:#4A1C2A;--line:#342E66;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:"Fredoka",system-ui,-apple-system,"Segoe UI",sans-serif}
+body{font-size:17px;line-height:1.4}
+#app{max-width:520px;margin:0 auto;padding:18px 18px 40px}
+button{font-family:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.btn{display:block;width:100%;border:0;border-radius:16px;padding:15px;font-size:1.08rem;font-weight:700;background:var(--pri);color:#fff;box-shadow:0 5px 0 var(--pri-d);transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--pri-d)}
+.btn:disabled{background:var(--line);color:var(--mute);box-shadow:0 5px 0 var(--line);cursor:default}
+.btn.ok{background:var(--ok);box-shadow:0 5px 0 rgba(0,0,0,.25);color:#fff}
+.btn.bad{background:var(--bad);box-shadow:0 5px 0 rgba(0,0,0,.25);color:#fff}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.hi{font-size:1.5rem;font-weight:700;margin:0}
+.chip{display:inline-flex;gap:6px;align-items:center;background:var(--card);border:2px solid var(--line);border-radius:999px;padding:5px 12px;font-weight:600}
+.hero{background:var(--pri);color:#fff;border-radius:26px;padding:22px;display:flex;gap:18px;align-items:center;box-shadow:0 6px 0 var(--pri-d)}
+.hero h2{margin:0 0 4px;font-size:1.25rem}
+.hero p{margin:0;opacity:.9}
+.ring{position:relative;width:92px;height:92px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:1.05rem}
+.flame{font-size:1.7rem}
+.week{display:flex;justify-content:space-between;margin:18px 2px}
+.day{text-align:center;font-size:.8rem;color:var(--mute)}
+.dot{width:34px;height:34px;border-radius:50%;margin:4px auto 0;border:2px solid var(--line);display:grid;place-items:center;background:var(--card);font-size:1rem}
+.dot.on{background:var(--sun);border-color:var(--sun)}
+.dot.now{border-color:var(--pri);border-width:3px}
+h3{margin:22px 0 10px;font-size:1.05rem}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mode{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:14px;text-align:left;box-shadow:0 4px 0 var(--line);font-weight:600;transition:transform .08s,box-shadow .08s}
+.mode:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+.mode small{display:block;color:var(--mute);font-weight:400;margin-top:2px}
+.mode .e{font-size:1.5rem}
+.bar{height:14px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--sun);border-radius:99px;transition:width .35s}
+.card{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:18px;position:relative}
+.stat{display:flex;justify-content:space-between;margin:10px 0 4px;font-weight:600}
+.q{font-size:1.2rem;font-weight:500;margin:6px 0 18px;line-height:1.45}
+.tag{display:inline-block;font-size:.85rem;font-weight:600;color:var(--pri);background:var(--bg);border-radius:99px;padding:3px 12px}
+.opts{display:grid;gap:10px;margin-bottom:18px}
+.opt{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:16px;padding:13px 14px;font-size:1.05rem;box-shadow:0 3px 0 var(--line)}
+.opt .l{flex:none;width:30px;height:30px;border-radius:9px;border:2px solid var(--line);display:grid;place-items:center;font-weight:700;font-size:.9rem}
+.opt.sel{border-color:var(--pri);box-shadow:0 3px 0 var(--pri)}
+.opt.sel .l{background:var(--pri);color:#fff;border-color:var(--pri)}
+.opt.right{border-color:var(--ok);background:var(--ok-bg);box-shadow:0 3px 0 var(--ok)}
+.opt.right .l{background:var(--ok);border-color:var(--ok);color:#fff}
+.opt.wrong{border-color:var(--bad);background:var(--bad-bg);box-shadow:0 3px 0 var(--bad)}
+.opt.wrong .l{background:var(--bad);border-color:var(--bad);color:#fff}
+.fb{border-radius:18px;padding:14px 16px;margin-bottom:14px;animation:pop .25s ease-out}
+.fb.ok{background:var(--ok-bg);color:var(--ok)}
+.fb.bad{background:var(--bad-bg);color:var(--bad)}
+.fb b{font-size:1.1rem}
+.fb p{margin:4px 0 0;color:var(--ink);font-size:.98rem}
+@keyframes pop{from{transform:scale(.96);opacity:0}to{transform:none;opacity:1}}
+.x{background:none;border:0;font-size:1.5rem;color:var(--mute);padding:4px 8px}
+.prog{flex:1;margin:0 10px}
+.big{font-size:4rem;text-align:center;margin:10px 0 0}
+.res{text-align:center}
+.res h1{margin:4px 0;font-size:2rem}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}
+.tile{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:12px 4px}
+.tile b{display:block;font-size:1.4rem}
+.tile span{font-size:.85rem;color:var(--mute)}
+input{width:100%;font:inherit;font-size:1.1rem;padding:14px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);margin:14px 0}
+.conf{position:fixed;top:-20px;width:10px;height:14px;z-index:9;pointer-events:none;animation:fall 1.8s ease-in forwards}
+@keyframes fall{to{transform:translate(var(--dx),105vh) rotate(720deg);opacity:.8}}
+.link{background:none;border:0;color:var(--mute);text-decoration:underline;font-size:.9rem;margin-top:18px;width:100%}
+.flame{display:inline-block;animation:flick 1.4s ease-in-out infinite;transform-origin:50% 90%}
+@keyframes flick{0%,100%{transform:scale(1) rotate(-4deg)}50%{transform:scale(1.2) rotate(5deg)}}
+.ring circle:last-child{animation:ring 1.2s cubic-bezier(.2,.8,.2,1) .3s backwards}
+@keyframes ring{from{stroke-dashoffset:var(--c)}}
+@keyframes rise{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+@keyframes pop2{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@keyframes bounce{0%{transform:scale(.3)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:none}20%{transform:translateX(-9px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+@keyframes slidein{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes floatup{from{transform:translateY(0) scale(.8);opacity:1}to{transform:translateY(-60px) scale(1.4);opacity:0}}
+@keyframes grow{from{width:0}}
+@keyframes gr{from{width:var(--f)}}
+.home>*{animation:rise .5s both}
+.home>:nth-child(2){animation-delay:.07s}.home>:nth-child(3){animation-delay:.14s}.home>:nth-child(4){animation-delay:.21s}.home>:nth-child(5){animation-delay:.28s}.home>:nth-child(6){animation-delay:.35s}.home>:nth-child(7){animation-delay:.42s}.home>:nth-child(8){animation-delay:.49s}.home>:nth-child(9){animation-delay:.56s}
+.dot.on{animation:pop2 .45s .3s both}
+.mode:hover,.opt:hover:not(.right):not(.wrong){transform:translateY(-2px)}
+.enter{animation:slidein .35s cubic-bezier(.2,.9,.3,1.2)}
+.opt.right{animation:bounce .5s}
+.opt.wrong{animation:shake .4s}
+.gr{animation:gr .5s ease-out}
+.card .bar i{animation:grow 1s ease-out .4s backwards}
+.xpf{position:absolute;right:18px;top:16px;font-weight:700;font-size:1.3rem;color:var(--ok);pointer-events:none;animation:floatup 1s ease-out forwards}
+.big{animation:bounce .7s}
+.res h1{animation:rise .5s .1s both}
+.res .tile{animation:pop2 .5s both}.res .tile:nth-child(2){animation-delay:.12s}.res .tile:nth-child(3){animation-delay:.24s}
+.lvl{background:var(--sun);color:#3a2a00;border-radius:14px;padding:10px;margin-top:14px;font-weight:700;animation:pop2 .5s .3s both}
+.home>:nth-child(10){animation-delay:.63s}
+.pip{display:block;overflow:visible;animation:bob 2.8s ease-in-out infinite}
+.pip.cheer,.pip.wow{animation:hop .6s ease-out,bob 2.8s .6s infinite}
+.pip.oops{animation:wob .6s ease-out,bob 2.8s .6s infinite}
+.pip .eye{animation:blink 4.5s infinite;transform-box:fill-box;transform-origin:center}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes hop{0%{transform:translateY(0)}35%{transform:translateY(-14px) rotate(-5deg)}70%{transform:translateY(0) rotate(3deg)}85%{transform:translateY(-4px)}100%{transform:none}}
+@keyframes wob{0%,100%{transform:none}25%{transform:rotate(-6deg)}60%{transform:rotate(5deg)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+.say{display:flex;gap:14px;align-items:center;margin:6px 0 16px}
+.mbtn{background:none;border:0;padding:0;flex:none;cursor:pointer}
+.bub{position:relative;background:var(--card);border:2px solid var(--line);border-radius:18px;padding:10px 14px;font-weight:500;flex:1;line-height:1.3}
+.bub:before{content:"";position:absolute;left:-10px;top:50%;margin-top:-8px;border:8px solid transparent;border-left:0;border-right-color:var(--line)}
+.pass{background:var(--bg);border-left:5px solid var(--pri);border-radius:12px;padding:12px 14px;margin:10px 0 14px;font-size:1rem;line-height:1.5}
+.bgs{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.bg{background:var(--bg);border:2px solid var(--line);border-radius:14px;padding:8px 0;font-size:1.6rem;text-align:center;font-family:inherit;cursor:pointer}
+.bg.lock{filter:grayscale(1);opacity:.35}
+.info{color:var(--mute);font-size:.92rem;margin:12px 0 0;min-height:1.3em}
+.cl{display:flex;gap:8px;flex-wrap:wrap}
+.cl button{background:var(--bg);border:2px solid var(--line);border-radius:99px;padding:6px 12px;font-weight:600;font-size:.95rem}
+.cl button.on{border-color:var(--pri);background:var(--pri);color:#fff}
+.cl button:disabled{opacity:.5;cursor:default}
+.wk{display:flex;gap:8px;align-items:flex-end;height:130px}
+.wk .c{flex:1;text-align:center;font-size:.78rem;color:var(--mute);display:flex;flex-direction:column;justify-content:flex-end;height:100%;line-height:1.3}
+.wk .b{border-radius:8px 8px 4px 4px;background:var(--line);min-height:6px;margin-bottom:4px;animation:grow2 .8s ease-out backwards}
+.wk .b.on{background:var(--sun)}
+@keyframes grow2{from{transform:scaleY(0);transform-origin:bottom}}
+.pre{white-space:pre-wrap;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:12px;font:inherit;font-size:.92rem;margin:10px 0 0}
+.gw{background:var(--bg);border-radius:14px;padding:10px 12px;margin:10px 0 14px}
+.gc{font-weight:600;font-size:.92rem;margin:0 0 6px}
+.gf{width:100%;height:auto;display:block}
+.gl{stroke:var(--line);stroke-width:1}.ga{stroke:var(--mute);stroke-width:1.5}
+.gt{fill:var(--mute);font-size:10px;font-family:inherit}
+.gb,.gp{fill:var(--pri)}.gk{stroke:var(--sun);stroke-width:2.5}
+.tw{overflow-x:auto}.tb{border-collapse:collapse;width:100%;font-size:.95rem}
+.tb th,.tb td{border:2px solid var(--line);padding:6px 10px;text-align:center}.tb th{background:var(--card)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+var Q=[
+{c:"m",d:1,q:"If 3x + 7 = 25, what is the value of x?",o:["4","6","7","18"],a:1,e:"Subtract 7 from both sides to get 3x = 18, then divide by 3. So x = 6."},
+{c:"m",d:1,q:"The line y = 2x − 3 passes through the point (4, k). What is k?",o:["−5","5","8","11"],a:1,e:"Plug in x = 4: y = 2(4) − 3 = 8 − 3 = 5."},
+{c:"m",d:1,q:"A jacket costs $80. Its price goes up by 25%. What is the new price?",o:["$85","$95","$100","$105"],a:2,e:"25% of 80 is 20, and 80 + 20 = $100."},
+{c:"m",d:1,q:"What is the sum of the solutions to x² − 5x + 6 = 0?",o:["−5","1","5","6"],a:2,e:"Factor: (x − 2)(x − 3) = 0, so x = 2 or 3. Their sum is 5. (Shortcut: the sum of solutions is −b/a = 5.)"},
+{c:"m",d:1,q:"The mean of four numbers is 12. Three of them are 10, 11, and 15. What is the fourth?",o:["10","11","12","14"],a:2,e:"Total = 4 × 12 = 48. The three known numbers add to 36, so the fourth is 48 − 36 = 12."},
+{c:"m",d:1,q:"A car travels 150 miles in 2.5 hours. At the same rate, how many miles will it travel in 4 hours?",o:["200","225","240","250"],a:2,e:"Rate = 150 ÷ 2.5 = 60 mph. In 4 hours: 60 × 4 = 240 miles."},
+{c:"m",d:1,q:"What is the slope of the line through (1, 2) and (5, 10)?",o:["1","2","4","8"],a:1,e:"Slope = rise ÷ run = (10 − 2) ÷ (5 − 1) = 8 ÷ 4 = 2."},
+{c:"m",d:1,q:"If f(x) = 3x² − 2, what is f(2)?",o:["4","8","10","16"],a:2,e:"f(2) = 3(2²) − 2 = 3(4) − 2 = 10. Do the exponent before multiplying."},
+{c:"m",d:1,q:"A right triangle has legs of length 6 and 8. What is the length of its hypotenuse?",o:["9","10","12","14"],a:1,e:"6² + 8² = 36 + 64 = 100, and √100 = 10. It’s a 3-4-5 triangle doubled."},
+{c:"m",d:1,q:"If x + y = 10 and x − y = 4, what is x?",o:["3","6","7","14"],a:2,e:"Add the equations: 2x = 14, so x = 7 (and y = 3)."},
+{c:"m",d:1,q:"A circle has radius 7. What is its circumference?",o:["7π","14π","49π","98π"],a:1,e:"Circumference = 2πr = 2π(7) = 14π. Area would be 49π, a common trap."},
+{c:"m",d:1,q:"If 2^(x + 1) = 32, what is x?",o:["3","4","5","16"],a:1,e:"32 = 2⁵, so x + 1 = 5 and x = 4."},
+{c:"rw",d:1,q:"The scientist’s explanation was so lucid that even first-graders could follow it. As used here, “lucid” most nearly means:",o:["confusing","clear","lengthy","boring"],a:1,e:"If first-graders could follow it, the explanation was easy to understand: clear."},
+{c:"rw",d:1,q:"Each of the students ___ responsible for submitting a project by Friday.",o:["are","is","were","have been"],a:1,e:"“Each” is singular, so it takes the singular verb “is.” Ignore the plural word “students” in between."},
+{c:"rw",d:1,q:"The experiment failed twice. ___, the team refused to give up.",o:["Therefore","However","Similarly","For example"],a:1,e:"The second sentence contrasts with the first (failure vs. persistence), so you need a contrast word: However."},
+{c:"rw",d:1,q:"Which choice is punctuated correctly?",o:["The museum which opened in 1920, attracts thousands of visitors.","The museum, which opened in 1920, attracts thousands of visitors.","The museum, which opened in 1920 attracts thousands of visitors.","The museum, which opened in 1920, attract thousands of visitors."],a:1,e:"Extra info (“which opened in 1920”) needs a comma on both sides, and “museum” is singular so the verb is “attracts.”"},
+{c:"rw",d:1,q:"The storm knocked out power for hours ___ residents lit candles and played cards.",o:[", residents",": residents","; residents","residents"],a:2,e:"Two complete sentences can be joined with a semicolon. A comma alone makes a comma splice, and a colon needs the second part to explain the first."},
+{c:"rw",d:1,q:"Which choice is the most concise while keeping the meaning?",o:["Due to the fact that it was raining, the game was postponed.","Because it was raining, the game was postponed.","The game was postponed, the reason being that rain was falling.","Owing to rainy conditions that were occurring, the game was postponed."],a:1,e:"“Because” does the job of “due to the fact that” in one word. On the SAT, shorter is better when nothing is lost."},
+{c:"rw",d:1,q:"Though the senator’s speech seemed sincere, critics called it disingenuous. “Disingenuous” most nearly means:",o:["lengthy","insincere","brilliant","emotional"],a:1,e:"“Though” signals contrast with “sincere,” so the critics must have felt it was not sincere. Look for the contrast clue."},
+{c:"rw",d:1,q:"“Octopuses can unscrew jar lids, navigate mazes, and recognize individual human faces. Researchers say such behaviors suggest that these solitary animals can learn in surprising ways.” Which choice best states the main idea?",o:["Octopuses are difficult to keep in laboratories.","Octopuses show learning abilities beyond what was expected.","Octopuses prefer to live alone.","Octopuses are better at mazes than most animals."],a:1,e:"The examples all support one idea: octopuses can learn in surprising ways. The other choices are details or claims the passage never makes."},
+{c:"rw",d:1,q:"A student claims that bees prefer blue flowers. Which finding would best support this claim?",o:["Bees visit flowers more often in the morning.","In a field trial, bees visited blue flowers more often than red or yellow ones.","Blue flowers grow in more places than red flowers.","Some bees can see ultraviolet light."],a:1,e:"The best evidence directly compares bee visits across colors. The others are related facts, but none shows a preference for blue."},
+{c:"rw",d:1,q:"Which choice corrects the error? “Walking through the park, the flowers caught Sam’s attention.”",o:["Walking through the park, Sam noticed the flowers.","Walking through the park, the flowers were noticed.","The flowers, walking through the park, caught Sam’s attention.","Sam’s attention was caught, walking through the park, by flowers."],a:0,e:"The opening phrase “Walking through the park” must describe who is walking. Flowers can’t walk, so Sam must come right after the comma."},
+{c:"rw",d:1,q:"The ___ section of the library has a new reading nook.",o:["childrens","childrens’","children’s","children’s’"],a:2,e:"“Children” is already plural, so add ’s to show possession: children’s."},
+{c:"rw",d:1,q:"Cooking at home is usually cheaper than dining out. ___, it lets people control exactly what goes into their meals.",o:["Nevertheless","Moreover","Instead","Previously"],a:1,e:"The second sentence adds another benefit, so you need an addition transition: Moreover."},
+{c:"m",d:1,q:"What is 15% of 240?",o:["24","30","36","40"],a:2,e:"0.15 × 240 = 36."},
+{c:"m",d:1,q:"If 5(x − 2) = 3x + 6, what is x?",o:["2","4","8","16"],a:2,e:"5x − 10 = 3x + 6, so 2x = 16 and x = 8."},
+{c:"m",d:1,q:"Which expression is equivalent to (x + 3)²?",o:["x² + 9","x² + 6x + 9","x² + 3x + 9","2x + 6"],a:1,e:"Square the binomial: x² + 2(3)x + 9. Skipping the middle term is the classic trap."},
+{c:"m",d:1,q:"A rectangle has a perimeter of 36 and a length of 11. What is its area?",o:["66","77","88","396"],a:1,e:"Length + width = 18, so width = 7. Area = 11 × 7 = 77."},
+{c:"m",d:1,q:"y varies directly with x, and y = 12 when x = 4. What is y when x = 9?",o:["21","24","27","36"],a:2,e:"y = kx with k = 12 ÷ 4 = 3. So y = 3(9) = 27."},
+{c:"m",d:1,q:"What is the sum of the solutions to |x − 4| = 7?",o:["4","8","11","14"],a:1,e:"x − 4 = 7 or −7, so x = 11 or −3. The sum is 8."},
+{c:"m",d:1,q:"What is the median of 3, 9, 4, 14, 7?",o:["4","7","8","9"],a:1,e:"Order them: 3, 4, 7, 9, 14. The middle value is 7. Always sort first."},
+{c:"m",d:1,q:"What is the y-intercept of the line 3x + 2y = 12?",o:["2","4","6","12"],a:2,e:"Set x = 0: 2y = 12, so y = 6."},
+{c:"m",d:1,q:"Two angles of a triangle measure 50° and 65°. What is the third angle?",o:["55°","65°","75°","115°"],a:1,e:"Angles sum to 180°. 180 − 50 − 65 = 65°."},
+{c:"m",d:1,q:"The function f(x) = 2x + b has f(3) = 11. What is b?",o:["3","5","8","17"],a:1,e:"2(3) + b = 11, so b = 5."},
+{c:"rw",d:1,q:"She ___ the marathon last spring, and she plans to run it again.",o:["runs","ran","has ran","running"],a:1,e:"“Last spring” calls for simple past: ran. “Has ran” is never correct."},
+{c:"rw",d:1,q:"The committee announced ___ decision on Monday.",o:["its","it’s","their","theirs"],a:0,e:"A committee is one unit, so use “its.” “It’s” only ever means “it is.”"},
+{c:"rw",d:1,q:"Her argument was ___: no one could find a single flaw in it.",o:["airtight","flimsy","vague","hasty"],a:0,e:"No flaws means the argument was solid. “Airtight” fits; the others are negative."},
+{c:"rw",d:1,q:"The new policy will ___ everyone in the building.",o:["effect","affect","effects","affecting"],a:1,e:"“Affect” is the verb (to influence). “Effect” is usually a noun."},
+{c:"rw",d:1,q:"Neither the coach nor the players ___ ready for the game.",o:["was","is","were","has been"],a:2,e:"With neither/nor, the verb matches the closer subject, “players” (plural): were."},
+{c:"rw",d:1,q:"The recipe called for butter. ___, she used olive oil because she had run out.",o:["In addition","Instead","Likewise","Therefore"],a:1,e:"She swapped one ingredient for another, so use the substitution word: Instead."},
+{c:"rw",d:1,q:"Which choice is punctuated correctly?",o:["She packed three things; a map, a compass, and a flashlight.","She packed three things: a map, a compass, and a flashlight.","She packed: three things a map, a compass, and a flashlight.","She packed three things a map, a compass, and a flashlight."],a:1,e:"A colon can follow a complete sentence to introduce a list. A semicolon needs a full sentence on both sides."},
+{c:"rw",d:1,q:"Maya enjoys hiking, swimming, and ___.",o:["to bike","biking","bikes","she bikes"],a:1,e:"Keep a list parallel: hiking, swimming, biking."},
+{c:"rw",d:1,q:"The hikers were ___ by the sudden storm; none had packed rain gear.",o:["thrilled","rested","blindsided","honored"],a:2,e:"No one was prepared, so the storm took them by surprise: blindsided."},
+{c:"rw",d:1,q:"Which choice avoids redundancy?",o:["The final conclusion of the report was surprising.","The report’s conclusion was surprising.","The report’s conclusion at the end was surprising and unexpected.","The conclusion, the final one, was surprising."],a:1,e:"A conclusion is already final, and “surprising” covers “unexpected.” Cut repeated ideas."},
+{c:"rw",d:1,p:"Urban planners in Medellín, Colombia, added cable cars linking hillside neighborhoods to the city’s subway. Commutes for some residents dropped from over two hours to about thirty minutes, leaving more time for work and school.",q:"Which conclusion is best supported by the passage?",o:["Cable cars cost less than subways.","The cable cars improved access to work and school for hillside residents.","Medellín has the best subway in South America.","Most residents now avoid the subway."],a:1,e:"Only this choice follows from the shorter commutes. The others bring in claims the passage never makes."},
+{c:"rw",d:1,p:"Although the novel was dismissed by critics when it appeared in 1925, it sold steadily in the decades after. By the 1960s it was widely taught in American high schools.",q:"As used in the passage, “dismissed” most nearly means:",o:["fired","rejected","released","forgotten"],a:1,e:"“Although” sets up a contrast with later success, so critics must have rejected it."},
+{c:"rw",d:1,p:"Dr. Okafor’s team planted native grasses along an eroded riverbank. Within two years, soil loss at the site fell by 60 percent compared with a similar unplanted bank.",q:"What is the main purpose of the passage?",o:["To describe an experiment and its result","To argue that grass is better than concrete","To explain why rivers erode","To criticize riverbank planning"],a:0,e:"The passage reports what the team did and what happened. It doesn’t argue, explain causes, or criticize."},
+{c:"rw",d:1,p:"Many people believe goldfish have three-second memories. In experiments, goldfish trained to press a lever for food remembered the task for months.",q:"The second sentence mainly serves to:",o:["introduce a new topic","challenge the belief in the first sentence","define a scientific term","give a personal opinion"],a:1,e:"The experiment results contradict the common belief, so the sentence pushes back on it."},
+{c:"rw",d:1,p:"The library’s new hours, open until 9 p.m. on weekdays, have drawn many more students. Staff report that evening attendance has doubled since the change.",q:"Which claim is directly supported by the passage?",o:["Evening attendance rose after the hours were extended.","Students prefer libraries to cafés.","The library now owns more books.","Weekend attendance has doubled."],a:0,e:"Stick to what the text says. Only the first choice appears in the passage."},
+{c:"rw",d:1,p:"Sea otters use rocks as tools to crack open shellfish. Each otter often keeps a favorite rock, tucked into a flap of skin under its arm.",q:"What is the function of the second sentence?",o:["It adds a detail about the tool use described in the first.","It contradicts the first sentence.","It introduces an unrelated topic.","It summarizes a study."],a:0,e:"The second sentence gives a closer look at the otters’ rocks, extending the first sentence’s idea."},
+{c:"rw",d:1,p:"Some economists argue that remote work lowers costs for companies. Others point out that collaboration can suffer when teams rarely meet in person.",q:"The passage primarily presents:",o:["a single clear consensus","two perspectives on remote work","a personal story","a historical timeline"],a:1,e:"“Some… Others…” signals two viewpoints, with no consensus and no story."},
+{c:"rw",d:1,p:"After the lake froze, Ana carefully tested the ice before stepping out. Only when it held her weight did she wave her friends over.",q:"Which word best describes Ana’s behavior?",o:["reckless","cautious","impatient","indifferent"],a:1,e:"She tested the ice and waited for proof it was safe: cautious."},
+{c:"m",d:1,q:"If 4x − 9 = 15, what is x?",o:["3","6","8","24"],a:1,e:"Add 9: 4x = 24, so x = 6."},
+{c:"m",d:1,q:"What is the slope of the line y = −3x + 5?",o:["−3","3","5","−5"],a:0,e:"In y = mx + b, the slope is m = −3."},
+{c:"m",d:1,q:"Which point lies on the line y = x + 4?",o:["(1, 5)","(2, 8)","(3, 5)","(4, 4)"],a:0,e:"Plug in: for x = 1, y = 1 + 4 = 5. The others don’t fit."},
+{c:"m",d:1,q:"3 notebooks cost $7.50. At the same rate, how much do 8 notebooks cost?",o:["$17.50","$20.00","$22.50","$24.00"],a:1,e:"One notebook is $2.50, and 8 × $2.50 = $20."},
+{c:"m",d:1,q:"If a² = 49 and a < 0, what is a³?",o:["−343","−21","21","343"],a:0,e:"a must be −7, so a³ = (−7)³ = −343."},
+{c:"m",d:1,q:"What is the value of 2³ + 3²?",o:["13","17","21","36"],a:1,e:"2³ = 8 and 3² = 9, so 8 + 9 = 17."},
+{c:"m",d:1,q:"The ratio of boys to girls in a class is 3:4. There are 28 students. How many are boys?",o:["9","12","16","21"],a:1,e:"3 + 4 = 7 parts. 28 ÷ 7 = 4 per part, so boys = 3 × 4 = 12."},
+{c:"m",d:1,q:"A circle has a diameter of 10. What is its area?",o:["10π","25π","50π","100π"],a:1,e:"Radius = 5, so area = π(5²) = 25π. Don’t use the diameter in the area formula."},
+{c:"m",d:1,q:"If 3x + 2y = 16 and y = 2, what is x?",o:["2","4","6","10"],a:1,e:"3x + 4 = 16, so 3x = 12 and x = 4."},
+{c:"m",d:1,q:"What is the mean of 6, 8, 10, 12, and 14?",o:["8","10","11","12"],a:1,e:"The sum is 50, and 50 ÷ 5 = 10."},
+{c:"m",d:1,q:"If f(x) = x² − 4x, what is f(5)?",o:["1","5","9","45"],a:1,e:"f(5) = 25 − 20 = 5."},
+{c:"m",d:1,q:"A number is increased by 20%, and the result is 90. What was the original number?",o:["70","72","75","108"],a:2,e:"1.2x = 90, so x = 75. Taking 20% off 90 is the common trap."},
+{c:"m",d:1,q:"Which is a solution to x² − 9 = 0?",o:["0","3","9","81"],a:1,e:"x² = 9, so x = 3 or −3."},
+{c:"m",d:1,q:"What is the area of a triangle with base 12 and height 5?",o:["17","30","60","120"],a:1,e:"Area = ½ × 12 × 5 = 30."},
+{c:"m",d:1,q:"If 2x + 3 > 11, which statement about x must be true?",o:["x > 4","x < 4","x > 7","x < 7"],a:0,e:"Subtract 3: 2x > 8. Divide by 2: x > 4."},
+{c:"m",d:1,q:"The sum of three consecutive integers is 48. What is the largest?",o:["15","16","17","18"],a:2,e:"The middle number is 48 ÷ 3 = 16, so they are 15, 16, 17. The largest is 17."},
+{c:"rw",d:1,q:"Between you and ___, the plan is risky.",o:["I","me","myself","mine"],a:1,e:"After a preposition (between), use the object pronoun: me."},
+{c:"rw",d:1,q:"The students, along with their teacher, ___ going on a field trip.",o:["are","is","was","be"],a:0,e:"“Along with their teacher” is extra. The subject is “students,” which is plural."},
+{c:"rw",d:1,q:"Despite the hardships, the pioneers remained ___, never losing hope.",o:["resilient","fragile","reluctant","careless"],a:0,e:"“Despite hardships” and “never losing hope” point to people who bounce back: resilient."},
+{c:"rw",d:1,q:"The forecast predicted heavy rain. ___, the picnic went ahead as planned.",o:["As a result","Nevertheless","For instance","Similarly"],a:1,e:"The picnic happened despite the forecast, so use a contrast word: Nevertheless."},
+{c:"rw",d:1,q:"Which choice is punctuated correctly?",o:["Although it was late we, kept working.","Although it was late, we kept working.","Although, it was late we kept working.","Although it was late; we kept working."],a:1,e:"Put a comma after an introductory clause, before the main clause begins."},
+{c:"rw",d:1,q:"The book, ___ was published in 1998, remains popular.",o:["that","which","who","what"],a:1,e:"Extra information set off by commas uses “which,” not “that.”"},
+{c:"rw",d:1,q:"Each of the dogs ___ its own bowl.",o:["have","has","are having","were"],a:1,e:"“Each” is singular, so it takes “has.”"},
+{c:"rw",d:1,q:"The speaker’s ___ tone made it clear she was not joking.",o:["solemn","whimsical","casual","giddy"],a:0,e:"She wasn’t joking, so the tone was serious: solemn."},
+{c:"rw",d:1,q:"I wanted to go to the concert, ___ I had too much homework.",o:["and","but","so","or"],a:1,e:"The two ideas conflict (want vs. obstacle), so use “but.”"},
+{c:"rw",d:1,q:"The two ___ bikes were parked outside.",o:["girls","girl’s","girls’","girls’s"],a:2,e:"Two girls own the bikes: plural possessive, girls’."},
+{c:"rw",d:1,q:"She was proud of ___ for finishing the race.",o:["her","herself","hers","she"],a:1,e:"The subject and the object are the same person, so use the reflexive pronoun: herself."},
+{c:"rw",d:1,q:"The coach told the team to stretch, to hydrate, and ___.",o:["getting plenty of sleep","to get plenty of sleep","get plenty of sleep, too","that they sleep"],a:1,e:"Keep the list parallel: to stretch, to hydrate, to get plenty of sleep."},
+{c:"rw",d:1,q:"Solar panels are costly to install. ___, they save money over many years.",o:["However","Likewise","For example","Consequently"],a:0,e:"High cost vs. long-term savings is a contrast: However."},
+{c:"rw",d:1,p:"Honeybees communicate the location of food through a “waggle dance.” The angle of the dance relative to vertical shows the direction of the food relative to the sun.",q:"According to the passage, what does the angle of the dance indicate?",o:["How far away the food is","The direction of the food relative to the sun","The type of flower","How many bees should go"],a:1,e:"The passage says the angle shows direction relative to the sun. Distance isn’t mentioned."},
+{c:"rw",d:1,p:"Critics praised the film’s stunning visuals but found its plot predictable. Audiences, however, filled theaters for weeks.",q:"Which choice best describes the relationship between critics and audiences?",o:["Their reactions differed.","They reached the same verdict.","Audiences ignored the film.","Critics ignored the visuals."],a:0,e:"“However” signals a contrast: critics were mixed, while audiences came in large numbers."},
+{c:"rw",d:1,p:"A study of 500 students found that those who slept eight hours scored higher on memory tests than those who slept five.",q:"Which statement is best supported by the passage?",o:["Five hours of sleep causes memory loss.","Longer sleep was linked to higher memory test scores.","Students should never sleep less than eight hours.","Memory tests are unreliable."],a:1,e:"The study shows a link, not a cause, and says nothing about rules or test quality."},
+{c:"rw",d:1,p:"The town’s old mill, abandoned for decades, was recently converted into apartments. Residents say the project has brought new life to the waterfront.",q:"As used in the passage, “brought new life” most nearly means:",o:["created living creatures","revitalized","caused confusion","delayed"],a:1,e:"An abandoned mill becoming apartments revived the area: revitalized."},
+{c:"rw",d:1,p:"Tardigrades, microscopic animals, can survive extreme heat, cold, and even the vacuum of space by entering a dried-out dormant state.",q:"The main idea of the passage is that tardigrades:",o:["are visible to the naked eye","can endure extreme conditions by going dormant","live only in space","need constant water"],a:1,e:"The sentence centers on how they survive extremes: by going dormant."},
+{c:"rw",d:1,p:"Maria planned to repaint her room yellow. After seeing the sample in the afternoon light, she hesitated: it looked far brighter than the swatch.",q:"Why did Maria hesitate?",o:["She disliked yellow.","The paint looked brighter than she expected.","She ran out of paint.","Her room was too small."],a:1,e:"The text after the colon gives the reason: it looked far brighter than the swatch."},
+{c:"rw",d:1,p:"Some historians argue that the printing press spread new ideas rapidly across Europe. Without it, they say, the Reformation might have remained a local dispute.",q:"Which choice best states the historians’ claim?",o:["The printing press helped ideas spread widely.","The Reformation began before printing.","Europe resisted new ideas.","The printing press was invented during the Reformation."],a:0,e:"Their claim is that printing spread ideas quickly. The other choices add facts the passage never gives."},
+{c:"rw",d:1,p:"A coastal village built a seawall in 1950. Though storms battered the coast for decades, the village has never flooded.",q:"What does the word “Though” signal?",o:["A contrast","An example","A cause","A definition"],a:0,e:"“Though” sets storms against the lack of flooding, which is a contrast."},
+{c:"rw",d:1,p:"Researchers tracked the migration of monarch butterflies using tiny tags. The tags revealed that some monarchs travel more than 2,500 miles each fall.",q:"What did the tags reveal?",o:["That monarchs avoid cold weather entirely","How far some monarchs travel in the fall","Where monarchs lay eggs","How long monarchs live"],a:1,e:"The passage says the tags revealed distances of more than 2,500 miles."},
+{c:"rw",d:1,p:"Though the café’s coffee was ordinary, its warm atmosphere kept customers returning.",q:"According to the sentence, why did customers keep returning?",o:["The excellent coffee","The warm atmosphere","Low prices","The location"],a:1,e:"“Though” sets aside the coffee, and the atmosphere is named as the reason."},
+{c:"rw",d:1,p:"The museum’s new exhibit invites visitors to touch the artifacts. Curators hope the hands-on approach will help children connect with history.",q:"What is the curators’ goal?",o:["To protect the artifacts","To help children connect with history","To raise ticket prices","To shorten tours"],a:1,e:"The passage states the goal directly in the second sentence."},
+{c:"rw",d:1,p:"An analysis of city bike-share data showed that rides spike on weekday mornings and evenings, suggesting that many riders use the bikes to commute.",q:"The word “suggesting” indicates that the conclusion is:",o:["proven beyond doubt","a reasonable inference","unrelated to the data","a personal opinion"],a:1,e:"“Suggesting” means the data points toward the conclusion without proving it: an inference."},
+{c:"rw",d:1,p:"Though initially skeptical, the board approved the plan after seeing the budget. Several members said the numbers had changed their minds.",q:"What changed the board’s mind?",o:["The budget numbers","A public protest","A new chairperson","A deadline"],a:0,e:"The members said the numbers changed their minds, and the numbers came from the budget."},
+{c:"rw",d:1,p:"The poet’s early work focused on city life. Her later poems turned to the quiet of rural landscapes.",q:"What does the passage suggest about the poet’s work?",o:["It stayed the same throughout her career.","Its focus changed over time.","It ignored nature.","It was written only in cities."],a:1,e:"“Early” vs. “later” and city vs. rural show her subjects shifted."},
+{c:"m",d:2,q:"If x² + 6x + 9 = 25, what is the positive value of x?",o:["2","5","8","16"],a:0,e:"The left side is (x + 3)² = 25, so x + 3 = 5 or −5. The positive solution is x = 2."},
+{c:"m",d:2,q:"The lines y = 2x + 1 and y = −x + 7 intersect at (a, b). What is a + b?",o:["5","7","9","12"],a:1,e:"Set them equal: 3x = 6, so a = 2 and b = 5. Then a + b = 7."},
+{c:"m",d:2,q:"If 2x + y = 11 and x − y = 1, what is x?",o:["3","4","5","6"],a:1,e:"Add the equations: 3x = 12, so x = 4."},
+{c:"m",d:2,q:"For what positive value of x does f(x) = x² + 2x equal 8?",o:["2","4","6","8"],a:0,e:"x² + 2x − 8 = 0 factors as (x + 4)(x − 2) = 0. The positive solution is 2."},
+{c:"m",d:3,q:"A bacteria population doubles every 3 hours. It starts at 500. How many are there after 12 hours?",o:["2,000","4,000","8,000","6,000"],a:2,e:"12 hours is 4 doublings, so 500 × 2⁴ = 500 × 16 = 8,000."},
+{c:"m",d:3,q:"A $60 shirt is discounted 25%, then the sale price is reduced by another 10%. What is the final price?",o:["$39.00","$40.50","$42.00","$45.00"],a:1,e:"$60 × 0.75 = $45, then $45 × 0.90 = $40.50. Two discounts are not added together."},
+{c:"m",d:2,q:"Monthly sales were 12, 18, 15, and 21. What is the median?",o:["15","16.5","17","18"],a:1,e:"Order them: 12, 15, 18, 21. With an even count, average the middle two: (15 + 18) ÷ 2 = 16.5."},
+{c:"m",d:2,q:"Five values have a mean of 20. A sixth value of 32 is added. What is the new mean?",o:["21","22","24","26"],a:1,e:"The original total is 100. Add 32 to get 132, then 132 ÷ 6 = 22."},
+{c:"m",d:2,q:"A right triangle has a 30° angle and a hypotenuse of 12. How long is the side opposite the 30° angle?",o:["4","6","6√3","12"],a:1,e:"In a 30-60-90 triangle, the side opposite 30° is half the hypotenuse: 6."},
+{c:"m",d:3,q:"A rectangle has a diagonal of 13 and one side of 5. What is its area?",o:["30","60","65","120"],a:1,e:"5² + w² = 13², so w² = 144 and w = 12. Area = 5 × 12 = 60."},
+{c:"m",d:2,q:"What is the radius of the circle (x − 2)² + (y + 3)² = 16?",o:["2","3","4","16"],a:2,e:"The right side is r², so r² = 16 and r = 4."},
+{c:"m",d:2,q:"In a right triangle, sin θ = 3/5 and the hypotenuse is 10. What is the length of the side opposite θ?",o:["3","5","6","8"],a:2,e:"sin θ = opposite ÷ hypotenuse, so opposite = (3/5)(10) = 6."},
+{c:"m",d:2,q:"If 3ˣ = 81, what is x?",o:["3","4","9","27"],a:1,e:"81 = 3⁴, so x = 4."},
+{c:"m",d:2,q:"Which expression is equivalent to 2(3x − 4) − (x − 5)?",o:["5x − 3","5x − 13","7x − 3","5x − 9"],a:0,e:"6x − 8 − x + 5 = 5x − 3. Distribute the minus sign to both terms."},
+{c:"m",d:2,q:"y = kx, and y = 15 when x = 5. What is x when y = 36?",o:["10","12","15","18"],a:1,e:"k = 15 ÷ 5 = 3. Then 36 = 3x, so x = 12."},
+{c:"m",d:3,q:"A car worth $20,000 loses 15% of its value each year. What is it worth after 2 years?",o:["$14,000","$14,450","$15,000","$16,000"],a:1,e:"Multiply by 0.85 twice: 20,000 × 0.7225 = $14,450. Repeated percent change is not a flat 30%."},
+{c:"m",d:2,q:"The parabola y = (x − 3)² + 2 has its vertex at which point?",o:["(−3, 2)","(3, 2)","(3, −2)","(−3, −2)"],a:1,e:"Vertex form y = (x − h)² + k has its vertex at (h, k) = (3, 2)."},
+{c:"m",d:3,q:"If 4x − 2y = 10 and 2x + y = 7, what is y?",o:["1","2","3","4"],a:0,e:"From the second equation, y = 7 − 2x. Substituting: 4x − 14 + 4x = 10, so x = 3 and y = 1."},
+{c:"m",d:2,q:"For what value of k does 2x + 3 = kx + 3 have infinitely many solutions?",o:["0","2","3","6"],a:1,e:"If k = 2, both sides are identical, so every x works."},
+{c:"rw",d:2,q:"The experiment produced unexpected results ___ the team repeated it to confirm them.",o:["results, the team","results; the team","results the team","results, and, the team"],a:1,e:"Two complete sentences need a semicolon or a conjunction. A comma alone is a splice."},
+{c:"rw",d:2,q:"The collection of rare coins, displayed in glass cases, ___ valued at over a million dollars.",o:["are","is","were","have been"],a:1,e:"The subject is “collection” (singular), not “coins.” Ignore the phrases in between."},
+{c:"rw",d:2,q:"The CEO’s ___ response avoided answering the question directly.",o:["evasive","thorough","candid","enthusiastic"],a:0,e:"Avoiding a direct answer is evasive. “Candid” is the opposite."},
+{c:"rw",d:2,q:"Her ___ approach to spending, saving every extra dollar, surprised friends who thought she was generous.",o:["frugal","lavish","careless","impulsive"],a:0,e:"Saving every dollar is frugal. The details in the sentence define the word."},
+{c:"rw",d:2,q:"Early maps were often inaccurate. ___, they were valuable because they recorded what travelers had actually seen.",o:["Still","Thus","Similarly","In other words"],a:0,e:"Flawed but valuable is a contrast, and “Still” works like “nevertheless.”"},
+{c:"rw",d:2,q:"Which choice corrects the error in “Having finished the exam, the classroom was quiet.”?",o:["Having finished the exam, the students were quiet.","Having finished the exam, quiet filled the classroom.","Having finished the exam, the quiet classroom.","Having finished the exam, was the classroom quiet."],a:0,e:"A classroom can’t take an exam. The people who finished must come right after the comma."},
+{c:"rw",d:2,q:"Which sentence uses a semicolon correctly?",o:["Although she studied; she was nervous.","She studied for weeks; she still felt nervous.","She studied for weeks; and felt nervous.","She studied; for weeks."],a:1,e:"A semicolon joins two complete sentences, and only the second option has that."},
+{c:"rw",d:2,q:"Which describes the tone of “Sure, because ignoring the warnings worked so well last time”?",o:["sarcastic","admiring","neutral","fearful"],a:0,e:"The words say “worked well” but the meaning is the opposite: sarcasm."},
+{c:"rw",d:2,q:"To ___ should the letter be addressed?",o:["who","whom","whose","which"],a:1,e:"After a preposition (to), use “whom.” Test: to him, so to whom."},
+{c:"rw",d:2,q:"Which choice is the most concise?",o:["In my opinion, I personally think the plan is bad.","I think the plan is bad.","It is my own opinion that I think the plan is bad.","Personally, I am of the opinion that I think the plan is bad."],a:1,e:"All the other options repeat the same idea. Cut redundancy."},
+{c:"rw",d:2,q:"The researcher was careful not to ___ her results; she reported only what the data showed.",o:["exaggerate","verify","document","repeat"],a:0,e:"Reporting only what the data show means not overstating: exaggerate."},
+{c:"rw",d:2,p:"Although electric cars produce no tailpipe emissions, their batteries require mining for lithium and cobalt. Environmental groups urge manufacturers to improve recycling.",q:"Which choice best describes the function of the first sentence?",o:["It presents a benefit and then a complication.","It defines a technical term.","It summarizes a study.","It recommends a policy."],a:0,e:"“Although” sets up the benefit (no emissions) and then the downside (mining)."},
+{c:"rw",d:2,p:"In 1928, Alexander Fleming noticed that mold growing on a discarded dish had killed nearby bacteria. The accident eventually led to the first widely used antibiotic.",q:"What is the main idea of the passage?",o:["A chance observation led to an important medical advance.","Fleming disliked laboratory work.","Mold is harmful to humans.","Antibiotics were invented before 1928."],a:0,e:"Both sentences connect an accidental observation to a major result."},
+{c:"rw",d:2,p:"Local officials say the new bus route will cut commute times. However, a recent survey found that most riders live far from the proposed stops.",q:"The word “However” most strongly signals that:",o:["the second sentence casts doubt on the first","the route is already open","the survey agrees with officials","the bus is free"],a:0,e:"The survey result challenges the officials’ claim, so the sentences conflict."},
+{c:"rw",d:2,p:"The desert tortoise spends most of its life underground, emerging mainly in spring to feed. This behavior helps it avoid extreme temperatures.",q:"According to the passage, why does the tortoise stay underground?",o:["To avoid extreme temperatures","To hunt","To hibernate year-round","To find mates"],a:0,e:"The second sentence states the benefit directly."},
+{c:"rw",d:2,p:"Although the proposal was widely criticized as too expensive, supporters argued that the long-term savings would outweigh the upfront cost.",q:"Which choice best states the supporters’ view?",o:["The plan is cheap to start.","Savings over time would exceed the initial expense.","Criticism was unfair because the plan was free.","The cost should be hidden."],a:1,e:"“Savings would outweigh the upfront cost” means the savings are bigger in the long run."},
+{c:"rw",d:2,p:"Dr. Lin expected the plants in shade to grow more slowly. To her surprise, they grew taller than those in direct sun.",q:"Which word best describes Dr. Lin’s reaction?",o:["surprised","bored","angry","relieved"],a:0,e:"The text names it directly: “to her surprise.”"},
+{c:"rw",d:2,p:"Ancient Romans built roads so well that some still survive today. Engineers attribute this to layered construction that allowed water to drain away.",q:"The passage suggests that Roman roads lasted because of:",o:["their layered design that drained water","modern machinery","their short length","frequent repairs"],a:0,e:"Engineers credit the layered construction, which let water drain."},
+{c:"rw",d:3,p:"A recent poll shows that 70 percent of residents support the new park. The mayor said the result proves that every resident wants it.",q:"Which choice best evaluates the mayor’s claim?",o:["It is supported, since 70 percent support the park.","It overstates the evidence, because 70 percent is not every resident.","It is accurate because polls are always right.","It is irrelevant to the poll."],a:1,e:"“Every resident” is much stronger than 70 percent. Watch for claims that go beyond the data."},
+{c:"rw",d:2,p:"Coral reefs cover less than one percent of the ocean floor yet support about a quarter of all marine species.",q:"The passage emphasizes that coral reefs are:",o:["small but ecologically important","large and fragile","rare and unremarkable","deep and dark"],a:0,e:"Small area, big role: “less than one percent” versus “a quarter of species.”"},
+{c:"rw",d:2,p:"When the factory closed, many workers retrained as nurses and technicians. Within five years, the town’s main employer was its hospital.",q:"What does the passage suggest happened in the town?",o:["Its economy shifted to new industries.","Its hospital closed.","Workers left town.","The factory reopened."],a:0,e:"Retraining and the hospital becoming the main employer show an economic shift."},
+{c:"rw",d:2,p:"The novel’s narrator insists she is a reliable witness. Yet her descriptions of the same event change each time she tells it.",q:"What does the second sentence suggest?",o:["The narrator may be unreliable.","The narrator is certain.","The event never happened.","The narrator is lying on purpose."],a:0,e:"Changing accounts raise doubt, but nothing shows she is lying deliberately."},
+{c:"rw",d:2,p:"Wind farms generate clean power but can disrupt bird migration. To reduce harm, some operators now pause turbines during peak migration periods.",q:"What is the purpose of the last sentence?",o:["To describe a response to a problem raised earlier","To argue that wind power should end","To define migration","To compare wind to solar"],a:0,e:"The first sentence raises a problem, and the last describes how operators address it."},
+{c:"rw",d:2,p:"The treaty, signed after months of negotiation, ended the border dispute. Historians note, though, that tensions lingered for years.",q:"Which choice best describes the historians’ view?",o:["The treaty fixed the tensions immediately.","The treaty ended the dispute but did not erase tensions.","The negotiations were short.","The dispute never ended."],a:1,e:"“Though” adds a limit: the dispute ended, but tensions remained."},
+{c:"rw",d:2,p:"Claim: Reading aloud improves children’s vocabulary.",q:"Which finding would best support this claim?",o:["Children who read aloud daily learned more new words over a semester than a similar group who read silently.","Many children enjoy reading aloud.","Libraries host reading events.","Vocabulary lists are common in schools."],a:0,e:"Best evidence is a direct comparison on vocabulary gains. The other options are loosely related."},
+{c:"rw",d:2,p:"The artist’s early paintings used muted colors. After a trip to Morocco, her work exploded with vivid reds and oranges.",q:"What does the passage suggest about the trip?",o:["It influenced her use of color.","It ended her career.","It made her avoid red.","It was unrelated to her painting."],a:0,e:"The timing and the change in color imply the trip influenced her palette."},
+{c:"rw",d:2,p:"Because the lake’s water level fell during the drought, boat ramps became unusable and fishing declined sharply.",q:"According to the passage, what caused the decline in fishing?",o:["The lower water level during the drought","New fishing laws","Pollution","Fewer anglers"],a:0,e:"“Because” points to the falling water level, which made the ramps unusable."},
+{c:"m",d:2,q:"If (x − 3)(x + 5) = 0, what is the sum of the solutions?",o:["−8","−2","2","8"],a:1,e:"The solutions are 3 and −5, and 3 + (−5) = −2."},
+{c:"m",d:2,q:"What is the y-intercept of y = 4(x − 2) + 3?",o:["−8","−5","3","4"],a:1,e:"Distribute: y = 4x − 8 + 3 = 4x − 5. The intercept is −5."},
+{c:"m",d:2,q:"If 3x + y = 14 and x = 2y, what is y?",o:["1","2","4","7"],a:1,e:"Substitute x = 2y: 6y + y = 14, so y = 2."},
+{c:"m",d:2,q:"The function g(x) = 3x − 7. For what value of x is g(x) = 20?",o:["4","9","13","27"],a:1,e:"3x − 7 = 20, so 3x = 27 and x = 9."},
+{c:"m",d:2,q:"What is the distance between (1, 2) and (7, 10)?",o:["8","10","12","14"],a:1,e:"The legs are 6 and 8, so the distance is √(36 + 64) = 10."},
+{c:"m",d:2,q:"A cylinder has radius 3 and height 5. What is its volume?",o:["15π","30π","45π","90π"],a:2,e:"V = πr²h = π(9)(5) = 45π."},
+{c:"m",d:2,q:"A right triangle has legs 5 and 12. What is the cosine of the angle opposite the side of length 5?",o:["5/13","5/12","12/13","13/12"],a:2,e:"The hypotenuse is 13. The side adjacent to that angle is 12, so cos = 12/13."},
+{c:"m",d:3,q:"A line is perpendicular to y = 2x + 1 and passes through (0, 4). What is its equation?",o:["y = 2x + 4","y = −2x + 4","y = −½x + 4","y = ½x + 4"],a:2,e:"A perpendicular slope is the negative reciprocal: −½. The y-intercept is 4."},
+{c:"m",d:2,q:"If 2/3 of a number is 18, what is 1/2 of the number?",o:["9","12","13.5","27"],a:2,e:"The number is 18 ÷ (2/3) = 27, and half of 27 is 13.5."},
+{c:"m",d:2,q:"How many solutions does 3(x + 2) = 3x + 5 have?",o:["None","One","Two","Infinitely many"],a:0,e:"3x + 6 = 3x + 5 simplifies to 6 = 5, which is never true. No solutions."},
+{c:"m",d:2,q:"A rectangle’s length is 3 more than twice its width. Its perimeter is 36. What is the width?",o:["4","5","6","7"],a:1,e:"Length + width = 18, so (2w + 3) + w = 18. Then 3w = 15 and w = 5."},
+{c:"m",d:3,q:"The ratio of cats to dogs is 2:5, and there are 15 more dogs than cats. How many dogs are there?",o:["10","15","25","35"],a:2,e:"The 3-part difference is 15, so each part is 5. Dogs = 5 × 5 = 25."},
+{c:"m",d:3,q:"$1,000 is invested at 5% interest, compounded annually. What is its value after 2 years?",o:["$1,100.00","$1,102.50","$1,105.00","$1,125.00"],a:1,e:"1,000 × 1.05² = $1,102.50. Interest earns interest."},
+{c:"m",d:2,q:"Which is the equation of the line with slope 3 through the point (2, 1)?",o:["y = 3x − 5","y = 3x + 1","y = 3x − 1","y = 3x + 5"],a:0,e:"y − 1 = 3(x − 2) gives y = 3x − 5."},
+{c:"m",d:3,q:"If x/4 + x/6 = 5, what is x?",o:["10","12","24","30"],a:1,e:"Use a common denominator of 12: (3x + 2x)/12 = 5, so 5x = 60 and x = 12."},
+{c:"m",d:2,q:"A scatterplot’s line of best fit is y = 2.5x + 10. What y-value does it predict when x = 8?",o:["20","28","30","38"],a:2,e:"y = 2.5(8) + 10 = 20 + 10 = 30."},
+{c:"m",d:2,q:"Six numbers have a mean of 15. If the number 27 is removed, what is the mean of the remaining five?",o:["12","12.6","13","15"],a:1,e:"The total is 90. Remove 27 to get 63, and 63 ÷ 5 = 12.6."},
+{c:"m",d:2,q:"What is the value of √50 ÷ √2?",o:["5","10","25","√48"],a:0,e:"√50 ÷ √2 = √25 = 5."},
+{c:"m",d:2,q:"If x² = 12x − 36, what is x?",o:["0","3","6","12"],a:2,e:"Rearrange: x² − 12x + 36 = 0, which is (x − 6)² = 0. So x = 6."},
+{c:"m",d:2,q:"A triangle has sides 7, 24, and 25. What kind of triangle is it?",o:["Acute","Right","Obtuse","Equilateral"],a:1,e:"7² + 24² = 49 + 576 = 625 = 25², so it’s a right triangle."},
+{c:"m",d:2,q:"For which value of x is (2x − 6)/(x − 3) undefined?",o:["−3","0","3","6"],a:2,e:"A fraction is undefined when its denominator is zero: x − 3 = 0, so x = 3."},
+{c:"m",d:2,q:"A store’s profit is P = 8n − 120, where n is the number of items sold. How many items must it sell to break even?",o:["12","15","20","120"],a:1,e:"Break even means P = 0: 8n = 120, so n = 15."},
+{c:"m",d:2,q:"What is the product of the solutions to x² − 7x + 12 = 0?",o:["7","12","−7","−12"],a:1,e:"It factors as (x − 3)(x − 4), so the solutions are 3 and 4, and 3 × 4 = 12."},
+{c:"m",d:2,q:"Two fair coins are flipped. What is the probability of getting at least one head?",o:["1/4","1/2","3/4","1"],a:2,e:"Only tails-tails fails, which is 1/4. So the probability is 1 − 1/4 = 3/4."},
+{c:"rw",d:2,q:"The researchers described their findings as ___, noting that more data was needed.",o:["conclusive","tentative","irrelevant","unanimous"],a:1,e:"Needing more data means the findings aren’t final: tentative."},
+{c:"rw",d:2,q:"Which choice maintains a formal tone?",o:["The results were unexpected.","The results were kinda off.","The results were super strange.","The results were crazy."],a:0,e:"Formal writing avoids slang and filler like “kinda” and “super.”"},
+{c:"rw",d:2,q:"By the time the rescue team arrived, the hikers ___ for two days.",o:["have waited","had been waiting","waited","are waiting"],a:1,e:"An action that continued up to an earlier past moment uses past perfect progressive: had been waiting."},
+{c:"rw",d:2,q:"The number of applicants ___ increased this year.",o:["have","has","are","were"],a:1,e:"“The number” is singular (unlike “a number of”), so use “has.”"},
+{c:"rw",d:2,q:"She had one goal ___ to win the championship.",o:[":",";",",","and"],a:0,e:"A colon after a complete sentence introduces what the goal is. A semicolon needs a full sentence after it."},
+{c:"rw",d:2,q:"The study had a small sample. ___, its findings should be treated cautiously.",o:["Therefore","However","Similarly","Meanwhile"],a:0,e:"The small sample is the reason for caution, so use a cause-and-effect transition: Therefore."},
+{c:"rw",d:2,q:"The second test was harder ___ the first.",o:["then","than","that","thin"],a:1,e:"Use “than” for comparisons. “Then” is about time."},
+{c:"rw",d:2,q:"The sauce was a perfect ___ to the dish.",o:["compliment","complement","complimentary","complementing"],a:1,e:"“Complement” means to complete or go well with. “Compliment” means praise."},
+{c:"rw",d:2,q:"The detective was ___ in her pursuit, refusing to abandon the case.",o:["tenacious","apathetic","flexible","hasty"],a:0,e:"Refusing to give up describes someone tenacious."},
+{c:"rw",d:2,q:"The rule was ___ so strictly that even small errors were penalized.",o:["enforced","ignored","invented","forgotten"],a:0,e:"Penalizing small errors means the rule was being enforced."},
+{c:"rw",d:2,q:"Her argument, while ___, failed to persuade skeptics who wanted data.",o:["eloquent","flawed","confused","hurried"],a:0,e:"“While” signals contrast: well spoken but lacking data. Eloquent fits."},
+{c:"rw",d:2,q:"The lounge used by all of the school’s teachers is called the ___ lounge.",o:["teacher’s","teachers’","teachers’s","teachers"],a:1,e:"Many teachers share it, so use the plural possessive: teachers’."},
+{c:"rw",d:2,q:"Which choice is a complete sentence?",o:["Because the storm was approaching.","The storm approaching quickly.","The storm was approaching, so we left.","Approaching the storm fast."],a:2,e:"Only this one has a subject and a verb that make a complete thought."},
+{c:"rw",d:2,q:"Which choice best combines “The lab was small. It was crowded.”?",o:["The lab was small, it was crowded.","The lab was small and crowded.","The lab, small, crowded.","The lab was small; and crowded."],a:1,e:"Joining the two descriptions with “and” avoids a splice and stays concise."},
+{c:"rw",d:2,p:"Researchers compared three fertilizers. Plants given fertilizer A grew 12 cm on average, B grew 9 cm, and C grew 15 cm.",q:"Which conclusion is supported by the passage?",o:["Fertilizer C produced the most growth.","Fertilizer A is the cheapest.","Fertilizer B harms plants.","All the fertilizers performed equally."],a:0,e:"15 cm is the largest average. The rest add claims about cost or harm."},
+{c:"rw",d:2,p:"Many assume that cities are noisier than the countryside. Yet a recent survey of sound levels found that some rural areas near highways were louder than quiet city parks.",q:"The word “Yet” indicates that the survey:",o:["complicates the common assumption","confirms the assumption","is unrelated to the assumption","was conducted only in cities"],a:0,e:"“Yet” signals contrast: the survey shows the assumption isn’t always true."},
+{c:"rw",d:2,p:"The author does not claim that social media is entirely harmful. Rather, she argues that its effects depend on how it is used.",q:"Which choice best states the author’s position?",o:["Social media’s effects depend on how it is used.","Social media is always harmful.","Social media has no effects.","Social media should be banned."],a:0,e:"“Rather” introduces what she actually argues."},
+{c:"rw",d:2,p:"In the 1800s, many families relied on kerosene lamps for light. The introduction of electric lighting changed daily routines, allowing people to work and read well into the night.",q:"What is the main idea of the passage?",o:["Electric lighting transformed daily life.","Kerosene was dangerous.","People disliked electricity.","Families moved to cities."],a:0,e:"Both sentences build to how electric lighting changed routines."},
+{c:"rw",d:2,p:"The mayor’s plan to ban cars from downtown on weekends was praised by cyclists. Business owners, however, worried that fewer customers would visit.",q:"Which choice best describes how the groups responded?",o:["Both groups welcomed the plan.","Cyclists were supportive while business owners were concerned.","Business owners supported it and cyclists opposed it.","Neither group responded."],a:1,e:"“Praised” versus “worried” shows opposite reactions."},
+{c:"rw",d:2,p:"Dr. Reyes found that students who took notes by hand remembered concepts better than those who typed. She suggests that handwriting forces students to summarize rather than transcribe.",q:"According to Dr. Reyes, why might handwriting help?",o:["It requires students to summarize ideas.","It is faster than typing.","It uses less paper.","It is easier to read."],a:0,e:"Her explanation is in the last sentence: handwriting forces summarizing."},
+{c:"rw",d:2,p:"The ancient city flourished for centuries before being abandoned. Archaeologists believe a prolonged drought may have forced residents to leave.",q:"As used in the passage, “prolonged” most nearly means:",o:["brief","lasting a long time","sudden","severe"],a:1,e:"A drought that forced a city to be abandoned had to last a long time."},
+{c:"rw",d:2,p:"Some critics call the author’s style “overwrought.” Supporters counter that her dense, ornate sentences reward patient readers.",q:"As used in the passage, “overwrought” most nearly means:",o:["excessively elaborate","simple","carefully balanced","dull"],a:0,e:"The supporters’ reply mentions “dense, ornate” sentences, so critics mean overdone."},
+{c:"rw",d:2,p:"When the bakery began offering a weekday lunch special, sales rose 20 percent. The owner credits the special, though she notes that a nearby office also opened that month.",q:"What does the final clause suggest?",o:["Another factor might explain some of the increase.","The special failed.","Sales actually fell.","The owner closed the bakery."],a:0,e:"The new office is a second possible cause, which complicates the owner’s claim."},
+{c:"rw",d:3,p:"Biologists observed that the island’s birds with longer beaks fed more successfully during the drought, when only deep-seated seeds remained. Over generations, average beak length increased.",q:"Which concept does the passage illustrate?",o:["Natural selection","Migration","Hibernation","Pollination"],a:0,e:"A helpful trait led to more success, and the trait became more common over generations."},
+{c:"rw",d:2,p:"The new smartphone has a faster processor and brighter display. Reviewers note, however, that its battery life is shorter than last year’s model.",q:"Which choice best summarizes the reviewers’ assessment?",o:["Improved in some respects but weaker in battery life","Better in every way","Worse in every way","Identical to last year’s model"],a:0,e:"The first sentence lists improvements, and “however” adds a drawback."},
+{c:"rw",d:2,p:"Because the committee needed to reach unanimous agreement, discussions often stretched for hours. Members said the process, while slow, produced decisions everyone could support.",q:"What does the passage suggest about the committee’s process?",o:["It was slow but produced broadly supported decisions.","It was fast and efficient.","It rarely reached decisions.","It ignored members’ opinions."],a:0,e:"“While slow” plus “everyone could support” matches the first choice."},
+{c:"rw",d:2,p:"A survey asked 1,000 adults about their reading habits. About 60 percent said they read at least one book in the past year, while 40 percent said they read none.",q:"Which statement is accurate based on the survey?",o:["Most respondents read at least one book.","Most respondents read no books.","Exactly half read a book.","All respondents read frequently."],a:0,e:"60 percent is a majority, and nothing in the passage says how often they read."},
+{c:"rw",d:2,p:"The senator’s speech was widely praised for its clarity. Critics noted, though, that it offered few specific proposals.",q:"What is the critics’ main concern?",o:["The speech lacked specific proposals.","The speech was unclear.","The speech was too long.","The speech was off-topic."],a:0,e:"The critics’ only stated complaint is the lack of specifics."},
+{c:"rw",d:2,p:"Though skeptical at first, the scientists replicated the experiment three times and obtained the same result each time.",q:"Why did the scientists likely change their view?",o:["Repeated results confirmed the finding.","They lost interest.","They received new funding.","They disliked the data."],a:0,e:"Getting the same result three times is strong confirmation."},
+{c:"rw",d:2,p:"The river’s annual flooding deposited nutrient-rich silt on nearby farmland, making the soil exceptionally fertile. After a dam was built, the flooding stopped and farmers began to rely on fertilizers.",q:"What effect did the dam have?",o:["It ended the natural enrichment of the soil.","It increased flooding.","It reduced the need for fertilizer.","It destroyed the farms."],a:0,e:"No more flooding meant no more silt, so farmers turned to fertilizer."},
+{c:"rw",d:2,p:"To make her case that the city needs more parks, the councilwoman cited a study showing that residents living within a ten-minute walk of a park exercised more often.",q:"What role does the study play in her argument?",o:["It serves as evidence for her claim.","It contradicts her claim.","It describes a rival proposal.","It defines the word park."],a:0,e:"She cites the study to support her case."},
+{c:"rw",d:2,p:"Early in the novel, the protagonist is shy and avoids attention. By the final chapter, she addresses a crowd with confidence.",q:"What does the passage suggest about the protagonist?",o:["She undergoes personal growth.","She remains unchanged.","She dislikes crowds.","She leaves the story."],a:0,e:"Shy at the start and confident at the end shows she changed."},
+{c:"m",d:1,q:"If 7 − 2x = 1, what is x?",o:["2","3","4","−3"],a:1,e:"Subtract 7: −2x = −6, so x = 3."},
+{c:"m",d:1,q:"What is 40% of 85?",o:["32","34","36","45"],a:1,e:"0.40 × 85 = 34."},
+{c:"m",d:1,q:"The perimeter of a square is 28. What is its area?",o:["28","49","56","196"],a:1,e:"Each side is 28 ÷ 4 = 7, so the area is 7² = 49."},
+{c:"m",d:1,q:"What is the value of |−8| + |3|?",o:["−11","−5","5","11"],a:3,e:"Absolute value makes each term positive: 8 + 3 = 11."},
+{c:"m",d:1,q:"A line passes through (0, −2) and (3, 4). What is its slope?",o:["1","2","3","6"],a:1,e:"Slope = (4 − (−2)) ÷ (3 − 0) = 6 ÷ 3 = 2."},
+{c:"m",d:1,q:"6 workers can build a wall in 10 days. At the same rate, how many days would 15 workers need?",o:["4","6","25","150"],a:0,e:"The job is 60 worker-days, and 60 ÷ 15 = 4 days. More workers means fewer days."},
+{c:"m",d:1,q:"Which expression is equivalent to (2x²)(3x³)?",o:["5x⁵","6x⁵","6x⁶","5x⁶"],a:1,e:"Multiply the coefficients (2 × 3 = 6) and add the exponents (2 + 3 = 5): 6x⁵."},
+{c:"m",d:1,q:"The sum of two numbers is 20 and their difference is 6. What is the larger number?",o:["7","13","14","16"],a:1,e:"Add the equations: 2x = 26, so x = 13 (and the other number is 7)."},
+{c:"m",d:3,q:"Plan A charges a $25 monthly fee plus $0.10 per minute. Plan B charges $10 monthly plus $0.15 per minute. For how many minutes do the two plans cost the same?",o:["150","200","300","500"],a:2,e:"Set 25 + 0.10m = 10 + 0.15m. Then 15 = 0.05m, so m = 300."},
+{c:"m",d:2,q:"A line passes through (2, 5) and (6, 13). Which point also lies on the line?",o:["(0, 1)","(1, 2)","(3, 8)","(8, 15)"],a:0,e:"Slope = 8 ÷ 4 = 2, so y = 2x + 1. Only (0, 1) fits."},
+{c:"m",d:3,q:"What is the maximum value of f(x) = −x² + 6x − 5?",o:["3","4","5","9"],a:1,e:"The vertex is at x = −b/2a = 3. Then f(3) = −9 + 18 − 5 = 4."},
+{c:"m",d:3,q:"If (2x − 1)/(x + 3) = 3, what is x?",o:["−10","−5","5","10"],a:0,e:"Cross-multiply: 2x − 1 = 3x + 9, so x = −10. Check: −21 ÷ −7 = 3."},
+{c:"m",d:3,q:"The sum of the squares of two consecutive positive integers is 61. What is their product?",o:["20","30","42","56"],a:1,e:"n² + (n + 1)² = 61 gives n² + n − 30 = 0, so n = 5. The integers are 5 and 6, and 5 × 6 = 30."},
+{c:"m",d:3,q:"A solution of 10 liters is 20% acid. How many liters of pure acid must be added to make it 50% acid?",o:["2","4","6","8"],a:2,e:"Start with 2 L of acid. (2 + x)/(10 + x) = 0.5 gives x = 6."},
+{c:"m",d:3,q:"The graph of y = x² + bx + 9 touches the x-axis at exactly one point, and b > 0. What is b?",o:["3","6","9","12"],a:1,e:"One touch point means the discriminant is zero: b² − 36 = 0, so b = 6."},
+{c:"m",d:3,q:"A rectangular prism has a square base. Its height is twice the base side, and its volume is 128. What is the base side?",o:["2","4","8","16"],a:1,e:"Volume = s² · 2s = 2s³ = 128, so s³ = 64 and s = 4."},
+{c:"m",d:2,q:"A town’s population is modeled by P(t) = 12,000(1.05)ᵗ, where t is years since 2020. By what percent does the population grow each year?",o:["1.05%","5%","12%","105%"],a:1,e:"The growth factor is 1.05, which is a 5% increase each year."},
+{c:"m",d:3,q:"The circle (x − 1)² + (y + 2)² = 25 and the line y = −2 intersect at two points. How far apart are they?",o:["5","8","10","25"],a:2,e:"With y = −2, (x − 1)² = 25, so x = 6 or −4. The distance is 10."},
+{c:"m",d:3,q:"Which is the solution set of |2x − 5| ≤ 3?",o:["1 ≤ x ≤ 4","x ≤ 1 or x ≥ 4","−1 ≤ x ≤ 4","1 ≤ x ≤ 8"],a:0,e:"−3 ≤ 2x − 5 ≤ 3 gives 2 ≤ 2x ≤ 8, so 1 ≤ x ≤ 4."},
+{c:"rw",d:3,q:"Though the senator’s proposal was initially met with ___, steady public support gradually won over even its fiercest opponents.",o:["acclaim","skepticism","relief","curiosity"],a:1,e:"“Fiercest opponents” shows the first reaction was negative, so skepticism fits best."},
+{c:"rw",d:3,q:"Many economists predicted that automation would reduce employment overall. Data from the past decade, ___, show that sectors adopting robotics most quickly also added jobs.",o:["by contrast","as a result","for instance","similarly"],a:0,e:"The data run against the prediction, so you need a contrast transition."},
+{c:"rw",d:3,q:"Among the artifacts displayed in the main hall ___ a bronze mirror and two ceramic bowls.",o:["is","are","was","has been"],a:1,e:"When the subject follows the verb, find it first: “a mirror and two bowls” is plural, so use “are.”"},
+{c:"rw",d:3,q:"Which choice most effectively combines the sentences? The lab tested the sample. The test took six hours. The test confirmed the contamination.",o:["The lab tested the sample, which took six hours, and confirmed the contamination.","The six-hour test of the sample confirmed the contamination.","The lab tested the sample, the test took six hours, confirming contamination.","Testing the sample and taking six hours, it confirmed contamination."],a:1,e:"The second choice is clear and concise, with no splice and no unclear reference."},
+{c:"rw",d:3,p:"When the city of Portland replaced its aging streetlights with LED fixtures in 2016, officials projected annual energy savings of about 40 percent. Early results exceeded that projection, but complaints followed: residents reported that the new fixtures’ blue-white glare disrupted sleep and made the neighborhood feel harsh. The city responded by switching to warmer-toned LEDs in residential areas, a change that reduced complaints while preserving most of the savings.",q:"Which choice best describes the overall structure of the passage?",o:["A plan is described, a problem emerges, and a solution is adopted.","A theory is proposed and then refuted by data.","Two competing proposals are compared and one is rejected.","A historical event is explained through personal testimony."],a:0,e:"The passage moves from the plan to the complaints to the city’s fix."},
+{c:"rw",d:3,p:"Historian Maya Okoro argues that the rise of the postal system in the nineteenth century did more than speed communication; it reshaped how ordinary people imagined distance. Letters that once took weeks to arrive began to arrive within days, and families separated by ocean voyages began to maintain regular, intimate correspondence. Okoro does not claim that mail replaced face-to-face contact, only that it made separation feel less absolute.",q:"Which choice best states Okoro’s main claim?",o:["The postal system changed how people perceived distance.","The postal system replaced face-to-face contact.","The postal system was created to reduce ocean travel.","Families preferred letters to personal visits."],a:0,e:"The text says outright that Okoro rejects the “replaced” idea. Her claim is about how people imagined distance."},
+{c:"rw",d:3,p:"In a study of urban gardens, ecologists counted pollinator visits at plots with only vegetables and plots that also contained flowering native plants. Plots with native flowers averaged 31 visits per hour, compared with 12 per hour at vegetable-only plots. The researchers caution, however, that the flowering plots were also, on average, larger, so plot size may account for some of the difference.",q:"Which choice best describes the function of the final sentence?",o:["It introduces a possible alternative explanation for the result.","It repeats the study’s main result.","It dismisses the study’s methods.","It recommends planting larger gardens."],a:0,e:"“Plot size may account for some of the difference” offers a second possible cause."},
+{c:"rw",d:3,p:"The novelist’s early books earned her a devoted but small readership. Her fourth, a sprawling family saga, unexpectedly became a bestseller, and critics who had previously overlooked her scrambled to praise it. Yet the author herself, in interviews, has downplayed the book’s significance, insisting that she wrote it no differently than the earlier ones.",q:"The final sentence primarily serves to:",o:["contrast her view of the book with the critics’ reaction","confirm that the book was her best","explain why the book was long","criticize her earlier readers"],a:0,e:"“Yet” signals contrast: critics are excited, but she treats the book as ordinary."},
+{c:"rw",d:3,p:"Because deep-sea hydrothermal vents lack sunlight, scientists once assumed that life near them would be sparse. When submersibles first reached the vents in 1977, however, they found dense communities of tube worms, clams, and bacteria. These organisms rely not on photosynthesis but on chemosynthesis, in which bacteria convert chemicals from the vent fluid into energy.",q:"Which inference is best supported by the passage?",o:["Life can thrive in some environments without sunlight.","Photosynthesis is rare on Earth.","Submersibles were invented in 1977.","Tube worms can perform photosynthesis."],a:0,e:"The vent communities are dense and have no sunlight. The other choices go beyond the text."},
+{c:"rw",d:3,p:"A city council member proposed eliminating parking minimums for new buildings, arguing that the requirement raises housing costs and encourages driving. Opponents counter that without minimums, residents will compete for scarce street parking. Supporters respond that most developers would still build parking where demand exists, since tenants will pay for it.",q:"Which choice best describes the supporters’ response?",o:["Market demand would still lead to parking being built.","Street parking is unlimited.","Housing costs are unrelated to parking.","The council has no authority to act."],a:0,e:"The supporters say developers would build parking where tenants want it."},
+{c:"rw",d:2,g:{t:"table",ti:"Students’ preferred study time",h:["","Morning","Evening"],r:[["Grade 11",34,46],["Grade 12",26,44]]},q:"What fraction of the Grade 12 students surveyed prefer studying in the morning?",o:["26/70","26/60","34/150","26/150"],a:0,e:"Grade 12 has 26 + 44 = 70 students, and 26 prefer mornings: 26/70."},
+{c:"rw",d:2,g:{t:"table",ti:"Item prices by store (dollars)",h:["Store","Item 1","Item 2","Item 3"],r:[["A",12,18,21],["B",15,15,16],["C",10,20,22]]},q:"Which store has the lowest average price for these three items?",o:["Store A","Store B","Store C","They are all equal"],a:1,e:"Averages: A = 17, B ≈ 15.33, C ≈ 17.33. Store B is lowest."},
+{c:"m",d:2,g:{t:"table",ti:"Annual sales (thousands of dollars)",h:["Year","2019","2020","2021"],r:[["Sales",480,600,540]]},q:"From 2020 to 2021, sales changed by what percent?",o:["Decreased by 10%","Decreased by 11%","Increased by 10%","Decreased by 60%"],a:0,e:"The change is −60 on a base of 600, and −60 ÷ 600 = −10%. Always divide by the starting value."},
+{c:"m",d:3,g:{t:"table",ti:"Number of pets per household",h:["Pets","Households"],r:[[0,5],[1,8],[2,4],[3,3]]},q:"What is the median number of pets per household?",o:["0","1","1.5","2"],a:1,e:"There are 20 households. The 10th and 11th values are both 1, so the median is 1."},
+{c:"m",d:2,g:{t:"bar",ti:"Books read per month",l:["Jan","Feb","Mar","Apr","May"],v:[8,12,10,15,9],yt:[0,5,10,15,20]},q:"Between which two consecutive months was the increase greatest?",o:["Jan to Feb","Feb to Mar","Mar to Apr","Apr to May"],a:2,e:"Changes: +4, −2, +5, −6. The largest increase was March to April."},
+{c:"m",d:3,g:{t:"bar",ti:"Recycling by neighborhood (tons)",l:["A","B","C","D"],v:[30,45,20,35],yt:[0,10,20,30,40,50]},q:"Neighborhood B recycled what percent more than neighborhood C?",o:["25%","45%","125%","225%"],a:2,e:"B is 25 tons more than C. 25 ÷ 20 = 125%. Divide by the smaller value, the one you’re comparing to."},
+{c:"m",d:2,g:{t:"scatter",ti:"Study time and quiz score",xt:[0,1,2,3,4,5,6,7],yt:[40,50,60,70,80,90,100],p:[[1,55],[2,62],[3,66],[4,74],[5,78],[6,85]],ln:[0,49,7,91]},q:"According to the line of best fit, about how many points does each extra hour of study add to the predicted score?",o:["2","6","49","91"],a:1,e:"The line rises from 49 to 91 over 7 hours, so the slope is 42 ÷ 7 = 6 points per hour."},
+{c:"m",d:2,g:{t:"scatter",ti:"Temperature (°F) and ice cream sales",xt:[50,60,70,80,90],yt:[0,20,40,60,80],p:[[60,20],[65,28],[70,34],[75,42],[80,50],[85,56]],ln:[55,12.5,90,65]},q:"Using the line of best fit, which is closest to the predicted sales at 90°F?",o:["56","60","65","72"],a:2,e:"Read the line where it meets x = 90. It is at about 65."}
+];
+var KEY="satdaily-v1",mem=null,S,R=null,screen="home";
+var MODES={mix:["🎲","Mixed","Math + Reading"],m:["➗","Math","Algebra, geometry, data"],rw:["📖","Reading & Writing","Grammar and words"],rev:["🔁","Review","Questions due again"],pas:["🧠","Passages","Short readings"],gr:["📊","Graphs & data","Charts and tables"],hard:["🏔️","Challenge","Hardest questions"]};
+function load(){var d=null;try{d=JSON.parse(localStorage.getItem(KEY))}catch(e){}if(!d&&mem)d=mem;S=d||{name:"",xp:0,days:{},seen:{},rounds:0,cat:{m:[0,0],rw:[0,0]}};["frozen","bd","log"].forEach(function(k){S[k]=S[k]||{}});["fz","best","perfect","pc","cb","up"].forEach(function(k){S[k]=S[k]||0});S.tier=S.tier||1;S.outfit=S.outfit||"";S.note=S.note||"";applyFreeze()}
+function save(){mem=S;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function key(d){return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+function today(){return key(new Date())}
+function act(k){return S.days[k]||S.frozen[k]}
+function streak(){var d=new Date();if(!act(key(d)))d.setDate(d.getDate()-1);var n=0;while(act(key(d))){if(S.days[key(d)])n++;d.setDate(d.getDate()-1)}return n}
+function applyFreeze(){var y=new Date(),b=new Date();y.setDate(y.getDate()-1);b.setDate(b.getDate()-2);var ky=key(y);if(!act(ky)&&act(key(b))&&S.fz>0){S.frozen[ky]=1;S.fz--;S.note="❄️ I used a streak freeze to save your streak! "+S.fz+" left.";save()}}
+function esc(s){var e=document.createElement("div");e.textContent=s;return e.innerHTML}
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+var GOAL=50,LEN=5;
+function build(mode){
+  var idx=Q.map(function(_,i){return i});
+  var pool=idx.filter(function(i){return mode==="m"?Q[i].c==="m":mode==="rw"?Q[i].c==="rw":mode==="pas"?!!Q[i].p:mode==="gr"?!!Q[i].g:mode==="hard"?lv(i)===3:mode==="rev"?due(i):true});
+  if(pool.length<LEN)pool=idx;
+  pool.sort(function(a,b){return pr(a)-pr(b)});
+  var items=pool.slice(0,LEN);
+  if(mode==="mix"){var m=items.filter(function(i){return Q[i].c==="m"}).length;if(m===0||m===LEN){items=shuffle(idx.filter(function(i){return Q[i].c==="m"})).slice(0,2).concat(shuffle(idx.filter(function(i){return Q[i].c==="rw"})).slice(0,3))}}
+  return shuffle(items).map(function(i){return{i:i,order:shuffle([0,1,2,3])}});
+}
+function pr(i){var s=S.seen[i];var base=!s?0:due(i)?(s.l==="w"?-2:-1):3+s.r;return base+Math.abs(lv(i)-S.tier)*1.2+Math.random()*.9}
+function start(mode){R={mode:mode,items:build(mode),n:0,sel:null,done:false,right:0,gain:0,fresh:true};screen="round";render()}
+function pickOpt(k){if(R.done)return;R.sel=k;render()}
+function check(){
+  var it=R.items[R.n],q=Q[it.i],ok=it.order[R.sel]===q.a;
+  R.done=true;R.ok=ok;
+  var s=S.seen[it.i]||{r:0,l:""},wasW=s.l==="w";s.l=ok?"r":"w";if(ok)s.r++;s.d=ok?D()+[1,3,7,14,30][Math.min(s.r,5)-1]:D();S.seen[it.i]=s;
+  var LG=lg(today());LG.q++;LG[q.c][1]++;if(ok){LG.c++;LG[q.c][0]++}
+  S.cat[q.c][1]++;if(ok){S.cat[q.c][0]++;R.right++;R.gain+=10;if(q.p)S.pc++;if(wasW)S.cb++}else R.gain+=3;
+  try{if(navigator.vibrate)navigator.vibrate(ok?20:[40,40,40])}catch(e){}
+  render();
+}
+function next(){
+  if(R.n<LEN-1){R.n++;R.sel=null;R.done=false;R.fresh=true;render();return}
+  if(R.right===LEN)R.gain+=10;
+  var before=streak(),t=today();
+  var lb=Math.floor(S.xp/100);S.days[t]=(S.days[t]||0)+R.gain;S.xp+=R.gain;S.rounds++;lg(t).r++;R.lvUp=Math.floor(S.xp/100)>lb;
+  R.streak=streak();R.newDay=before!==R.streak;S.best=Math.max(S.best,R.streak);if(R.newDay&&R.streak%7===0&&S.fz<2){S.fz++;R.gotFz=1}if(R.right===LEN)S.perfect++;R.nb=checkBadges();adj();
+  save();screen="result";render();if(R.right>=4||R.lvUp||R.nb.length)boom();
+}
+function boom(){
+  var c=["#FFB800","#5B3DF5","#FF5C7A","#2BC99A","#4DB8FF"];
+  for(var i=0;i<36;i++){var p=document.createElement("span");p.className="conf";p.style.left=Math.random()*100+"vw";p.style.background=c[i%5];p.style.setProperty("--dx",(Math.random()*160-80)+"px");p.style.animationDelay=Math.random()*.4+"s";document.body.appendChild(p);setTimeout(function(x){x.remove()},2600,p)}
+}
+function home(){screen="home";render()}
+function setName(){var v=document.getElementById("nm").value.trim();if(!v)return;S.name=v.slice(0,20);save();render()}
+function reset(){if(confirm("Reset all progress? This can’t be undone.")){S={name:S.name,xp:0,days:{},seen:{},rounds:0,cat:{m:[0,0],rw:[0,0]},frozen:{},bd:{},log:{},tier:1,up:0,fz:0,best:0,perfect:0,pc:0,cb:0,outfit:"",note:""};save();render()}}
+function pct(c){return c[1]?Math.round(c[0]/c[1]*100)+"%":"–"}
+var TIPS=["Tip: on SAT math, plug the answer choices back in to check.","Tip: on grammar, cut the extra words and read the core sentence.","Tip: for “most nearly means,” hunt for the contrast or context clue.","Tip: skip a tough one and come back. Every question is worth the same.","You’re building a habit, and that beats cramming!","Fun fact: five minutes a day beats two hours on Sunday."];
+function mascot(mood,size,id){
+  var up=mood==="cheer"||mood==="wow",eyes,mouth,brow="",ink='#22204A',o=S.outfit,cape=o==="cape"?'<path d="M22 48Q50 100 78 48L92 90Q50 104 8 90z" fill="#F0455F"/>':"",shades=o==="shades"?'<rect x="27" y="53" width="20" height="13" rx="6" fill="#22204A"/><rect x="53" y="53" width="20" height="13" rx="6" fill="#22204A"/><path d="M47 58h6" stroke="#22204A" stroke-width="3"/>':"",hat=o==="party"?'<path d="M33 36L50 3l17 33z" fill="#FF5C7A"/><path d="M38 26h24M43 16h14" stroke="#fff" stroke-width="3"/><circle cx="50" cy="4" r="4" fill="#FFB800"/>':'<path d="M32 36v10q18 10 36 0V36z" fill="#2F1BA0"/><path d="M16 30L50 15l34 15-34 15z" fill="#5B3DF5"/><path d="M50 30l28 3v13" fill="none" stroke="#FFB800" stroke-width="2.5" stroke-linecap="round"/><circle cx="78" cy="48" r="3.5" fill="#FFB800"/>';
+  if(mood==="cheer")eyes='<path d="M32 61q6-8 12 0M56 61q6-8 12 0" fill="none" stroke="'+ink+'" stroke-width="3.5" stroke-linecap="round"/>';
+  else{var r=mood==="wow"?7:5.5;eyes='<g class="eye"><circle cx="38" cy="60" r="'+r+'" fill="'+ink+'"/><circle cx="62" cy="60" r="'+r+'" fill="'+ink+'"/><circle cx="40" cy="58" r="2" fill="#fff"/><circle cx="64" cy="58" r="2" fill="#fff"/></g>'}
+  mouth=mood==="cheer"?'<path d="M41 68q9 13 18 0z" fill="#7A1F3D"/>':mood==="wow"?'<ellipse cx="50" cy="72" rx="5" ry="6" fill="#7A1F3D"/>':mood==="oops"?'<path d="M43 74q7-6 14 0" fill="none" stroke="'+ink+'" stroke-width="3" stroke-linecap="round"/>':'<path d="M43 68q7 7 14 0" fill="none" stroke="'+ink+'" stroke-width="3" stroke-linecap="round"/>';
+  if(mood==="oops")brow='<path d="M31 52l13-4M56 48l13 4" stroke="'+ink+'" stroke-width="3" stroke-linecap="round"/>';
+  var arms=up?'<ellipse cx="14" cy="50" rx="7" ry="11" transform="rotate(-35 14 50)" fill="#FFC83D" stroke="#E8A317" stroke-width="2"/><ellipse cx="86" cy="50" rx="7" ry="11" transform="rotate(35 86 50)" fill="#FFC83D" stroke="#E8A317" stroke-width="2"/>':'<ellipse cx="16" cy="68" rx="7" ry="11" transform="rotate(15 16 68)" fill="#FFC83D" stroke="#E8A317" stroke-width="2"/><ellipse cx="84" cy="68" rx="7" ry="11" transform="rotate(-15 84 68)" fill="#FFC83D" stroke="#E8A317" stroke-width="2"/>';
+  return '<svg '+(id?'id="'+id+'" ':'')+'class="pip '+mood+'" width="'+size+'" height="'+size+'" viewBox="0 0 100 100" aria-hidden="true"><ellipse cx="50" cy="95" rx="28" ry="4" fill="rgba(0,0,0,.12)"/><ellipse cx="36" cy="90" rx="10" ry="5" fill="#F29B1D"/><ellipse cx="64" cy="90" rx="10" ry="5" fill="#F29B1D"/>'+cape+'<ellipse cx="50" cy="58" rx="35" ry="33" fill="#FFCF4A" stroke="#E8A317" stroke-width="2"/><ellipse cx="50" cy="72" rx="21" ry="14" fill="#FFE59A"/>'+arms+''+hat+'<circle cx="27" cy="68" r="5" fill="#FF8FA3" opacity=".65"/><circle cx="73" cy="68" r="5" fill="#FF8FA3" opacity=".65"/>'+eyes+brow+mouth+shades+'</svg>';
+}
+function D(){return Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)}
+function due(i){var s=S.seen[i];return !!s&&(s.d===undefined?s.l==="w":s.d<=D())}
+function tc(){return S.cat.m[0]+S.cat.rw[0]}
+var BADGES=[["first","🌟","First round","Finish your first round",function(){return S.rounds>=1}],["perf","💯","Perfect round","Get 5 out of 5 in one round",function(){return S.perfect>=1}],["s3","🔥","3-day streak","Study 3 days in a row",function(){return S.best>=3}],["s7","🌋","7-day streak","Study 7 days in a row",function(){return S.best>=7}],["s30","👑","30-day streak","Study 30 days in a row",function(){return S.best>=30}],["c50","🎯","50 correct","Answer 50 questions correctly",function(){return tc()>=50}],["m25","➗","Math whiz","25 correct math answers",function(){return S.cat.m[0]>=25}],["w25","📚","Word nerd","25 correct reading and writing answers",function(){return S.cat.rw[0]>=25}],["pas","🧠","Passage pro","10 correct passage questions",function(){return S.pc>=10}],["cb","🔄","Comeback","Get a question right that you missed before",function(){return S.cb>=1}]];
+var OUT=[["","🎓 Cap",0],["party","🥳 Party hat",7],["shades","😎 Sunglasses",14],["cape","🦸 Cape",30]];
+function checkBadges(){var n=[];BADGES.forEach(function(b){if(!S.bd[b[0]]&&b[4]()){S.bd[b[0]]=1;n.push(b)}});return n}
+function bdinfo(i){var b=BADGES[i];document.getElementById("bi").textContent=(S.bd[b[0]]?"✓ ":"🔒 ")+b[2]+": "+b[3]}
+function wear(i){S.outfit=OUT[i][0];save();render()}
+function msg(){
+  if(S.note){var nt=S.note;S.note="";save();return nt}var st=streak(),xpT=S.days[today()]||0;
+  if(!S.rounds)return "Hi "+esc(S.name)+"! Ready for your first round? It only takes 2 minutes.";
+  if(xpT>=GOAL)return "Daily goal done! Want a bonus round?";
+  if(st>=2)return "Day "+st+" streak! Don’t let the flame go out today.";
+  return "One quick round keeps your streak alive. I believe in you!";
+}
+function poke(){
+  var m=document.getElementById("pip"),b=document.getElementById("say");
+  b.textContent=TIPS[Math.floor(Math.random()*TIPS.length)];
+  m.classList.remove("cheer");void m.getBoundingClientRect();m.classList.add("cheer");
+}
+var TN=["","Easy","Medium","Hard"];
+function lv(i){return Q[i].d||1}
+function setTier(n){S.tier=n;S.up=0;save();render()}
+function adj(){
+  R.tm="";if(R.mode==="hard"||R.mode==="rev")return;
+  var b=S.tier;if(R.right>=4)S.up++;else if(R.right<=2)S.up--;
+  if(S.up>=2&&S.tier<3){S.tier++;S.up=0}else if(S.up<=-2&&S.tier>1){S.tier--;S.up=0}
+  S.up=Math.max(-2,Math.min(2,S.up));
+  R.tm=S.tier>b?"⬆️ Moving up to "+TN[S.tier]+" questions!":S.tier<b?"Easing to "+TN[S.tier]+" for more practice. That’s how you build skill.":""}
+function gfx(g){
+  var cap='<div class="gc">'+esc(g.ti||"")+'</div>';
+  if(g.t==="table")return '<div class="gw">'+cap+'<div class="tw"><table class="tb"><tr>'+g.h.map(function(x){return '<th>'+esc(x)+'</th>'}).join("")+'</tr>'+g.r.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+esc(String(c))+'</td>'}).join("")+'</tr>'}).join("")+'</table></div></div>';
+  var W=300,H=170,L=38,B=28,T=10,R2=10,pw=W-L-R2,ph=H-T-B,yt=g.yt,y0=yt[0],y1=yt[yt.length-1];
+  function Y(v){return T+ph-(v-y0)/(y1-y0)*ph}
+  var s='<svg viewBox="0 0 300 170" class="gf" role="img" aria-label="'+esc(g.ti||"chart")+'">';
+  yt.forEach(function(v){s+='<line x1="'+L+'" x2="'+(W-R2)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" class="gl"/><text x="'+(L-5)+'" y="'+(Y(v)+3)+'" text-anchor="end" class="gt">'+v+'</text>'});
+  if(g.t==="bar"){var bw=pw/g.l.length;g.l.forEach(function(l,i){var x=L+i*bw+bw*.18;s+='<rect x="'+x+'" y="'+Y(g.v[i])+'" width="'+bw*.64+'" height="'+(Y(y0)-Y(g.v[i]))+'" rx="3" class="gb"/><text x="'+(x+bw*.32)+'" y="'+(H-B+13)+'" text-anchor="middle" class="gt">'+esc(l)+'</text>'})}
+  else{var xt=g.xt,x0=xt[0],x1=xt[xt.length-1];function X(v){return L+(v-x0)/(x1-x0)*pw}
+    xt.forEach(function(v){s+='<text x="'+X(v)+'" y="'+(H-B+13)+'" text-anchor="middle" class="gt">'+v+'</text>'});
+    if(g.ln)s+='<line x1="'+X(g.ln[0])+'" y1="'+Y(g.ln[1])+'" x2="'+X(g.ln[2])+'" y2="'+Y(g.ln[3])+'" class="gk"/>';
+    g.p.forEach(function(p){s+='<circle cx="'+X(p[0])+'" cy="'+Y(p[1])+'" r="3.5" class="gp"/>'})}
+  s+='<line x1="'+L+'" x2="'+L+'" y1="'+T+'" y2="'+(T+ph)+'" class="ga"/><line x1="'+L+'" x2="'+(W-R2)+'" y1="'+(T+ph)+'" y2="'+(T+ph)+'" class="ga"/></svg>';
+  return '<div class="gw">'+cap+s+'</div>'}
+function lg(k){return S.log[k]=S.log[k]||{q:0,c:0,r:0,m:[0,0],rw:[0,0]}}
+function showParent(){screen="parent";render()}
+function wkData(){
+  var d=new Date(),t={q:0,c:0,r:0,xp:0,act:0,m:[0,0],rw:[0,0],days:[]};
+  d.setDate(d.getDate()-6);
+  for(var i=0;i<7;i++){var k=key(d),l=S.log[k]||{q:0,c:0,r:0,m:[0,0],rw:[0,0]},xp=S.days[k]||0;
+    t.days.push({n:d.toLocaleDateString(undefined,{weekday:"short"}),xp:xp,on:!!S.days[k],fr:!S.days[k]&&!!S.frozen[k]});
+    if(S.days[k])t.act++;t.xp+=xp;t.q+=l.q;t.c+=l.c;t.r+=l.r;t.m[0]+=l.m[0];t.m[1]+=l.m[1];t.rw[0]+=l.rw[0];t.rw[1]+=l.rw[1];
+    d.setDate(d.getDate()+1)}
+  return t}
+function focusLine(t){
+  if(t.m[1]>=5&&t.rw[1]>=5){var a=t.m[0]/t.m[1],b=t.rw[0]/t.rw[1];if(Math.abs(a-b)>=.1)return (a<b?"Math":"Reading & Writing")+" is the weaker area this week. A few extra rounds there would help most."}
+  return t.q<10?"Not enough answers yet to spot a weak area.":"No clear weak area yet. Mixed practice is working."}
+function tipLine(t){return t.act===0?"No practice yet this week. A friendly nudge toward one 2-minute round is enough to restart.":t.act>=5?"Great consistency! Short daily practice beats long cram sessions.":"Steady progress. Aiming for one round most days is the goal."}
+function dueN(){return Object.keys(S.seen).filter(function(i){return due(+i)}).length}
+function summaryText(){
+  var t=wkData();
+  return "SAT Daily weekly summary for "+S.name+"\nDays studied: "+t.act+" of 7\nRounds finished: "+t.r+"\nQuestions answered: "+t.q+" (accuracy "+pct([t.c,t.q])+")\nMath: "+pct(t.m)+"  |  Reading & Writing: "+pct(t.rw)+"\nCurrent streak: "+streak()+" days (best "+S.best+")\nBadges earned: "+Object.keys(S.bd).length+" of "+BADGES.length+"\nQuestions due for review: "+dueN()+"\n"+focusLine(t)}
+function shareSummary(){
+  var t=summaryText(),b=document.getElementById("shb");
+  try{if(navigator.share){navigator.share({text:t}).catch(function(){});return}}catch(e){}
+  try{navigator.clipboard.writeText(t).then(function(){b.textContent="Copied! Paste it into a message"},function(){b.textContent="Open the preview below and copy it"})}catch(e){b.textContent="Open the preview below and copy it"}
+}
+function vParent(){
+  var t=wkData(),mx=Math.max.apply(null,t.days.map(function(x){return x.xp}).concat([1])),st=streak();
+  var wrong=Object.keys(S.seen).filter(function(i){return due(+i)}).slice(0,3).map(function(i){var q=Q[i].q;return '<li>'+esc(q.length>78?q.slice(0,75)+"...":q)+'</li>'}).join('');
+  var h='<div class="top"><button class="x" onclick="home()" aria-label="Back to home">←</button><p class="hi">Week at a glance</p><span></span></div>';
+  h+='<p style="color:var(--mute);margin:0 0 4px">'+esc(S.name)+'’s last 7 days</p><div class="tiles"><div class="tile"><b>'+t.act+'/7</b><span>Days studied</span></div><div class="tile"><b>'+t.q+'</b><span>Questions</span></div><div class="tile"><b>'+pct([t.c,t.q])+'</b><span>Accuracy</span></div></div>';
+  h+='<div class="card"><div class="wk">'+t.days.map(function(x){return '<div class="c"><div class="b'+(x.on?' on':'')+'" style="height:'+Math.max(6,x.xp/mx*100)+'%" title="'+x.xp+' XP"></div>'+(x.on?'🔥':x.fr?'❄️':' ')+'<br>'+x.n+'</div>'}).join('')+'</div></div>';
+  if(S.rounds>0&&t.q===0)h+='<p class="info">Question-level numbers start from this update. Days studied and XP are accurate for the whole week.</p>';
+  h+='<h3>By section</h3><div class="card"><div class="stat"><span>➗ Math</span><span>'+pct(t.m)+' ('+t.m[1]+' answered)</span></div><div class="stat"><span>📖 Reading &amp; Writing</span><span>'+pct(t.rw)+' ('+t.rw[1]+' answered)</span></div><p class="info">'+esc(focusLine(t))+'</p></div>';
+  h+='<h3>Habit</h3><div class="card"><div class="stat"><span>🔥 Current streak</span><span>'+st+(st===1?' day':' days')+'</span></div><div class="stat"><span>🏆 Best streak</span><span>'+S.best+'</span></div><div class="stat"><span>❄️ Streak freezes</span><span>'+S.fz+'</span></div><div class="stat"><span>🎖️ Badges</span><span>'+Object.keys(S.bd).length+'/'+BADGES.length+'</span></div><p class="info">'+esc(tipLine(t))+'</p></div>';
+  h+='<h3>Due for review ('+dueN()+')</h3><div class="card">'+(wrong?'<ul style="margin:0;padding-left:20px">'+wrong+'</ul>':'<p class="info" style="margin:0">All caught up. Nothing is waiting for review.</p>')+'</div>';
+  h+='<div style="height:18px"></div><button class="btn" id="shb" onclick="shareSummary()">Share this summary</button><details style="margin-top:14px"><summary style="cursor:pointer;color:var(--mute)">Preview message</summary><pre class="pre">'+esc(summaryText())+'</pre></details>';
+  return h;
+}
+function vHome(){
+  var t=today(),xpT=S.days[t]||0,p=Math.min(1,xpT/GOAL),C=2*Math.PI*38,st=streak(),lv=Math.floor(S.xp/100)+1,lp=S.xp%100;
+  var wk="",d=new Date();d.setDate(d.getDate()-6);
+  for(var i=0;i<7;i++){var k=key(d),on=!!S.days[k],fr=!on&&!!S.frozen[k],now=k===t;wk+='<div class="day">'+d.toLocaleDateString(undefined,{weekday:"narrow"})+'<div class="dot'+(on||fr?" on":"")+(now?" now":"")+'">'+(on?"🔥":fr?"❄️":"")+'</div></div>';d.setDate(d.getDate()+1)}
+  var missed=Object.keys(S.seen).filter(function(i){return due(+i)}).length;
+  var h='<div class="top"><p class="hi">Hey '+esc(S.name)+' 👋</p><span class="chip"><span class="flame">🔥</span>'+st+(S.fz?' <span title="Streak freezes">❄️'+S.fz+'</span>':'')+'</span></div>';
+  h+='<div class="say"><button class="mbtn" onclick="poke()" aria-label="Tap Pip for a tip">'+mascot("happy",76,"pip")+'</button><div class="bub" id="say">'+msg()+'</div></div>';
+  h+='<div class="hero"><div class="ring"><svg width="92" height="92" viewBox="0 0 92 92" style="--c:'+C+'"><circle cx="46" cy="46" r="38" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="11"/><circle cx="46" cy="46" r="38" fill="none" stroke="#FFB800" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+C+'" stroke-dashoffset="'+(C*(1-p))+'"/></svg><b>'+(xpT>=GOAL?"✓":xpT+"/"+GOAL)+'</b></div><div><h2>'+(xpT>=GOAL?"Goal crushed!":"Today’s 2-minute round")+'</h2><p>'+(xpT>=GOAL?"Keep going for bonus XP.":"5 questions keeps your streak alive.")+'</p></div></div>';
+  h+='<div class="week">'+wk+'</div>';
+  h+='<button class="btn" onclick="start(\'mix\')">'+(xpT>=GOAL?"Play another round":"Start today’s round")+'</button>';
+  h+='<h3>Difficulty <span style="font-weight:400;color:var(--mute);font-size:.9rem">(adjusts as you play)</span></h3><div class="cl">'+[1,2,3].map(function(n){return '<button class="'+(S.tier===n?'on':'')+'" onclick="setTier('+n+')">'+TN[n]+'</button>'}).join('')+'</div><h3>Pick your focus</h3><div class="modes">';
+  ["m","rw","pas","gr","rev","hard"].forEach(function(k){var m=MODES[k];h+='<button class="mode" onclick="start(\''+k+'\')"><span class="e">'+m[0]+'</span><br>'+m[1]+'<small>'+(k==="rev"?(missed?missed+" due for review":"All caught up"):m[2])+'</small></button>'});
+  h+='</div>';
+  h+='<h3>Your level</h3><div class="card"><div class="stat"><span>Level '+lv+'</span><span>'+S.xp+' XP</span></div><div class="bar"><i style="width:'+lp+'%"></i></div>';
+  h+='<div class="stat" style="margin-top:16px"><span>➗ Math accuracy</span><span>'+pct(S.cat.m)+'</span></div><div class="stat"><span>📖 Reading &amp; Writing</span><span>'+pct(S.cat.rw)+'</span></div><div class="stat"><span>🏁 Rounds finished</span><span>'+S.rounds+'</span></div></div>';
+  var ob=BADGES.filter(function(b){return S.bd[b[0]]}).length;
+  h+='<h3>Badges ('+ob+'/'+BADGES.length+')</h3><div class="card"><div class="bgs">'+BADGES.map(function(b,i){return '<button class="bg'+(S.bd[b[0]]?'':' lock')+'" onclick="bdinfo('+i+')" aria-label="'+b[2]+'">'+b[1]+'</button>'}).join('')+'</div><p class="info" id="bi">Tap a badge to see how to earn it.</p></div>';
+  h+='<h3>Pip’s closet</h3><div class="card"><div class="cl">'+OUT.map(function(o,i){var un=S.best>=o[2];return '<button class="'+(S.outfit===o[0]?'on':'')+'" '+(un?'':'disabled')+' onclick="wear('+i+')">'+o[1]+(un?'':' · '+o[2]+'-day streak')+'</button>'}).join('')+'</div></div>';
+  h+='<button class="mode" style="width:100%;text-align:center;margin-top:18px" onclick="showParent()">👪 Weekly summary for parents</button>';
+  h+='<button class="link" onclick="reset()">Reset progress</button>';
+  return h;
+}
+function vRound(){
+  var it=R.items[R.n],q=Q[it.i],L="ABCD",h='<div class="top"><button class="x" onclick="home()" aria-label="Quit round">✕</button><div class="prog bar"><i class="'+(R.done?"gr":"")+'" style="--f:'+(R.n/LEN*100)+'%;width:'+((R.n+(R.done?1:0))/LEN*100)+'%"></i></div><span class="chip">'+(R.n+1)+'/'+LEN+'</span></div>';
+  h+='<div class="card'+(R.fresh?' enter':'')+'"><span class="tag">'+(q.c==="m"?"Math":"Reading &amp; Writing")+" ("+TN[lv(it.i)]+")</span>"+(q.p?'<div class="pass">'+esc(q.p)+'</div>':'')+(q.g?gfx(q.g):'')+'<p class="q">'+esc(q.q)+'</p><div class="opts">';
+  it.order.forEach(function(oi,k){
+    var c="opt";
+    if(R.done){if(oi===q.a)c+=" right";else if(k===R.sel)c+=" wrong"}else if(k===R.sel)c+=" sel";
+    h+='<button class="'+c+'" onclick="pickOpt('+k+')"><span class="l">'+L[k]+'</span><span>'+esc(q.o[oi])+'</span></button>';
+  });
+  h+='</div>';
+  if(R.done){
+    if(R.ok)h+='<span class="xpf">+10</span>';var good=["Nice one!","Nailed it!","Yes! Keep it rolling.","Sharp thinking!"][Math.floor(Math.random()*4)];
+    h+='<div class="fb '+(R.ok?"ok":"bad")+'" style="display:flex;gap:12px;align-items:center">'+mascot(R.ok?"cheer":"oops",58)+'<div><b>'+(R.ok?"✓ "+good+" +10 XP":"Not quite. +3 XP for trying")+'</b><p>'+esc(q.e)+'</p></div></div>';
+    h+='<button class="btn '+(R.ok?"ok":"bad")+'" onclick="next()">'+(R.n<LEN-1?"Continue":"Finish round")+'</button>';
+  }else h+='<button class="btn" '+(R.sel===null?"disabled":"")+' onclick="check()">Check answer</button>';
+  return h+'</div>';
+}
+function vResult(){
+  var msg=R.right===LEN?"Perfect round!":R.right>=4?"So close to perfect!":R.right>=2?"Solid work. It adds up.":"Tough set. Misses are how scores go up.";
+  var emo=R.right===LEN?"🏆":R.right>=4?"🎉":R.right>=2?"💪":"🌱";
+  var h='<div class="res"><div class="big">'+mascot(R.right===LEN?"wow":R.right>=3?"cheer":R.right>=2?"happy":"oops",120)+'</div><h1>'+msg+'</h1><p style="color:var(--mute);margin:0">'+(R.newDay?"Streak extended to "+R.streak+(R.streak===1?" day":" days")+" 🔥":"You’re on a "+R.streak+"-day streak 🔥")+'</p>';
+  if(R.tm)h+='<div class="lvl">'+R.tm+'</div>';R.nb.forEach(function(b){h+='<div class="lvl">'+b[1]+' New badge: '+b[2]+'</div>'});if(R.gotFz)h+='<div class="lvl">❄️ You earned a streak freeze!</div>';if(R.newDay&&[7,14,30].indexOf(R.streak)>-1)h+='<div class="lvl">🎁 New outfit for Pip unlocked!</div>';if(R.lvUp)h+='<div class="lvl">⬆️ Level up! You’re now level '+(Math.floor(S.xp/100)+1)+'</div>';h+='<div class="tiles"><div class="tile"><b>'+R.right+'/'+LEN+'</b><span>Correct</span></div><div class="tile"><b>+<span data-n="'+R.gain+'">0</span></b><span>XP earned</span></div><div class="tile"><b>'+(Math.floor(S.xp/100)+1)+'</b><span>Level</span></div></div>';
+  h+='<button class="btn" onclick="start(\''+R.mode+'\')">One more round</button><div style="height:14px"></div><button class="mode" style="width:100%;text-align:center" onclick="home()">Back home</button></div>';
+  return h;
+}
+function vWelcome(){
+  return '<div class="res" style="padding-top:40px"><div class="big">'+mascot("happy",130)+'</div><h1>SAT Daily</h1><p style="color:var(--mute)">Hi, I’m Pip, your study buddy. Five questions a day. Build a streak. Watch your score climb.</p><label for="nm" style="display:block;text-align:left;font-weight:600;margin-top:20px">What should we call you?</label><input id="nm" maxlength="20" autocomplete="off" placeholder="Your name"><button class="btn" onclick="setName()">Let’s go</button></div>';
+}
+function render(){
+  var a=document.getElementById("app");
+  a.innerHTML=!S.name?vWelcome():screen==="round"?vRound():screen==="result"?vResult():screen==="parent"?vParent():vHome();
+  a.className=S.name&&screen==="home"?"home":"";
+  if(R)R.fresh=false;
+  document.querySelectorAll("[data-n]").forEach(function(e){var n=+e.dataset.n,t0=null;function f(t){t0=t0||t;var p=Math.min(1,(t-t0)/800);e.textContent=Math.round(n*p);if(p<1)requestAnimationFrame(f)}requestAnimationFrame(f)});
+  window.scrollTo(0,0);
+}
+load();render();
+</script>
+</body>
+</html>
