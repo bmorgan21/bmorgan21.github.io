@@ -265,6 +265,10 @@ body.resting #log-modal>div{margin-bottom:110px}
 .move-chips button b{font-size:1rem}
 .move-chips button.on{background:rgb(var(--pri));border-color:rgb(var(--pri));color:#fff;box-shadow:0 2px 0 rgb(var(--pri-d))}
 .move-chips button:active{transform:translateY(1px)}
+.skel{background:linear-gradient(90deg,rgb(var(--s800)) 25%,rgb(var(--s700)) 37%,rgb(var(--s800)) 63%);background-size:400% 100%;animation:ft-shimmer 1.4s ease infinite;border-radius:12px}
+@keyframes ft-shimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.ft-note{font-size:.85rem;line-height:1.35;color:rgb(var(--s300));background:rgb(var(--b900));border-radius:10px;padding:6px 10px;margin:4px 0 2px}
+.ft-note b{color:rgb(var(--b300));font-weight:700}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
     </style>
     <style id="tw-static">
@@ -500,6 +504,17 @@ body.resting #log-modal>div{margin-bottom:110px}
   }
   .visible {
     visibility: visible;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border-width: 0;
   }
   .absolute {
     position: absolute;
@@ -1908,20 +1923,26 @@ body.resting #log-modal>div{margin-bottom:110px}
             <div class="flex items-center justify-between gap-2 flex-wrap">
                 <div class="flex items-center gap-1 bg-slate-900 rounded-2xl p-1 border border-slate-800 min-w-0 flex-1">
                     <button type="button" onclick="navigateWeek(1)" title="Previous week" aria-label="Previous week" class="px-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition">&larr;</button>
-                    <select id="week-select" onchange="selectWeekByDate(this.value)" aria-label="Choose week" class="bg-slate-900 text-sm text-brand-400 font-semibold px-2 rounded-xl border-0 focus:outline-none cursor-pointer flex-1 min-w-0 text-center"></select>
+                    <select id="week-select" onchange="selectWeekByDate(this.value)" aria-label="Choose week" class="bg-slate-900 text-sm text-brand-400 font-semibold px-2 rounded-xl border-0 focus:outline-none cursor-pointer flex-1 min-w-0 text-center"><option>Loading&hellip;</option></select>
                     <button type="button" onclick="navigateWeek(-1)" title="Next week" aria-label="Next week" class="px-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition">&rarr;</button>
                 </div>
                 <button id="btn-jump-current" onclick="jumpToCurrentWeek()" class="hidden text-xs bg-brand-500/10 hover:bg-brand-500/20 text-brand-300 border border-brand-500/30 px-3 py-1.5 rounded-xl transition">Back to this week</button>
             </div>
 
             <!-- WEEK PROGRESS (filled by renderWeekHero) -->
-            <div id="week-hero" class="space-y-4"></div>
+            <div id="week-hero" class="space-y-4" aria-busy="true">
+                <span class="sr-only">Loading your week</span>
+                <div class="flex items-center gap-3"><div class="skel" style="width:76px;height:76px;border-radius:50%"></div><div class="skel flex-1" style="height:60px;border-radius:18px"></div></div>
+                <div class="skel" style="height:132px;border-radius:26px"></div>
+                <div class="skel" style="height:54px;border-radius:16px"></div>
+                <div class="skel" style="height:92px;border-radius:22px"></div>
+            </div>
 
             <!-- FOCUS + ACTIONS -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
                 <div>
                     <h2 class="text-xs font-semibold text-slate-400 mb-1">This week&rsquo;s focus</h2>
-                    <p id="plan-focus-summary" class="text-base text-slate-200">Loading your week&hellip;</p>
+                    <div id="plan-focus-summary" class="text-base text-slate-200 space-y-2"><div class="skel" style="height:14px;width:92%"></div><div class="skel" style="height:14px;width:62%"></div></div>
                 </div>
                 <div id="plan-review-section" class="w-full space-y-2 hidden"></div>
                 <div class="grid grid-cols-2 gap-3">
@@ -1933,7 +1954,7 @@ body.resting #log-modal>div{margin-bottom:110px}
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                         Export JSON
                     </button>
-                    <button id="end-week-review-btn" onclick="openEndWeekModal()" class="col-span-2 text-sm bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3.5 py-3 rounded-xl flex items-center justify-center gap-1.5 transition">
+                    <button id="end-week-review-btn" onclick="openEndWeekModal()" class="hidden col-span-2 text-sm bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3.5 py-3 rounded-xl flex items-center justify-center gap-1.5 transition">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         End week and review
                     </button>
@@ -1942,6 +1963,8 @@ body.resting #log-modal>div{margin-bottom:110px}
 
             <!-- DAILY WORKOUT CARDS GRID -->
             <div id="workouts-grid" class="space-y-4">
+                <div class="skel" style="height:230px;border-radius:22px"></div>
+                <div class="skel" style="height:190px;border-radius:22px"></div>
                 <!-- Dynamically Populated Daily Cards -->
             </div>
         </section>
@@ -3389,8 +3412,61 @@ Rules:
                     )
                 `;
 
+        // Only the last few weeks load up front. Older weeks load on demand ("Load older weeks"), and
+        // older exercise history (for "Last time" and PRs) is fetched in a light, cached form.
+        const RECENT_WEEKS = 8;
+        let hasOlderWeeks = false;
+        let loadingOlderWeeks = false;
+
+        function shiftDate(dateStr, days) {
+            const d = new Date(`${dateStr}T12:00:00`);
+            d.setDate(d.getDate() + days);
+            return toLocalDateInputValue(d);
+        }
+        function recentCutoffDate() { return shiftDate(getTodayMondayStr(), -7 * (RECENT_WEEKS - 1)); }
+
         function fetchPlans() {
-            return supabaseClient.from('ft_weekly_plans').select(PLAN_SELECT).order('week_start_date', { ascending: false });
+            return supabaseClient.from('ft_weekly_plans').select(PLAN_SELECT)
+                .gte('week_start_date', recentCutoffDate())
+                .order('week_start_date', { ascending: false });
+        }
+
+        function oldestLoadedStart() {
+            return allWeeklyPlans.reduce((min, pl) => (!min || pl.week_start_date < min ? pl.week_start_date : min), '');
+        }
+
+        async function checkOlderWeeks() {
+            const before = oldestLoadedStart() || recentCutoffDate();
+            try {
+                const { data, error } = await supabaseClient.from('ft_weekly_plans').select('week_start_date')
+                    .lt('week_start_date', before).order('week_start_date', { ascending: false }).limit(1);
+                hasOlderWeeks = !error && !!(data && data.length);
+            } catch (e) { hasOlderWeeks = false; }
+            populateWeekSelect();
+        }
+
+        async function loadOlderWeeks() {
+            if (loadingOlderWeeks || !hasOlderWeeks) return false;
+            loadingOlderWeeks = true;
+            try {
+                const { data, error } = await supabaseClient.from('ft_weekly_plans').select(PLAN_SELECT)
+                    .lt('week_start_date', oldestLoadedStart() || recentCutoffDate())
+                    .order('week_start_date', { ascending: false }).limit(RECENT_WEEKS);
+                if (error) throw error;
+                const have = new Set(allWeeklyPlans.map(pl => pl.id));
+                const fresh = (data || []).filter(pl => !have.has(pl.id));
+                const activeId = activeWeeklyPlan ? activeWeeklyPlan.id : null;
+                allWeeklyPlans = allWeeklyPlans.concat(fresh).sort((a, b) => b.week_start_date.localeCompare(a.week_start_date));
+                currentPlanIndex = Math.max(0, allWeeklyPlans.findIndex(pl => pl.id === activeId));
+                await checkOlderWeeks();
+                return fresh.length > 0;
+            } catch (e) {
+                console.error('Could not load older weeks:', e);
+                showToast('Couldn\u2019t load older weeks. Check your connection.', 'error');
+                return false;
+            } finally {
+                loadingOlderWeeks = false;
+            }
         }
 
         function planCacheKey() { return currentUser ? `ft-plan-cache:${currentUser.id}` : null; }
@@ -3407,7 +3483,9 @@ Rules:
 
         function applyPlans(plans) {
             if (plans && plans.length > 0) {
-                allWeeklyPlans = plans;
+                const newest = plans.reduce((min, pl) => (!min || pl.week_start_date < min ? pl.week_start_date : min), '');
+                const keptOlder = allWeeklyPlans.filter(pl => pl.week_start_date < newest && !plans.some(q => q.id === pl.id));
+                allWeeklyPlans = plans.concat(keptOlder);
 
                 const todayMonday = getTodayMondayStr();
                 let defaultIdx = allWeeklyPlans.findIndex(p => p.week_start_date === todayMonday);
@@ -3422,6 +3500,7 @@ Rules:
                 activeWeeklyPlan = allWeeklyPlans[currentPlanIndex];
                 renderDashboard(activeWeeklyPlan);
                 populateWeekSelect();
+                checkOlderWeeks();
                 loadAiCoachConversation();
             } else {
                 allWeeklyPlans = [];
@@ -3432,6 +3511,15 @@ Rules:
                 const select = document.getElementById('week-select');
                 if (select) select.innerHTML = '<option>No plans</option>';
             }
+        }
+
+        function showLoadProblem(message) {
+            const host = document.getElementById('week-hero');
+            if (host) host.innerHTML = `<div class="ft-empty"><h2>Couldn\u2019t load your week</h2><p>${escapeHtml(message)}</p><button type="button" class="btn-primary" onclick="retrySync()">Try again</button></div>`;
+            const grid = document.getElementById('workouts-grid');
+            if (grid) grid.innerHTML = '';
+            const focus = document.getElementById('plan-focus-summary');
+            if (focus) focus.textContent = '';
         }
 
         function showSavedData(reason) {
@@ -3455,7 +3543,7 @@ Rules:
                     return;
                 }
                 // Offline or the network isn't up yet: keep what is on screen, or load the saved copy
-                if (!hadData) { const cached = readPlanCache(); if (cached) applyPlans(cached); }
+                if (!hadData) { const cached = readPlanCache(); if (cached) applyPlans(cached); else showLoadProblem('We couldn\u2019t reach the server yet. Your saved workouts are safe.'); }
                 showSavedData(sess.reason);
                 return;
             }
@@ -3477,7 +3565,7 @@ Rules:
 
             if (error) {
                 console.error("Error fetching plan:", error);
-                if (!hadData) { const cached = readPlanCache(); if (cached) applyPlans(cached); }
+                if (!hadData) { const cached = readPlanCache(); if (cached) applyPlans(cached); else showLoadProblem('Something went wrong loading your plans. Please try again.'); }
                 showSavedData(error.message);
                 if (!isNetworkish(error)) showToast("Error loading plans: " + error.message, "error");
                 return;
@@ -3511,6 +3599,13 @@ Rules:
                 select.appendChild(opt);
             });
 
+            if (hasOlderWeeks) {
+                const more = document.createElement('option');
+                more.value = '__older';
+                more.textContent = 'Load older weeks\u2026';
+                select.appendChild(more);
+            }
+
             const jumpBtn = document.getElementById('btn-jump-current');
             if (jumpBtn) {
                 const hasCurrentPlan = allWeeklyPlans.some(p => p.week_start_date === todayMonday);
@@ -3522,7 +3617,15 @@ Rules:
             }
         }
 
-        window.selectWeekByDate = function(dateStr) {
+        window.selectWeekByDate = async function(dateStr) {
+            if (dateStr === '__older') {
+                showToast('Loading older weeks\u2026', 'info');
+                const firstNew = allWeeklyPlans.length;      // new weeks are appended after the ones already loaded
+                const added = await loadOlderWeeks();
+                if (added && firstNew < allWeeklyPlans.length) { currentPlanIndex = firstNew; activeWeeklyPlan = allWeeklyPlans[currentPlanIndex]; renderDashboard(activeWeeklyPlan); }
+                populateWeekSelect();
+                return;
+            }
             const idx = allWeeklyPlans.findIndex(p => p.week_start_date === dateStr);
             if (idx !== -1) {
                 currentPlanIndex = idx;
@@ -3532,7 +3635,11 @@ Rules:
             }
         };
 
-        window.navigateWeek = function(direction) {
+        window.navigateWeek = async function(direction) {
+            if (direction > 0 && currentPlanIndex + 1 >= allWeeklyPlans.length && hasOlderWeeks) {
+                showToast('Loading older weeks\u2026', 'info');
+                await loadOlderWeeks();
+            }
             const newIdx = currentPlanIndex + direction;
             if (newIdx >= 0 && newIdx < allWeeklyPlans.length) {
                 currentPlanIndex = newIdx;
@@ -3748,9 +3855,12 @@ Rules:
                             <summary>Planned exercises (${orderedTargets.length})</summary>
                             <div class="space-y-2">
                                 ${orderedTargets.map(e => `
-                                    <div class="flex items-baseline justify-between gap-3 text-xs">
-                                        <span class="text-slate-200 font-medium">${escapeHtml(e.exercise_name)}</span>
-                                        <span class="text-slate-400 text-right shrink-0">${escapeHtml(e.target_sets)} &times; ${escapeHtml(e.target_rep_range || '')}${e.target_weight_lbs ? ' @ ' + escapeHtml(e.target_weight_lbs) + ' lb' : ''}</span>
+                                    <div>
+                                        <div class="flex items-baseline justify-between gap-3 text-xs">
+                                            <span class="text-slate-200 font-medium">${escapeHtml(e.exercise_name)}</span>
+                                            <span class="text-slate-400 text-right shrink-0">${escapeHtml(e.target_sets)} &times; ${escapeHtml(e.target_rep_range || '')}${e.target_weight_lbs ? ' @ ' + escapeHtml(e.target_weight_lbs) + ' lb' : ''}</span>
+                                        </div>
+                                        ${e.progression_note ? `<p class="ft-note"><b>Coach:</b> ${escapeHtml(e.progression_note)}</p>` : ''}
                                     </div>
                                 `).join('')}
                             </div>
@@ -3881,6 +3991,8 @@ Rules:
             existingActual = applyPendingSnapshot(workout, existingActual);
             document.getElementById('log-workout-id').value = workout.id;
             logHistory = buildExerciseHistory(workout.id);
+            primeOlderHistory();
+            mergeOlderIntoLogHistory((workout.ft_exercise_targets || []).map(t => t.exercise_name));
             document.getElementById('modal-workout-title').innerText = workout.workout_type;
             const planOfWorkout = (allWeeklyPlans || []).find(pl => (pl.ft_scheduled_workouts || []).some(w => w.id === workout.id)) || activeWeeklyPlan;
             const scheduledDate = planOfWorkout ? getDateForWorkoutDay(planOfWorkout.week_start_date, workout.day_of_week) : null;
@@ -3937,6 +4049,7 @@ Rules:
                 sortExerciseTargets(workout.ft_exercise_targets || []).forEach(ex => {
                     const exCard = document.createElement('div');
                     exCard.className = 'lg-ex';
+                    exCard.dataset.exercise = ex.exercise_name;
 
                     const exSets = existingSetMap[ex.exercise_name] || [];
                     const targetCount = ex.target_sets || 3;
@@ -3951,18 +4064,14 @@ Rules:
                     }
 
                     const safeName = escapeHtml(ex.exercise_name);
-                    const lastEntry = (logHistory[ex.exercise_name] || [])[0];
-                    const lastHtml = lastEntry ? `
-                        <div class="lg-last">
-                            <span>Last time (${escapeHtml(formatShortDate(lastEntry.date))}): ${escapeHtml(summarizeSets(lastEntry.sets))}</span>
-                            <button type="button" class="lg-copy" data-exercise="${safeName}" onclick="copyLastTime(this)">Fill from last time</button>
-                        </div>` : '';
+                    const lastHtml = lastTimeHtml(ex.exercise_name);
                     exCard.innerHTML = `
                         <div class="flex items-start justify-between gap-3">
                             <span class="text-sm font-bold text-white">${safeName}</span>
                             <span class="lg-target">Target ${escapeHtml(ex.target_sets)}&times;${escapeHtml(ex.target_rep_range || '')}${ex.target_weight_lbs ? ' @ ' + escapeHtml(ex.target_weight_lbs) + ' lb' : ''}</span>
                         </div>
-                        ${lastHtml}
+                        ${ex.progression_note ? `<p class="ft-note"><b>Coach:</b> ${escapeHtml(ex.progression_note)}</p>` : ''}
+                        <div class="lg-last-slot">${lastHtml}</div>
                         <div class="lg-cols"><span></span><span>Reps</span><span>Weight (lb)</span><span></span></div>
                         <div id="sets-list-${ex.exercise_name.replace(/\s+/g, '-')}" class="space-y-2">
                             ${rowsHtml}
@@ -3979,6 +4088,7 @@ Rules:
             document.querySelectorAll('#lifting-sets-container [id^="sets-list-"]').forEach(activateDefaultSet);
             syncRpeChips();
             initLogBuddy();
+            kickOlderHistory((workout.ft_exercise_targets || []).map(t => t.exercise_name));
             toggleModal('log-modal', true);
             requestLogWakeLock();
         };
@@ -5808,7 +5918,7 @@ ${getAthleteProfileMemorySummary(profileData)}
             const streak = computeWorkoutStreak();
             const fresh = newlyUnlockedOutfits();
             if (fresh.length && Date.now() >= buddyHold.until) { say = `New outfit unlocked: ${fresh[0][1]}! Tap your streak to try it on.`; mood = 'cheer'; }
-            const streakLabel = streak > 0 ? `\u{1F525} ${streak} in a row` : 'Rep\u2019s closet';
+            const streakLabel = streak > 0 ? `\u{1F525} ${streak}${window.__streakTruncated ? '+' : ''} in a row` : 'Rep\u2019s closet';
 
             const C = 2 * Math.PI * 38;
             const ring = `
@@ -6267,8 +6377,114 @@ ${getAthleteProfileMemorySummary(profileData)}
             return hist;
         }
 
+        // Older than the recent window: fetched once per exercise as plain set rows, summarised, and cached.
+        let olderHistory = {};
+        let olderHistoryKey = '';
+        function olderHistoryCacheKey() { return currentUser ? `ft-hist-old:${currentUser.id}:${recentCutoffDate()}` : ''; }
+
+        function primeOlderHistory() {
+            const key = olderHistoryCacheKey();
+            if (!key || key === olderHistoryKey) return;
+            olderHistoryKey = key;
+            try { olderHistory = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { olderHistory = {}; }
+            // drop caches from previous weeks so storage doesn't pile up
+            try {
+                for (let i = localStorage.length - 1; i >= 0; i--) {
+                    const k = localStorage.key(i);
+                    if (k && k.indexOf('ft-hist-old:') === 0 && k !== key) localStorage.removeItem(k);
+                }
+            } catch (e) {}
+        }
+
+        async function fetchOlderSetRows(names) {
+            const cutoff = recentCutoffDate();
+            const rows = [];
+            const PAGE = 1000;
+            for (let from = 0; from < 5000; from += PAGE) {
+                const { data, error } = await supabaseClient.from('ft_lifting_set_actuals')
+                    .select('exercise_name, set_number, reps_completed, weight_used_lbs, workout_actual_id, ft_workout_actuals!inner(date_completed)')
+                    .in('exercise_name', names)
+                    .lt('ft_workout_actuals.date_completed', cutoff)
+                    .order('id', { ascending: true })
+                    .range(from, from + PAGE - 1);
+                if (error) throw error;
+                rows.push(...(data || []));
+                if (!data || data.length < PAGE) break;
+            }
+            return rows;
+        }
+
+        async function ensureOlderHistory(names) {
+            primeOlderHistory();
+            if (!currentUser) return false;
+            const missing = names.filter(n => !(n in olderHistory));
+            if (!missing.length) return false;
+            try {
+                const rows = await fetchOlderSetRows(missing);
+                const byName = {};
+                rows.forEach(r => {
+                    const date = r.ft_workout_actuals && r.ft_workout_actuals.date_completed;
+                    const sessions = (byName[r.exercise_name] = byName[r.exercise_name] || {});
+                    const sess = (sessions[r.workout_actual_id] = sessions[r.workout_actual_id] || { date, sets: [] });
+                    sess.sets.push({ n: r.set_number || 0, reps: Number(r.reps_completed) || 0, weight: Number(r.weight_used_lbs) || 0 });
+                });
+                missing.forEach(name => {
+                    const sessions = Object.values(byName[name] || {});
+                    let best = 0;
+                    sessions.forEach(sx => sx.sets.forEach(x => { best = Math.max(best, e1rm(x.weight, x.reps)); }));
+                    sessions.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+                    const lastSess = sessions[0];
+                    olderHistory[name] = {
+                        best: Math.round(best * 100) / 100,
+                        last: lastSess ? { date: lastSess.date, sets: lastSess.sets.sort((a, b) => a.n - b.n).map(x => ({ reps: x.reps, weight: x.weight })) } : null
+                    };
+                });
+                try { localStorage.setItem(olderHistoryKey, JSON.stringify(olderHistory)); } catch (e) {}
+                return true;
+            } catch (err) {
+                console.warn('Older history unavailable (PRs use recent weeks only):', err);
+                return false;
+            }
+        }
+
+        // Fold the older summaries into the in-memory history used by "Last time"
+        function mergeOlderIntoLogHistory(names) {
+            names.forEach(name => {
+                const o = olderHistory[name];
+                if (!o || !o.last) return;
+                const list = logHistory[name] = logHistory[name] || [];
+                if (!list.some(entry => entry.date === o.last.date)) list.push({ date: o.last.date, sets: o.last.sets });
+                list.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+            });
+        }
+
+        function lastTimeHtml(name) {
+            const lastEntry = (logHistory[name] || [])[0];
+            if (!lastEntry) return '';
+            const safe = escapeHtml(name);
+            return `
+                <div class="lg-last">
+                    <span>Last time (${escapeHtml(formatShortDate(lastEntry.date))}): ${escapeHtml(summarizeSets(lastEntry.sets))}</span>
+                    <button type="button" class="lg-copy" data-exercise="${safe}" onclick="copyLastTime(this)">Fill from last time</button>
+                </div>`;
+        }
+
+        function kickOlderHistory(names) {
+            if (!names.length) return;
+            ensureOlderHistory(names).then(changed => {
+                if (!changed || !isLogModalOpen()) return;
+                mergeOlderIntoLogHistory(names);
+                document.querySelectorAll('#lifting-sets-container .lg-ex').forEach(card => {
+                    const slot = card.querySelector('.lg-last-slot');
+                    if (slot && !slot.innerHTML.trim()) slot.innerHTML = lastTimeHtml(card.dataset.exercise);
+                });
+                updateLogBuddy(true);      // re-check PR badges against the full history, quietly
+            });
+        }
+
         function bestE1rm(name) {
             let best = 0;
+            if (olderHistory[name]) best = Math.max(best, olderHistory[name].best || 0);
             (logHistory[name] || []).forEach(entry => entry.sets.forEach(x => { best = Math.max(best, e1rm(x.weight, x.reps)); }));
             return best;
         }
@@ -6420,6 +6636,7 @@ ${getAthleteProfileMemorySummary(profileData)}
                 else if (it.d === today) continue;   // today isn't missed yet
                 else break;
             }
+            window.__streakTruncated = hasOlderWeeks && n > 0 && n === items.length;
             if (n > getBestStreak()) { try { localStorage.setItem('ft-best-streak', String(n)); } catch (e) {} }
             return n;
         }
