@@ -55,7 +55,6 @@ body .border{border-width:2px}
 body .rounded-2xl{border-radius:22px}
 body [class*="bg-slate-900/"]{background-color:rgb(var(--s900))}
 body .shadow-xl,body .shadow-2xl{box-shadow:0 4px 0 rgb(var(--s800))}
-body #user-controls{border-radius:20px;box-shadow:0 6px 0 rgb(var(--s800));backdrop-filter:none}
 
 /* ---------- Buttons: the pressable 3D look ---------- */
 body button.bg-brand-500{border-radius:14px;font-weight:600;box-shadow:0 4px 0 rgb(var(--pri-d));transition:transform .08s,box-shadow .08s,background-color .15s}
@@ -216,9 +215,12 @@ body .stepper input[data-field]:not([type=checkbox]):not([type=radio]):not([type
 
 
 /* ---------- Bottom tab bar ---------- */
+#more-modal>div{border-radius:26px 26px 0 0;border-bottom-width:0;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+#more-modal:not(.hidden)>div{animation:ft-sheet .25s ease-out}
+@keyframes ft-sheet{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
 .ft-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:none;background:rgb(var(--s900));border-top:2px solid rgb(var(--s800));padding:6px 10px calc(6px + env(safe-area-inset-bottom,0px))}
 body.signed-in .ft-tabbar{display:block}
-.ft-tabbar>div{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;max-width:42rem;margin:0 auto}
+.ft-tabbar>div{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;max-width:42rem;margin:0 auto}
 .ft-tabbar button{display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;border-radius:14px;padding:6px 0;color:rgb(var(--s400));font-size:.78rem;font-weight:600}
 .ft-tabbar button svg{width:24px;height:24px}
 .ft-tabbar button[aria-current="page"]{color:rgb(var(--b500));background:rgb(var(--b900))}
@@ -509,23 +511,14 @@ body.resting #log-modal>div{margin-bottom:110px}
   .top-9 {
     top: calc(var(--spacing) * 9);
   }
-  .top-14 {
-    top: calc(var(--spacing) * 14);
-  }
   .right-0 {
     right: 0px;
-  }
-  .left-0 {
-    left: 0px;
   }
   .left-1\/2 {
     left: calc(1 / 2 * 100%);
   }
   .z-10 {
     z-index: 10;
-  }
-  .z-40 {
-    z-index: 40;
   }
   .z-50 {
     z-index: 50;
@@ -575,14 +568,23 @@ body.resting #log-modal>div{margin-bottom:110px}
   .mx-auto {
     margin-inline: auto;
   }
+  .my-2 {
+    margin-block: calc(var(--spacing) * 2);
+  }
   .my-4 {
     margin-block: calc(var(--spacing) * 4);
   }
   .my-6 {
     margin-block: calc(var(--spacing) * 6);
   }
+  .mt-0\.5 {
+    margin-top: calc(var(--spacing) * 0.5);
+  }
   .mt-1 {
     margin-top: var(--spacing);
+  }
+  .mt-1\.5 {
+    margin-top: calc(var(--spacing) * 1.5);
   }
   .mt-2 {
     margin-top: calc(var(--spacing) * 2);
@@ -593,8 +595,14 @@ body.resting #log-modal>div{margin-bottom:110px}
   .mt-4 {
     margin-top: calc(var(--spacing) * 4);
   }
+  .mt-5 {
+    margin-top: calc(var(--spacing) * 5);
+  }
   .mt-12 {
     margin-top: calc(var(--spacing) * 12);
+  }
+  .mt-16 {
+    margin-top: calc(var(--spacing) * 16);
   }
   .mb-1 {
     margin-bottom: var(--spacing);
@@ -619,9 +627,6 @@ body.resting #log-modal>div{margin-bottom:110px}
   }
   .ml-auto {
     margin-left: auto;
-  }
-  .\!grid {
-    display: grid !important;
   }
   .block {
     display: block;
@@ -697,9 +702,6 @@ body.resting #log-modal>div{margin-bottom:110px}
   }
   .w-36 {
     width: calc(var(--spacing) * 36);
-  }
-  .w-72 {
-    width: calc(var(--spacing) * 72);
   }
   .w-\[calc\(100\%-2rem\)\] {
     width: calc(100% - 2rem);
@@ -783,6 +785,9 @@ body.resting #log-modal>div{margin-bottom:110px}
   }
   .items-center {
     align-items: center;
+  }
+  .items-end {
+    align-items: flex-end;
   }
   .items-start {
     align-items: flex-start;
@@ -1076,12 +1081,6 @@ body.resting #log-modal>div{margin-bottom:110px}
       background-color: color-mix(in oklab, var(--color-slate-900) 80%, transparent);
     }
   }
-  .bg-slate-900\/95 {
-    background-color: color-mix(in srgb, rgb(var(--s900)) 95%, transparent);
-    @supports (color: color-mix(in lab, red, red)) {
-      background-color: color-mix(in oklab, var(--color-slate-900) 95%, transparent);
-    }
-  }
   .bg-slate-950 {
     background-color: var(--color-slate-950);
   }
@@ -1141,6 +1140,9 @@ body.resting #log-modal>div{margin-bottom:110px}
   }
   .p-6 {
     padding: calc(var(--spacing) * 6);
+  }
+  .px-1 {
+    padding-inline: var(--spacing);
   }
   .px-1\.5 {
     padding-inline: calc(var(--spacing) * 1.5);
@@ -1293,6 +1295,9 @@ body.resting #log-modal>div{margin-bottom:110px}
   }
   .whitespace-pre-wrap {
     white-space: pre-wrap;
+  }
+  .\!text-rose-300 {
+    color: var(--color-rose-300) !important;
   }
   .text-amber-300 {
     color: var(--color-amber-300);
@@ -1842,9 +1847,9 @@ body.resting #log-modal>div{margin-bottom:110px}
         <!-- HEADER -->
         <header class="relative flex items-center justify-between mb-5 flex-wrap gap-3">
             <div class="relative flex items-center gap-3">
-                <button type="button" onclick="toggleUserMenu(event)" title="Open tracker menu" aria-label="Open tracker menu" aria-expanded="false" class="p-2.5 bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 border border-brand-500/20 rounded-2xl shadow-inner transition">
+                <div class="p-2.5 bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded-2xl shadow-inner" aria-hidden="true">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                </button>
+                </div>
                 <div>
                     <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
                         Fitness Tracker
@@ -1854,41 +1859,18 @@ body.resting #log-modal>div{margin-bottom:110px}
                 </div>
             </div>
             
-            <div id="sync-chip-wrap" class="ml-auto"><button type="button" id="sync-chip" class="ft-chip hidden" onclick="flushSaveQueue()" role="status"></button></div>
-            <div id="user-controls" class="hidden absolute left-0 top-14 z-40 w-72 flex-col gap-1 rounded-2xl border border-slate-700 bg-slate-900/95 p-2 shadow-2xl backdrop-blur-md" style="display: none;">
-                <button onclick="toggleModal('profile-modal', true)" title="Athlete Profile & Exercise Ratings" class="w-full text-left text-sm text-slate-200 hover:bg-slate-800 rounded-xl px-3 py-2.5 flex items-center gap-3 transition">
-                    <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    Profile & Ratings
-                </button>
-                <button onclick="toggleModal('ai-plan-modal', true)" class="w-full text-left text-sm text-slate-200 hover:bg-slate-800 rounded-xl px-3 py-2.5 flex items-center gap-3 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    Import Plan
-                </button>
-                <button onclick="openAiCoachModal()" class="w-full text-left text-sm text-slate-200 hover:bg-slate-800 rounded-xl px-3 py-2.5 flex items-center gap-3 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4v-4H9z"/></svg>
-                    Chat with Coach
-                </button>
-                <button onclick="openRecipeLibrary()" class="w-full text-left text-sm text-slate-200 hover:bg-slate-800 rounded-xl px-3 py-2.5 flex items-center gap-3 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5h16M4 9h16M4 13h10M4 17h7M17 14v6m3-3h-6"/></svg>
-                    Recipes
-                </button>
-                <button onclick="toggleModal('ai-key-modal', true)" title="Gemini API Key Settings" class="w-full text-left text-sm text-slate-200 hover:bg-slate-800 rounded-xl px-3 py-2.5 flex items-center gap-3 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
-                    Gemini API Key
-                </button>
-                <button onclick="cycleTheme()" class="w-full text-left text-sm text-slate-200 hover:bg-slate-800 rounded-xl px-3 py-2.5 flex items-center gap-3 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
-                    <span id="theme-toggle-label">Theme: Auto</span>
-                </button>
-                <div class="mt-1 border-t border-slate-800 pt-2">
-                    <span id="user-email-badge" class="block truncate px-3 py-2 text-xs text-slate-400 font-mono"></span>
-                </div>
-                <button onclick="handleSignOut()" class="w-full text-left text-sm text-rose-300 hover:bg-rose-500/10 rounded-xl px-3 py-2.5 flex items-center gap-3 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H3m0 0l4-4m-4 4l4 4m5-9V5a2 2 0 012-2h5a2 2 0 012 2v14a2 2 0 01-2 2h-5a2 2 0 01-2-2v-2"/></svg>
-                    Sign Out
-                </button>
-            </div>
+            <div id="sync-chip-wrap" class="ml-auto"><button type="button" id="sync-chip" class="ft-chip hidden" onclick="retrySync()" role="status"></button></div>
         </header>
+
+        <!-- BOOT / LOADING VIEW (shown until the session is resolved, so the page is never blank) -->
+        <section id="boot-view" class="max-w-sm mx-auto text-center mt-16" aria-live="polite">
+            <div id="boot-buddy" class="flex justify-center mb-3"></div>
+            <p id="boot-text" class="text-base text-slate-300">Loading your training&hellip;</p>
+            <div id="boot-actions" class="hidden mt-5 space-y-3">
+                <button type="button" class="btn-primary" onclick="location.reload()">Try again</button>
+                <button type="button" class="btn-secondary" onclick="resetAppCache()">Reset app cache</button>
+            </div>
+        </section>
 
         <!-- AUTH VIEW -->
         <section id="auth-view" class="hidden max-w-sm mx-auto bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-sm mt-12">
@@ -1963,11 +1945,52 @@ body.resting #log-modal>div{margin-bottom:110px}
     <nav id="tabbar" class="ft-tabbar" aria-label="Main">
         <div>
             <button type="button" data-tab="today" onclick="goTab('today')" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Today</button>
-            <button type="button" data-tab="week" onclick="goTab('week')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Week</button>
             <button type="button" data-tab="coach" onclick="goTab('coach')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 01-11.5 7.2L4 20l1-4.5A8 8 0 1121 12z"/></svg>Coach</button>
-            <button type="button" data-tab="food" onclick="goTab('food')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v7a3 3 0 003 3v8M7 3v7M10 3v7a3 3 0 01-3 3"/><path d="M17 3c-2 2-3 5-3 8h3v10"/></svg>Food</button>
+            <button type="button" data-tab="food" onclick="goTab('food')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3c-2 2-3 5-3 8h3v10"/><path d="M4 3v7a3 3 0 003 3v8M7 3v7M10 3v7a3 3 0 01-3 3"/></svg>Food</button>
+            <button type="button" data-tab="recipes" onclick="goTab('recipes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16M4 9h16M4 13h10M4 17h7"/><path d="M17 14v6m3-3h-6"/></svg>Recipes</button>
+            <button type="button" data-tab="profile" onclick="goTab('profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg>Profile</button>
         </div>
     </nav>
+
+    <div id="more-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-end justify-center p-0 hidden z-50 overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-lg p-4 shadow-2xl">
+            <div class="flex items-center justify-between gap-3 mb-1 px-1">
+                <div class="min-w-0">
+                    <h3 class="text-xl font-bold text-white">Profile</h3>
+                    <p id="user-email-badge" class="truncate text-xs text-slate-400"></p>
+                    <p id="build-badge" class="text-[11px] text-slate-400"></p>
+                </div>
+                <button onclick="toggleModal('more-modal', false)" aria-label="Close" class="text-slate-400 hover:text-white text-xl p-1 transition">&times;</button>
+            </div>
+            <div class="space-y-1 mt-2">
+                <button type="button" onclick="moreAction('profile')" class="w-full text-left text-base text-slate-200 hover:bg-slate-800 rounded-xl px-3 py-3 flex items-center gap-3 transition">
+                    <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    Profile &amp; Ratings
+                </button>
+                <button type="button" onclick="moreAction('plan')" class="w-full text-left text-base text-slate-200 hover:bg-slate-800 rounded-xl px-3 py-3 flex items-center gap-3 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Import Plan
+                </button>
+                <button type="button" onclick="moreAction('key')" class="w-full text-left text-base text-slate-200 hover:bg-slate-800 rounded-xl px-3 py-3 flex items-center gap-3 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                    Gemini API Key
+                </button>
+                <button type="button" onclick="cycleTheme()" class="w-full text-left text-base text-slate-200 hover:bg-slate-800 rounded-xl px-3 py-3 flex items-center gap-3 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                    <span id="theme-toggle-label">Theme: Auto</span>
+                </button>
+                <button type="button" onclick="resetAppCache()" class="w-full text-left text-base text-slate-200 hover:bg-slate-800 rounded-xl px-3 py-3 flex items-center gap-3 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v6h6M20 20v-6h-6M5.6 15A8 8 0 0019 13M18.4 9A8 8 0 005 11"/></svg>
+                    Update app
+                </button>
+                <div class="border-t border-slate-800 my-2"></div>
+                <button type="button" onclick="moreAction('signout')" class="w-full text-left text-base text-slate-200 hover:bg-slate-800 rounded-xl px-3 py-3 flex items-center gap-3 transition !text-rose-300">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H3m0 0l4-4m-4 4l4 4m5-9V5a2 2 0 012-2h5a2 2 0 012 2v14a2 2 0 01-2 2h-5a2 2 0 01-2-2v-2"/></svg>
+                    Sign Out
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div id="closet-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-start justify-center p-4 hidden z-50 overflow-y-auto">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full my-6 sm:my-10 p-5 shadow-2xl">
@@ -1996,10 +2019,11 @@ body.resting #log-modal>div{margin-bottom:110px}
                 <div class="min-w-0">
                     <p id="modal-workout-day" class="text-xs font-semibold text-slate-400"></p>
                     <h3 id="modal-workout-title" class="text-xl font-bold text-white leading-snug">Log workout</h3>
-                    <div class="flex items-center gap-1.5 mt-1">
-                        <span id="autosave-status-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span id="autosave-status-text" class="text-[11px] text-slate-400">Saves automatically</span><button type="button" id="autosave-retry" class="ft-retry hidden" onclick="flushSaveQueue()">Retry now</button>
+                    <div class="flex items-start gap-1.5 mt-1">
+                        <span id="autosave-status-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mt-1.5 shrink-0"></span>
+                        <span class="text-[11px] text-slate-400"><span id="autosave-status-text">Saves automatically</span><button type="button" id="autosave-retry" class="ft-retry hidden" onclick="flushSaveQueue()">Retry now</button></span>
                     </div>
+                    <p id="autosave-detail" class="hidden text-[11px] text-slate-400 mt-0.5 break-words"></p>
                 </div>
                 <button onclick="toggleModal('log-modal', false)" aria-label="Close" class="text-slate-400 hover:text-white text-xl p-1 transition">&times;</button>
             </div>
@@ -2022,15 +2046,6 @@ body.resting #log-modal>div{margin-bottom:110px}
                 <div>
                     <label for="log-date" class="block text-xs text-slate-400 mb-1">Date completed</label>
                     <input type="date" id="log-date" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
-                </div>
-
-                <div>
-                    <div class="flex items-baseline justify-between mb-1.5">
-                        <span class="text-xs text-slate-400 font-medium">How hard was it?</span>
-                        <span id="rpe-hint" class="text-xs text-brand-400 font-semibold"></span>
-                    </div>
-                    <input type="hidden" id="log-rpe">
-                    <div id="rpe-chips" class="rpe-chips" role="group" aria-label="Session effort from 1 to 10"><button type="button" data-rpe="1" aria-pressed="false" onclick="setRpe(1)">1</button><button type="button" data-rpe="2" aria-pressed="false" onclick="setRpe(2)">2</button><button type="button" data-rpe="3" aria-pressed="false" onclick="setRpe(3)">3</button><button type="button" data-rpe="4" aria-pressed="false" onclick="setRpe(4)">4</button><button type="button" data-rpe="5" aria-pressed="false" onclick="setRpe(5)">5</button><button type="button" data-rpe="6" aria-pressed="false" onclick="setRpe(6)">6</button><button type="button" data-rpe="7" aria-pressed="false" onclick="setRpe(7)">7</button><button type="button" data-rpe="8" aria-pressed="false" onclick="setRpe(8)">8</button><button type="button" data-rpe="9" aria-pressed="false" onclick="setRpe(9)">9</button><button type="button" data-rpe="10" aria-pressed="false" onclick="setRpe(10)">10</button></div>
                 </div>
 
                 <!-- LIFTING SET ACTUALS -->
@@ -2094,6 +2109,15 @@ body.resting #log-modal>div{margin-bottom:110px}
                             </select>
                         </div>
                     </div>
+                </div>
+
+                <div>
+                    <div class="flex items-baseline justify-between mb-1.5">
+                        <span class="text-xs text-slate-400 font-medium">How hard was it?</span>
+                        <span id="rpe-hint" class="text-xs text-brand-400 font-semibold"></span>
+                    </div>
+                    <input type="hidden" id="log-rpe">
+                    <div id="rpe-chips" class="rpe-chips" role="group" aria-label="Session effort from 1 to 10"><button type="button" data-rpe="1" aria-pressed="false" onclick="setRpe(1)">1</button><button type="button" data-rpe="2" aria-pressed="false" onclick="setRpe(2)">2</button><button type="button" data-rpe="3" aria-pressed="false" onclick="setRpe(3)">3</button><button type="button" data-rpe="4" aria-pressed="false" onclick="setRpe(4)">4</button><button type="button" data-rpe="5" aria-pressed="false" onclick="setRpe(5)">5</button><button type="button" data-rpe="6" aria-pressed="false" onclick="setRpe(6)">6</button><button type="button" data-rpe="7" aria-pressed="false" onclick="setRpe(7)">7</button><button type="button" data-rpe="8" aria-pressed="false" onclick="setRpe(8)">8</button><button type="button" data-rpe="9" aria-pressed="false" onclick="setRpe(9)">9</button><button type="button" data-rpe="10" aria-pressed="false" onclick="setRpe(10)">10</button></div>
                 </div>
 
                 <div>
@@ -2414,7 +2438,7 @@ body.resting #log-modal>div{margin-bottom:110px}
         };
 
         function syncModalScrollLock() {
-            const modalSelectors = '#log-modal, #nutrition-modal, #recipe-library-modal, #end-week-modal, #ai-plan-modal, #ai-key-modal, #ai-coach-modal, #profile-modal, #closet-modal';
+            const modalSelectors = '#log-modal, #nutrition-modal, #recipe-library-modal, #end-week-modal, #ai-plan-modal, #ai-key-modal, #ai-coach-modal, #profile-modal, #closet-modal, #more-modal';
             const hasVisibleModal = Array.from(document.querySelectorAll(modalSelectors)).some(modal => !modal.classList.contains('hidden'));
 
             document.body.classList.toggle('overflow-hidden', hasVisibleModal);
@@ -2458,22 +2482,19 @@ body.resting #log-modal>div{margin-bottom:110px}
             syncModalScrollLock();
         };
 
-        window.toggleUserMenu = function(event) {
-            event.stopPropagation();
-            const menu = document.getElementById('user-controls');
-            const trigger = event.currentTarget;
-            const isOpen = menu && menu.style.display === 'none';
-            if (menu) menu.style.display = isOpen ? 'flex' : 'none';
-            trigger?.setAttribute('aria-expanded', String(isOpen));
+        // Profile sheet (opened from the bottom tab bar)
+        window.moreAction = function(action) {
+            toggleModal('more-modal', false);
+            setTimeout(() => {
+                const actions = {
+                    profile: () => toggleModal('profile-modal', true),
+                    plan: () => toggleModal('ai-plan-modal', true),
+                    key: () => toggleModal('ai-key-modal', true),
+                    signout: () => handleSignOut()
+                };
+                if (actions[action]) actions[action]();
+            }, 60);
         };
-
-        document.addEventListener('click', function() {
-            const menu = document.getElementById('user-controls');
-            const trigger = document.querySelector('header button[aria-label="Open tracker menu"]');
-            if (!menu || menu.style.display === 'none') return;
-            menu.style.display = 'none';
-            trigger?.setAttribute('aria-expanded', 'false');
-        });
 
         // GLOBAL ESC KEY LISTENER TO CLOSE MODALS
         document.addEventListener('keydown', function(e) {
@@ -2484,7 +2505,7 @@ body.resting #log-modal>div{margin-bottom:110px}
                     showRecipeList();
                     return;
                 }
-                document.querySelectorAll('#log-modal, #nutrition-modal, #recipe-library-modal, #end-week-modal, #ai-plan-modal, #ai-key-modal, #ai-coach-modal, #profile-modal, #closet-modal').forEach(modal => {
+                document.querySelectorAll('#log-modal, #nutrition-modal, #recipe-library-modal, #end-week-modal, #ai-plan-modal, #ai-key-modal, #ai-coach-modal, #profile-modal, #closet-modal, #more-modal').forEach(modal => {
                     if (!modal.classList.contains('hidden')) toggleModal(modal.id, false);
                 });
                 syncModalScrollLock();
@@ -3088,21 +3109,187 @@ Rules:
             }
         };
 
-        function initApp() {
-            try {
-                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                
-                supabaseClient.auth.getSession().then(({ data: { session } }) => {
-                    handleSessionChange(session);
-                });
+        const APP_BUILD = '2026-11-13.3';
+        (function stampBuild() { const el = document.getElementById('build-badge'); if (el) el.textContent = 'Build ' + APP_BUILD; })();
 
-                supabaseClient.auth.onAuthStateChange((_event, session) => {
-                    handleSessionChange(session);
-                });
-            } catch (err) {
-                console.error("Supabase init error:", err);
+        // ===== SESSION + BOOT =====
+        // Why this is careful: installed apps get suspended, come back with an expired token, and may wake
+        // up before the network does. Expired tokens make the database return EMPTY lists (not errors),
+        // so we verify the session first, never wipe good data on a suspicious empty result, and fall back
+        // to the last saved copy of your plans instead of showing a blank page or a false "logged out".
+        const SUPABASE_FALLBACK_LIB = 'https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';
+        let bootPending = true;
+        let bootTimer = null;
+        let lastLoadAt = 0;
+        let loadSeq = 0;
+        let lastResumeAt = 0;
+        window.__dataStale = false;
+
+        function withTimeout(promise, ms) {
+            return new Promise((resolve, reject) => {
+                const t = setTimeout(() => reject(new Error('timeout')), ms);
+                promise.then(v => { clearTimeout(t); resolve(v); }, e => { clearTimeout(t); reject(e); });
+            });
+        }
+
+        // navigator.onLine is unreliable in installed apps, so it is never used to decide whether to try.
+        function isNetworkish(err) {
+            if (!err) return false;
+            const msg = String(err.message || err);
+            return err.name === 'AuthRetryableFetchError' || err.name === 'TypeError' || err.status === 0 || /fetch|network|timeout|timed out|offline|load failed|connection/i.test(msg);
+        }
+
+        function classifySaveError(err) {
+            const msg = String((err && err.message) || err || 'Unknown error');
+            const code = String((err && err.code) || '');
+            if (isNetworkish(err)) return { kind: 'offline', message: msg };
+            if (code === '42501' || /row-level security|permission denied/i.test(msg)) return { kind: 'denied', message: msg };
+            if (code === 'PGRST301' || code === 'PGRST303' || /jwt|not authenticated|invalid refresh/i.test(msg)) return { kind: 'auth', message: msg };
+            if (/5\d\d|server|unavailable|gateway/i.test(msg)) return { kind: 'server', message: msg };
+            return { kind: 'error', message: msg };
+        }
+
+        // Never hang on a stuck cross-tab lock (a known issue for installed apps): wait briefly, then proceed.
+        async function authLock(name, acquireTimeout, fn) {
+            if (!navigator.locks) return await fn();
+            const ac = new AbortController();
+            const t = setTimeout(() => ac.abort(), 3000);
+            try {
+                return await navigator.locks.request(name, { signal: ac.signal }, async () => { clearTimeout(t); return await fn(); });
+            } catch (e) {
+                if (e && e.name === 'AbortError') return await fn();
+                throw e;
+            } finally { clearTimeout(t); }
+        }
+
+        function readStoredSession() {
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (/^sb-.*-auth-token$/.test(k)) {
+                        const v = JSON.parse(localStorage.getItem(k));
+                        if (v && v.user) return v;
+                    }
+                }
+            } catch (e) {}
+            return null;
+        }
+
+        function hideBoot() {
+            bootPending = false;
+            clearTimeout(bootTimer);
+            const el = document.getElementById('boot-view');
+            if (el) el.classList.add('hidden');
+        }
+
+        function showBootProblem(text) {
+            const el = document.getElementById('boot-view');
+            if (!el) return;
+            el.classList.remove('hidden');
+            document.getElementById('boot-text').textContent = text;
+            document.getElementById('boot-actions').classList.remove('hidden');
+        }
+
+        window.resetAppCache = async function() {
+            try { const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r => r.unregister())); } catch (e) {}
+            try { const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))); } catch (e) {}
+            location.reload();   // saved workouts and your login are untouched
+        };
+
+        function loadSupabaseFallback() {
+            return new Promise(resolve => {
+                const el = document.createElement('script');
+                el.src = SUPABASE_FALLBACK_LIB;
+                el.onload = () => resolve();
+                el.onerror = () => resolve();
+                document.head.appendChild(el);
+                setTimeout(resolve, 8000);
+            });
+        }
+
+        // Returns { ok } or { ok:false, network, reason }. Refreshes the token if it is about to expire.
+        async function ensureFreshSession() {
+            try {
+                const { data, error } = await withTimeout(supabaseClient.auth.getSession(), 8000);
+                const sess = data && data.session;
+                if (!sess) return { ok: false, network: !!error && isNetworkish(error), reason: error ? error.message : 'no-session' };
+                if ((sess.expires_at || 0) * 1000 - Date.now() < 60000) {
+                    const r = await withTimeout(supabaseClient.auth.refreshSession(), 10000);
+                    if (r.error || !(r.data && r.data.session)) {
+                        return { ok: false, network: isNetworkish(r.error), reason: (r.error && r.error.message) || 'refresh-failed' };
+                    }
+                }
+                return { ok: true };
+            } catch (e) {
+                return { ok: false, network: true, reason: e.message };
             }
         }
+
+        // First answer on launch: live session, else (when the network is the problem) the saved one.
+        async function resolveInitialSession() {
+            try {
+                const { data, error } = await withTimeout(supabaseClient.auth.getSession(), 8000);
+                if (data && data.session) return data.session;
+                if (error && isNetworkish(error)) return readStoredSession();
+                return null;
+            } catch (e) {
+                return readStoredSession();
+            }
+        }
+
+        async function initApp() {
+            bootTimer = setTimeout(() => { if (bootPending) showBootProblem('This is taking longer than usual.'); }, 7000);
+            const bootBuddy = document.getElementById('boot-buddy');
+            if (bootBuddy) bootBuddy.innerHTML = buddySvg('happy', 84);
+
+            if (!window.supabase) await loadSupabaseFallback();
+            if (!window.supabase) { showBootProblem('Couldn\u2019t load the app files. Check your connection and try again.'); return; }
+
+            try {
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { lock: authLock } });
+
+                // Never run Supabase calls inside this callback synchronously: it can deadlock the auth client.
+                supabaseClient.auth.onAuthStateChange((event, session) => {
+                    setTimeout(() => onAuthEvent(event, session), 0);
+                });
+
+                const session = await resolveInitialSession();
+                handleSessionChange(session);
+            } catch (err) {
+                console.error('Supabase init error:', err);
+                showBootProblem('Something went wrong starting the app.');
+            }
+        }
+
+        function onAuthEvent(event, session) {
+            if (event === 'INITIAL_SESSION') return;                  // handled by resolveInitialSession
+            if (event === 'SIGNED_OUT') { handleSessionChange(null); return; }
+            if (!session) return;
+            if (currentUser && session.user && currentUser.id === session.user.id) {
+                currentUser = session.user;                           // token refresh / re-validation: keep the screen as is
+                return;
+            }
+            handleSessionChange(session);
+        }
+
+        async function onResume(force) {
+            if (!supabaseClient || !currentUser) return;
+            const now = Date.now();
+            if (!force && now - lastResumeAt < 10000) return;
+            lastResumeAt = now;
+            const sess = await ensureFreshSession();
+            if (sess.ok) {
+                flushSaveQueue();
+                if (window.__dataStale || Date.now() - lastLoadAt > 30000) loadDashboardData();
+            } else if (!sess.network && sess.reason === 'no-session') {
+                handleSessionChange(null);
+                showToast('Your session expired. Please sign in again.', 'error');
+            }
+        }
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') onResume(false); });
+        window.addEventListener('pageshow', (e) => { if (e.persisted) onResume(true); });
+        window.addEventListener('online', () => onResume(true));
+        window.addEventListener('focus', () => onResume(false));
 
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initApp);
@@ -3111,18 +3298,18 @@ Rules:
         }
 
         function handleSessionChange(session) {
+            hideBoot();
             currentUser = session?.user || null;
             document.body.classList.toggle('signed-in', !!currentUser);
             const authView = document.getElementById('auth-view');
             const dashboardView = document.getElementById('dashboard-view');
-            const userControls = document.getElementById('user-controls');
 
             if (currentUser) {
                 authView.classList.add('hidden');
                 dashboardView.classList.remove('hidden');
-                userControls.classList.remove('hidden');
-                document.getElementById('user-email-badge').innerText = currentUser.email;
-                
+                document.getElementById('user-email-badge').innerText = currentUser.email || '';
+                try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+
                 const importDateInput = document.getElementById('import-start-date');
                 if (importDateInput && !importDateInput.value) {
                     importDateInput.value = getTodayMondayStr();
@@ -3134,9 +3321,10 @@ Rules:
                 loadProfileSettings();
                 loadAiCoachConversation();
             } else {
+                window.__dataStale = false;
+                updateSyncChip();
                 authView.classList.remove('hidden');
                 dashboardView.classList.add('hidden');
-                userControls.classList.add('hidden');
             }
         }
 
@@ -3180,12 +3368,7 @@ Rules:
             return toLocalDateInputValue(monday);
         }
 
-        async function loadDashboardData() {
-            if (!currentUser) return;
-
-            const { data: plans, error } = await supabaseClient
-                .from('ft_weekly_plans')
-                .select(`
+        const PLAN_SELECT = `
                     id, week_start_date, focus_summary, status, coach_commentary, athlete_review_text,
                     ft_scheduled_workouts (
                         id, day_of_week, workout_type, target_rpe, notes_from_coach,
@@ -3195,18 +3378,28 @@ Rules:
                             ft_run_telemetry ( id, run_mode, distance_miles, duration_seconds, avg_pace_min_mile, avg_hr, primary_limiter )
                         )
                     )
-                `)
-                .order('week_start_date', { ascending: false });
+                `;
 
-            if (error) {
-                console.error("Error fetching plan:", error);
-                showToast("Error loading plans: " + error.message, "error");
-                return;
-            }
+        function fetchPlans() {
+            return supabaseClient.from('ft_weekly_plans').select(PLAN_SELECT).order('week_start_date', { ascending: false });
+        }
 
+        function planCacheKey() { return currentUser ? `ft-plan-cache:${currentUser.id}` : null; }
+        function writePlanCache(plans) {
+            const k = planCacheKey();
+            if (!k) return;
+            try { localStorage.setItem(k, JSON.stringify({ t: Date.now(), plans })); } catch (e) { /* too big or blocked: fine */ }
+        }
+        function readPlanCache() {
+            const k = planCacheKey();
+            if (!k) return null;
+            try { const v = JSON.parse(localStorage.getItem(k)); return v && Array.isArray(v.plans) && v.plans.length ? v.plans : null; } catch (e) { return null; }
+        }
+
+        function applyPlans(plans) {
             if (plans && plans.length > 0) {
                 allWeeklyPlans = plans;
-                
+
                 const todayMonday = getTodayMondayStr();
                 let defaultIdx = allWeeklyPlans.findIndex(p => p.week_start_date === todayMonday);
                 if (defaultIdx === -1) {
@@ -3214,7 +3407,9 @@ Rules:
                 }
                 if (defaultIdx === -1) defaultIdx = 0;
 
-                currentPlanIndex = defaultIdx;
+                // Stay on the week you were looking at when a background refresh lands
+                const keep = activeWeeklyPlan ? allWeeklyPlans.findIndex(p => p.id === activeWeeklyPlan.id) : -1;
+                currentPlanIndex = keep >= 0 ? keep : defaultIdx;
                 activeWeeklyPlan = allWeeklyPlans[currentPlanIndex];
                 renderDashboard(activeWeeklyPlan);
                 populateWeekSelect();
@@ -3228,6 +3423,62 @@ Rules:
                 const select = document.getElementById('week-select');
                 if (select) select.innerHTML = '<option>No plans</option>';
             }
+        }
+
+        function showSavedData(reason) {
+            window.__dataStale = true;
+            updateSyncChip();
+            if (reason) console.warn('Showing saved data:', reason);
+        }
+
+        async function loadDashboardData() {
+            if (!currentUser) return;
+            const mySeq = ++loadSeq;
+            const hadData = allWeeklyPlans.length > 0;
+
+            // 1. Make sure the login is valid before asking for data (an expired login returns EMPTY lists)
+            const sess = await ensureFreshSession();
+            if (mySeq !== loadSeq) return;
+            if (!sess.ok) {
+                if (!sess.network && sess.reason === 'no-session') {
+                    handleSessionChange(null);
+                    showToast('Your session expired. Please sign in again.', 'error');
+                    return;
+                }
+                // Offline or the network isn't up yet: keep what is on screen, or load the saved copy
+                if (!hadData) { const cached = readPlanCache(); if (cached) applyPlans(cached); }
+                showSavedData(sess.reason);
+                return;
+            }
+
+            // 2. Fetch
+            let { data: plans, error } = await fetchPlans();
+            if (mySeq !== loadSeq) return;
+
+            // 3. An empty answer when we already had data is suspicious: refresh the login and ask once more
+            if (!error && hadData && (!plans || plans.length === 0)) {
+                try { await withTimeout(supabaseClient.auth.refreshSession(), 10000); } catch (e) {}
+                ({ data: plans, error } = await fetchPlans());
+                if (mySeq !== loadSeq) return;
+                if (!error && (!plans || plans.length === 0)) {
+                    showSavedData('empty-result');      // keep the data on screen rather than wiping it
+                    return;
+                }
+            }
+
+            if (error) {
+                console.error("Error fetching plan:", error);
+                if (!hadData) { const cached = readPlanCache(); if (cached) applyPlans(cached); }
+                showSavedData(error.message);
+                if (!isNetworkish(error)) showToast("Error loading plans: " + error.message, "error");
+                return;
+            }
+
+            window.__dataStale = false;
+            lastLoadAt = Date.now();
+            if (plans && plans.length) writePlanCache(plans);
+            applyPlans(plans);
+            updateSyncChip();
         }
 
         function populateWeekSelect() {
@@ -5610,22 +5861,34 @@ ${getAthleteProfileMemorySummary(profileData)}
             return Object.keys(saveQueue).filter(k => currentUser && saveQueue[k] && saveQueue[k].userId === currentUser.id);
         }
 
+        let lastSaveError = null;
+
         function setSaveStatus(state) {
             const dot = document.getElementById('autosave-status-dot');
             const text = document.getElementById('autosave-status-text');
             const retry = document.getElementById('autosave-retry');
+            const detail = document.getElementById('autosave-detail');
             if (!dot || !text) return;
+            const reachable = navigator.onLine !== false;
             const map = {
                 idle:    ['bg-emerald-500 animate-pulse', 'Saves automatically'],
                 saving:  ['bg-amber-500 animate-ping', 'Saving\u2026'],
                 saved:   ['bg-emerald-500', 'All changes saved'],
-                offline: ['bg-rose-500', 'Offline. Saved on this device and will sync later.'],
-                error:   ['bg-rose-500', 'Couldn\u2019t save yet. Retrying\u2026']
+                offline: ['bg-rose-500', reachable ? 'Couldn\u2019t reach the server. Saved on this device, retrying.' : 'Offline. Saved on this device and will sync later.'],
+                auth:    ['bg-rose-500', 'Please sign in again to finish saving. Your workout is safe on this device.'],
+                denied:  ['bg-rose-500', 'The server rejected this save. Your workout is safe on this device.'],
+                server:  ['bg-rose-500', 'Server problem. Saved on this device, retrying.'],
+                error:   ['bg-rose-500', 'Couldn\u2019t save yet. Saved on this device, retrying.']
             };
             const [cls, label] = map[state] || map.idle;
             dot.className = 'w-2 h-2 rounded-full shrink-0 ' + cls;
             text.innerText = label;
-            if (retry) retry.classList.toggle('hidden', state !== 'error' && state !== 'offline');
+            const failed = !!map[state] && ['offline', 'auth', 'denied', 'server', 'error'].includes(state);
+            if (retry) retry.classList.toggle('hidden', !failed);
+            if (detail) {
+                detail.classList.toggle('hidden', !(failed && lastSaveError));
+                detail.textContent = failed && lastSaveError ? `Reason: ${lastSaveError.message}` : '';
+            }
         }
 
         function updateSyncChip() {
@@ -5634,10 +5897,15 @@ ${getAthleteProfileMemorySummary(profileData)}
             const n = pendingSaveKeys().length;
             const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
             chip.classList.remove('warn', 'bad');
-            if (!n && !offline) { chip.classList.add('hidden'); return; }
+            const stale = !!window.__dataStale && !!currentUser;
+            if (!n && !offline && !stale) { chip.classList.add('hidden'); return; }
             chip.classList.remove('hidden');
-            if (offline) { chip.classList.add('bad'); chip.textContent = n ? `Offline, ${n} waiting` : 'Offline'; }
-            else { chip.classList.add('warn'); chip.textContent = `${n} waiting to sync`; }
+            chip.title = lastSaveError ? `Last problem: ${lastSaveError.message}` : '';
+            if (offline) { chip.classList.add('bad'); chip.textContent = n ? `Offline, ${n} waiting` : 'Offline, showing saved data'; }
+            else if (n && lastSaveError && lastSaveError.kind === 'auth') { chip.classList.add('bad'); chip.textContent = `${n} waiting. Sign in to sync`; }
+            else if (n && lastSaveError && lastSaveError.kind === 'denied') { chip.classList.add('bad'); chip.textContent = `${n} waiting. Save was rejected`; }
+            else if (n) { chip.classList.add('warn'); chip.textContent = `${n} waiting to sync`; }
+            else { chip.classList.add('warn'); chip.textContent = 'Showing saved data. Tap to refresh'; }
         }
 
         function buildLogSnapshot() {
@@ -5752,29 +6020,46 @@ ${getAthleteProfileMemorySummary(profileData)}
             clearTimeout(saveRetryTimer);
             const keys = pendingSaveKeys();
             updateSyncChip();
-            if (!keys.length) { return; }
-            if (navigator.onLine === false) { setSaveStatus('offline'); return; }
+            if (!keys.length) return;
+
             saveFlushing = true;
-            let failed = false;
-            for (const key of keys) {
-                const snap = saveQueue[key];
-                if (!snap) continue;
-                try {
-                    await pushSnapshot(snap);
-                    if (saveQueue[key] && saveQueue[key].v === snap.v) delete saveQueue[key];
-                    persistSaveQueue();
-                } catch (err) {
-                    console.error('Save failed:', err);
-                    failed = true;
-                    break;
+            let failure = null;
+
+            // Only a definite "no login" stops us. A slow or failed token refresh still lets us try:
+            // the existing token may be valid, and the request itself is the real test.
+            const sess = await ensureFreshSession();
+            if (!sess.ok && !sess.network) failure = { kind: 'auth', message: sess.reason === 'no-session' ? 'You are signed out' : sess.reason };
+
+            if (!failure) {
+                for (const key of keys) {
+                    const snap = saveQueue[key];
+                    if (!snap) continue;
+                    try {
+                        await pushSnapshot(snap);
+                        if (saveQueue[key] && saveQueue[key].v === snap.v) delete saveQueue[key];
+                        persistSaveQueue();
+                    } catch (err) {
+                        console.error('Save failed:', err);
+                        failure = classifySaveError(err);
+                        break;
+                    }
                 }
             }
             saveFlushing = false;
-            if (failed) {
-                setSaveStatus(navigator.onLine === false ? 'offline' : 'error');
+
+            if (failure) {
+                lastSaveError = failure;
+                setSaveStatus(failure.kind);
+                updateSyncChip();
+                if (failure.kind === 'auth' && !sess.ok && sess.reason === 'no-session') {
+                    showToast('Sign in to finish saving your workout. It is safe on this device.', 'error');
+                    handleSessionChange(null);       // queue is kept and sends after you sign in
+                    return;
+                }
                 scheduleSaveRetry();
                 return;
             }
+            lastSaveError = null;
             saveRetryCount = 0;
             if (pendingSaveKeys().length) { return flushSaveQueue(); }   // newer edits arrived mid-save
             setSaveStatus('saved');
@@ -5787,10 +6072,10 @@ ${getAthleteProfileMemorySummary(profileData)}
             if (!snap) return;
             saveQueue[`${snap.userId}:${snap.workoutId}`] = snap;
             persistSaveQueue();
-            if (navigator.onLine === false) { setSaveStatus('offline'); return; }
-            await flushSaveQueue();
+            await flushSaveQueue();                 // always try; the result tells us if we are really offline
         }
 
+        window.retrySync = function() { flushSaveQueue(); loadDashboardData(); };
         window.addEventListener('online', () => { updateSyncChip(); flushSaveQueue(); });
         window.addEventListener('offline', () => { updateSyncChip(); if (pendingSaveKeys().length || autosavePending) setSaveStatus('offline'); });
         window.addEventListener('pagehide', () => {
@@ -5830,22 +6115,11 @@ ${getAthleteProfileMemorySummary(profileData)}
             if (tab === 'today') {
                 if (allWeeklyPlans.length && activeWeeklyPlan && activeWeeklyPlan.week_start_date !== getTodayMondayStr()) jumpToCurrentWeek();
                 window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-            } else if (tab === 'week') {
-                const grid = document.getElementById('workouts-grid');
-                if (grid) window.scrollTo({ top: grid.getBoundingClientRect().top + window.scrollY - 16, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
             } else if (tab === 'coach') openAiCoachModal();
             else if (tab === 'food') openNutritionModal();
+            else if (tab === 'recipes') openRecipeLibrary();
+            else if (tab === 'profile') toggleModal('more-modal', true);
         };
-        function syncActiveTab() {
-            const grid = document.getElementById('workouts-grid');
-            if (!grid) return;
-            const week = grid.getBoundingClientRect().top < window.innerHeight * 0.4;
-            document.querySelectorAll('#tabbar button[data-tab="today"],#tabbar button[data-tab="week"]').forEach(b => {
-                const on = (b.dataset.tab === 'week') === week;
-                if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
-            });
-        }
-        window.addEventListener('scroll', syncActiveTab, { passive: true });
 
         // ===== STICKY BUDDY BAR (compact once you scroll past it) =====
         (function initStickyBuddy() {
@@ -5888,7 +6162,7 @@ ${getAthleteProfileMemorySummary(profileData)}
 
         // ===== SERVICE WORKER (offline app shell) =====
         if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-            window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+            window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {}));
         }
 
 
