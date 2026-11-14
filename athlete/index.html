@@ -178,7 +178,7 @@ body #toast-container>div{border-radius:16px;border-width:2px;padding:12px 16px;
 .lg-prog i{display:block;height:100%;width:0;background:rgb(var(--sun));border-radius:99px;transition:width .35s}
 .lg-ex{background:rgb(var(--s950));border:2px solid rgb(var(--s800));border-radius:20px;padding:14px;display:grid;gap:10px}
 .lg-target{font-size:.82rem;color:rgb(var(--s400));text-align:right;flex:none}
-.lg-cols,.set-row{display:grid;grid-template-columns:28px 1fr 1fr 36px;gap:6px;align-items:center}
+.lg-cols,.set-row{display:grid;grid-template-columns:34px 1fr 1fr 36px;gap:6px;align-items:center}
 .lg-cols{padding:0 6px}
 .set-row{border:2px solid transparent;border-radius:16px;padding:4px;cursor:pointer;transition:opacity .15s,border-color .15s,background-color .15s}
 .set-row.active{border-color:rgb(var(--b500));background:rgb(var(--s900));cursor:default}
@@ -189,7 +189,7 @@ body #toast-container>div{border-radius:16px;border-width:2px;padding:12px 16px;
 .stepper input:disabled{-webkit-text-fill-color:rgb(var(--s200));opacity:1}
 .stepper button:disabled{color:rgb(var(--s500))}
 .lg-cols span{font-size:.78rem;font-weight:600;color:rgb(var(--s400));text-align:center}
-.set-badge{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:.85rem;font-weight:700;background:rgb(var(--s800));color:rgb(var(--s400));transition:background .2s}
+.set-badge{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:.95rem;font-weight:700;background:rgb(var(--s800));color:rgb(var(--s400));transition:background .2s}
 .set-row.done .set-badge{background:rgb(var(--ok));color:rgb(var(--ok-ink))}
 button.set-badge{border:0;cursor:pointer;padding:0}
 .stepper{display:flex;align-items:stretch;background:rgb(var(--s900));border:2px solid rgb(var(--s800));border-radius:14px;overflow:hidden;min-width:0}
@@ -260,6 +260,11 @@ body.resting #log-modal>div{margin-bottom:110px}
 .outfit-btn.on{border-color:rgb(var(--b500));box-shadow:0 3px 0 rgb(var(--b500))}
 .outfit-btn:disabled{opacity:.55;box-shadow:none;cursor:default}
 
+.move-chips{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.move-chips button{display:flex;flex-direction:column;align-items:center;gap:0;border:2px solid rgb(var(--s800));background:rgb(var(--s900));color:rgb(var(--s300));border-radius:12px;padding:4px 0;font-size:.75rem;font-weight:600;line-height:1.2;box-shadow:0 2px 0 rgb(var(--s800))}
+.move-chips button b{font-size:1rem}
+.move-chips button.on{background:rgb(var(--pri));border-color:rgb(var(--pri));color:#fff;box-shadow:0 2px 0 rgb(var(--pri-d))}
+.move-chips button:active{transform:translateY(1px)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
     </style>
     <style id="tw-static">
@@ -2043,9 +2048,13 @@ body.resting #log-modal>div{margin-bottom:110px}
             <form id="workout-log-form" oninput="handleLogFormInput()" class="space-y-5">
                 <input type="hidden" id="log-workout-id">
 
-                <div>
-                    <label for="log-date" class="block text-xs text-slate-400 mb-1">Date completed</label>
-                    <input type="date" id="log-date" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
+                <div id="move-days" class="hidden">
+                    <div class="flex items-baseline justify-between mb-1.5">
+                        <span class="text-xs text-slate-400 font-medium">Day</span>
+                        <span id="log-date-note" class="text-xs text-slate-400"></span>
+                    </div>
+                    <div class="move-chips" role="group" aria-label="Day of the week for this workout"></div>
+                    <input type="hidden" id="log-date">
                 </div>
 
                 <!-- LIFTING SET ACTUALS -->
@@ -3708,7 +3717,8 @@ Rules:
             grid.innerHTML = '';
 
             const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-            const sortedWorkouts = [...(plan.ft_scheduled_workouts || [])].sort((a, b) => 
+            const sortedWorkouts = [...(plan.ft_scheduled_workouts || [])].sort((a, b) =>
+                (getEffectiveDate(a, plan) || '').localeCompare(getEffectiveDate(b, plan) || '') ||
                 dayOrder.indexOf(a.day_of_week) - dayOrder.indexOf(b.day_of_week)
             );
             const nutritionByDate = await getNutritionByDateForWeek(plan);
@@ -3718,14 +3728,16 @@ Rules:
                 const status = getWorkoutStatus(workout);
                 const isCompleted = status.state === 'done';
                 const isPartial = status.state === 'partial';
-                const workoutDate = getDateForWorkoutDay(plan.week_start_date, workout.day_of_week);
+                const workoutDate = getEffectiveDate(workout, plan);
+                const effDay = workoutDate ? weekdayName(workoutDate) : workout.day_of_week;
+                const movedFrom = effDay !== workout.day_of_week ? workout.day_of_week : '';
                 const nutritionEntries = workoutDate ? (nutritionByDate.get(workoutDate) || []) : [];
 
                 const todayStr = toLocalDateInputValue(new Date());
                 const isToday = workoutDate === todayStr;
                 const isPast = !!workoutDate && workoutDate < todayStr;
                 const card = document.createElement('div');
-                card.id = `workout-card-${workout.day_of_week}`;
+                card.id = `workout-card-${workout.id}`;
                 card.className = `wcard ${isCompleted ? 'is-done' : ''} ${(!isCompleted && (isToday || isPartial)) ? 'is-today' : ''}`;
 
                 let exercisesHtml = '';
@@ -3838,8 +3850,9 @@ Rules:
 
                 card.innerHTML = `
                     <div class="flex items-center gap-2 mb-1">
-                        <span class="text-xs font-semibold text-slate-400">${escapeHtml(workout.day_of_week)}${workoutDate ? ', ' + escapeHtml(formatShortDate(workoutDate)) : ''}</span>
+                        <span class="text-xs font-semibold text-slate-400">${escapeHtml(effDay)}${workoutDate ? ', ' + escapeHtml(formatShortDate(workoutDate)) : ''}</span>
                         ${statusPill}
+                        ${movedFrom ? `<span class="ft-pill soon">Moved from ${escapeHtml(movedFrom)}</span>` : ''}
                     </div>
                     <h3 class="text-lg font-bold text-white leading-snug">${escapeHtml(workout.workout_type)}</h3>
                     ${workout.notes_from_coach ? `<p class="text-xs text-slate-400 mt-1">${escapeHtml(workout.notes_from_coach)}</p>` : ''}
@@ -3869,9 +3882,21 @@ Rules:
             document.getElementById('log-workout-id').value = workout.id;
             logHistory = buildExerciseHistory(workout.id);
             document.getElementById('modal-workout-title').innerText = workout.workout_type;
-            document.getElementById('modal-workout-day').innerText = workout.day_of_week;
+            const planOfWorkout = (allWeeklyPlans || []).find(pl => (pl.ft_scheduled_workouts || []).some(w => w.id === workout.id)) || activeWeeklyPlan;
+            const scheduledDate = planOfWorkout ? getDateForWorkoutDay(planOfWorkout.week_start_date, workout.day_of_week) : null;
+            const currentDay = planOfWorkout
+                ? weekdayName(getEffectiveDate(Object.assign({}, workout, { ft_workout_actuals: existingActual ? [existingActual] : [] }), planOfWorkout))
+                : workout.day_of_week;
+            document.getElementById('modal-workout-day').innerText = currentDay && currentDay !== workout.day_of_week ? `${workout.day_of_week}, moved to ${currentDay}` : workout.day_of_week;
             
-            document.getElementById('log-date').value = existingActual?.date_completed || toLocalDateInputValue(new Date());
+            const dateEl = document.getElementById('log-date');
+            const todayForLog = toLocalDateInputValue(new Date());
+            dateEl.value = existingActual?.date_completed || (scheduledDate && scheduledDate > todayForLog ? scheduledDate : todayForLog);
+            dateEl.dataset.scheduled = scheduledDate || '';
+            dateEl.dataset.existing = existingActual ? '1' : '';
+            dateEl.dataset.day = workout.day_of_week;
+            logDateTouched = false;
+            renderMoveChips(planOfWorkout);
             document.getElementById('log-rpe').value = existingActual?.actual_rpe || '';
             document.getElementById('log-athlete-notes').value = existingActual?.athlete_notes || '';
 
@@ -3962,7 +3987,7 @@ Rules:
             const val = (v) => (v !== undefined && v !== null ? escapeHtml(v) : '');
             return `
                 <div class="set-row" onclick="selectSet(this)" data-exercise="${escapeHtml(exerciseName)}" data-hint-reps="${escapeHtml(hintReps)}" data-hint-weight="${escapeHtml(hintWeight)}">
-                    <button type="button" class="set-badge" onclick="event.stopPropagation(); selectSet(this.closest('.set-row'))" aria-label="Select set ${setNum}">${setNum}</button>
+                    <button type="button" class="set-badge" onclick="event.stopPropagation(); toggleSet(this)" aria-label="Log set ${setNum} at target">${setNum}</button>
                     <div class="stepper">
                         <button type="button" disabled aria-label="Fewer reps" onclick="stepSet(this, 'reps', -1)">&minus;</button>
                         <input type="number" inputmode="numeric" disabled data-field="reps" value="${val(reps)}" placeholder="${escapeHtml(hintReps)}" aria-label="Reps, set ${setNum}">
@@ -4028,10 +4053,42 @@ Rules:
 
         function renumberSets(container) {
             container.querySelectorAll('.set-row').forEach((row, i) => {
-                const badge = row.querySelector('.set-badge');
-                if (badge) badge.textContent = i + 1;
+                paintBadge(row, i + 1);
             });
         }
+
+        // The badge shows the set number, or a check once the set has reps logged
+        function paintBadge(row, number) {
+            const badge = row.querySelector('.set-badge');
+            if (!badge) return;
+            const done = row.classList.contains('done');
+            const n = number || ([...row.parentElement.children].indexOf(row) + 1);
+            badge.textContent = done ? '\u2713' : String(n);
+            badge.setAttribute('aria-label', done ? `Set ${n} done. Tap to reset` : `Log set ${n} at target`);
+        }
+
+        // Tap the number: fill in the target and mark it done. Tap the check: clear it back to "not done".
+        window.toggleSet = function(btn) {
+            const row = btn.closest('.set-row');
+            if (!row) return;
+            const repsEl = row.querySelector('[data-field="reps"]');
+            const weightEl = row.querySelector('[data-field="weight"]');
+            if (parseInt(repsEl.value) > 0) {
+                repsEl.value = '';
+                weightEl.value = '';
+            } else {
+                const prev = row.previousElementSibling;
+                let reps = parseFloat(row.dataset.hintReps);
+                if (isNaN(reps) || reps <= 0) reps = parseFloat(prev && prev.querySelector('[data-field="reps"]').value);
+                if (isNaN(reps) || reps <= 0) reps = 8;
+                let weight = parseFloat(row.dataset.hintWeight);
+                if (isNaN(weight)) weight = parseFloat(prev && prev.querySelector('[data-field="weight"]').value);
+                repsEl.value = reps;
+                weightEl.value = isNaN(weight) ? '' : weight;
+            }
+            selectSet(row);
+            handleLogFormInput();
+        };
 
         window.addSetRow = function(exerciseName) {
             const container = document.getElementById(`sets-list-${exerciseName.replace(/\s+/g, '-')}`);
@@ -5710,21 +5767,24 @@ ${getAthleteProfileMemorySummary(profileData)}
 
             const today = toLocalDateInputValue(new Date());
             const dateOf = (dayName) => getDateForWorkoutDay(plan.week_start_date, dayName);
-            const workouts = [...(plan.ft_scheduled_workouts || [])].sort((x, y) => FT_DAYS.indexOf(x.day_of_week) - FT_DAYS.indexOf(y.day_of_week));
-            const byDay = new Map(workouts.map(w => [w.day_of_week, w]));
+            const effDate = (w) => getEffectiveDate(w, plan);
+            const effDay = (w) => weekdayName(effDate(w)) || w.day_of_week;
+            const workouts = [...(plan.ft_scheduled_workouts || [])].sort((x, y) => (effDate(x) || '').localeCompare(effDate(y) || '') || FT_DAYS.indexOf(x.day_of_week) - FT_DAYS.indexOf(y.day_of_week));
+            const byDay = new Map();
+            workouts.forEach(w => { const k = effDay(w); if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(w); });
             const isDone = (w) => getWorkoutStatus(w).state === 'done';
             const total = workouts.length;
             const done = workouts.filter(isDone).length;
             const pct = total ? Math.round((done / total) * 100) : 0;
 
             const pending = workouts.filter(w => !isDone(w));
-            const next = pending.find(w => dateOf(w.day_of_week) === today)
-                || pending.find(w => (dateOf(w.day_of_week) || '') > today)
+            const next = pending.find(w => effDate(w) === today)
+                || pending.find(w => (effDate(w) || '') > today)
                 || pending[0] || null;
             heroNextWorkoutId = next ? next.id : null;
 
             const nextLine = next
-                ? (dateOf(next.day_of_week) === today ? `Today: ${next.workout_type}.` : `Next up: ${next.day_of_week}\u2019s ${next.workout_type}.`)
+                ? (effDate(next) === today ? `Today: ${next.workout_type}.` : `Next up: ${effDay(next)}\u2019s ${next.workout_type}.`)
                 : '';
             let title, sub;
             if (!total) { title = 'No workouts planned'; sub = 'This week has no scheduled sessions.'; }
@@ -5741,8 +5801,8 @@ ${getAthleteProfileMemorySummary(profileData)}
             else if (done === total) { say = 'Week complete! Rest, eat well and sleep. That\u2019s where gains happen.'; mood = 'cheer'; }
             else if (justDone) { say = 'Another one done! Nice work.'; mood = 'cheer'; }
             else if (next && getWorkoutStatus(next).state === 'partial') say = `Pick up where you left off on ${next.workout_type}.`;
-            else if (next && dateOf(next.day_of_week) === today) say = `Today is ${next.workout_type}. Let\u2019s go!`;
-            else if (next && dateOf(next.day_of_week) > today) say = `${next.day_of_week} is ${next.workout_type}. I\u2019ll be ready.`;
+            else if (next && effDate(next) === today) say = `Today is ${next.workout_type}. Let\u2019s go!`;
+            else if (next && effDate(next) > today) say = `${effDay(next)} is ${next.workout_type}. I\u2019ll be ready.`;
             else say = 'You have a session that isn\u2019t logged yet. Add it whenever you\u2019re ready.';
 
             const streak = computeWorkoutStreak();
@@ -5761,20 +5821,23 @@ ${getAthleteProfileMemorySummary(profileData)}
                 </div>`;
 
             const strip = FT_DAYS.map((d, i) => {
-                const w = byDay.get(d);
-                const st = w ? getWorkoutStatus(w).state : 'rest';
-                const completed = st === 'done';
-                const cls = st === 'rest' ? 'rest' : completed ? 'done' : st === 'partial' ? 'part' : 'plan';
-                const mark = st === 'rest' ? '\u2013' : completed ? '\u2713' : st === 'partial' ? '\u2026' : '\u2022';
-                const label = !w ? `${d}: rest day` : `${d}: ${w.workout_type}, ${completed ? 'done' : st === 'partial' ? 'in progress' : 'not logged yet'}`;
+                const list = byDay.get(d) || [];
+                const states = list.map(w => getWorkoutStatus(w).state);
+                const st = !list.length ? 'rest'
+                    : states.every(x => x === 'done') ? 'done'
+                    : states.every(x => x === 'empty') ? 'empty' : 'partial';
+                const cls = st === 'rest' ? 'rest' : st === 'done' ? 'done' : st === 'partial' ? 'part' : 'plan';
+                const mark = st === 'rest' ? '\u2013' : st === 'done' ? '\u2713' : st === 'partial' ? '\u2026' : '\u2022';
+                const label = !list.length ? `${d}: rest day`
+                    : `${d}: ` + list.map((w, k) => `${w.workout_type}, ${states[k] === 'done' ? 'done' : states[k] === 'partial' ? 'in progress' : 'not logged yet'}`).join('; ');
                 const now = dateOf(d) === today;
-                return `<button type="button" class="d ${now ? 'now' : ''}" ${w ? `onclick="scrollToWorkout('${d}')"` : 'disabled'} ${now ? 'aria-current="date"' : ''} aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"><span class="dot ${cls}">${mark}</span><span>${FT_DAYS_SHORT[i]}</span></button>`;
+                return `<button type="button" class="d ${now ? 'now' : ''}" ${list.length ? `onclick="scrollToWorkout('${list[0].id}')"` : 'disabled'} ${now ? 'aria-current="date"' : ''} aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"><span class="dot ${cls}">${mark}</span><span>${FT_DAYS_SHORT[i]}</span></button>`;
             }).join('');
 
             let cta = '';
             if (next) {
                 const partialNext = getWorkoutStatus(next).state === 'partial';
-                cta = `<button type="button" class="btn-primary" onclick="openHeroWorkout()">${partialNext ? 'Continue logging' : dateOf(next.day_of_week) === today ? 'Log today\u2019s workout' : `Log ${escapeHtml(next.day_of_week)}\u2019s workout`}</button>`;
+                cta = `<button type="button" class="btn-primary" onclick="openHeroWorkout()">${partialNext ? 'Continue logging' : effDate(next) === today ? 'Log today\u2019s workout' : `Log ${escapeHtml(effDay(next))}\u2019s workout`}</button>`;
             } else if (total && !isWeekReviewed(plan)) {
                 cta = `<button type="button" class="btn-primary btn-ok" onclick="openEndWeekModal()">End week and review</button>`;
             }
@@ -5805,8 +5868,8 @@ ${getAthleteProfileMemorySummary(profileData)}
             if (w) openLogModal(w, w.ft_workout_actuals?.[0] || null);
         };
 
-        window.scrollToWorkout = function(day) {
-            const el = document.getElementById(`workout-card-${day}`);
+        window.scrollToWorkout = function(id) {
+            const el = document.getElementById(`workout-card-${id}`);
             if (!el) return;
             const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             el.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'center' });
@@ -5948,6 +6011,20 @@ ${getAthleteProfileMemorySummary(profileData)}
                         });
                     }
                 });
+            }
+            // Opening a workout and touching nothing must not move it: without real data or an explicit
+            // date choice, keep it on its scheduled day instead of today's date.
+            const dateEl = document.getElementById('log-date');
+            const hasData = isRun ? !!(snap.run && (snap.run.distance > 0 || snap.run.duration_seconds > 0)) : snap.sets.some(x => x.reps_completed > 0);
+            if (!logDateTouched && dateEl.dataset.existing !== '1' && dateEl.dataset.scheduled) {
+                const sched = dateEl.dataset.scheduled;
+                const today = toLocalDateInputValue(new Date());
+                if (!hasData) snap.date_completed = sched;                       // an untouched draft stays on its day
+                else if (sched > today) {                                        // done ahead of schedule: record today
+                    snap.date_completed = today;
+                    dateEl.value = today;
+                    syncMoveChips();
+                }
             }
             return snap;
         }
@@ -6332,7 +6409,7 @@ ${getAthleteProfileMemorySummary(profileData)}
             const today = toLocalDateInputValue(new Date());
             const items = [];
             (allWeeklyPlans || []).forEach(plan => (plan.ft_scheduled_workouts || []).forEach(w => {
-                const d = getDateForWorkoutDay(plan.week_start_date, w.day_of_week);
+                const d = getEffectiveDate(w, plan);
                 if (!d || d > today) return;
                 items.push({ d, done: getWorkoutStatus(w).state === 'done' });
             }));
@@ -6392,6 +6469,65 @@ ${getAthleteProfileMemorySummary(profileData)}
             refreshBuddies();
         };
 
+
+        // ===== WORKOUT DATES =====
+        // A workout shows on the date it was logged (so you can swap days when plans change).
+        // Only dates inside the same Monday-Sunday week count, so a stray date can't make a workout vanish.
+        let logDateTouched = false;
+        function weekdayName(dateStr) {
+            if (!dateStr) return '';
+            return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][(new Date(`${dateStr}T12:00:00`).getDay() + 6) % 7];
+        }
+        function getEffectiveDate(workout, plan) {
+            const scheduled = getDateForWorkoutDay(plan.week_start_date, workout.day_of_week);
+            const actual = workout.ft_workout_actuals && workout.ft_workout_actuals[0];
+            const done = actual && actual.date_completed;
+            if (!done || !scheduled) return scheduled;
+            const start = getDateForWorkoutDay(plan.week_start_date, 'Monday');
+            const end = getDateForWorkoutDay(plan.week_start_date, 'Sunday');
+            return done >= start && done <= end ? done : scheduled;
+        }
+
+        function renderMoveChips(plan) {
+            const wrap = document.getElementById('move-days');
+            if (!wrap) return;
+            if (!plan) { wrap.classList.add('hidden'); return; }
+            wrap.classList.remove('hidden');
+            wrap.querySelector('.move-chips').innerHTML = FT_DAYS.map((d, i) => {
+                const date = getDateForWorkoutDay(plan.week_start_date, d);
+                const num = new Date(`${date}T12:00:00`).getDate();
+                return `<button type="button" data-date="${date}" aria-label="${d} ${formatShortDate(date)}" onclick="setLogDate('${date}')"><span>${FT_DAYS_SHORT[i]}</span><b>${num}</b></button>`;
+            }).join('');
+            syncMoveChips();
+        }
+        function syncModalDayLabel() {
+            const el = document.getElementById('log-date');
+            const label = document.getElementById('modal-workout-day');
+            const scheduledDay = el.dataset.day;
+            const inWeek = [...document.querySelectorAll('#move-days button')].some(b => b.dataset.date === el.value);
+            const now = inWeek ? weekdayName(el.value) : scheduledDay;
+            label.innerText = now && scheduledDay && now !== scheduledDay ? `${scheduledDay}, moved to ${now}` : (scheduledDay || '');
+        }
+        function syncMoveChips() {
+            syncModalDayLabel();
+            const v = document.getElementById('log-date').value;
+            let matched = false;
+            document.querySelectorAll('#move-days button').forEach(b => {
+                const on = b.dataset.date === v;
+                if (on) matched = true;
+                b.classList.toggle('on', on);
+                b.setAttribute('aria-pressed', String(on));
+            });
+            const note = document.getElementById('log-date-note');
+            if (note) note.textContent = matched || !v ? '' : `Logged ${formatShortDate(v)}`;
+        }
+        window.setLogDate = function(date) {
+            document.getElementById('log-date').value = date;
+            logDateTouched = true;
+            syncMoveChips();
+            handleLogFormInput();
+        };
+        document.getElementById('log-date').addEventListener('input', () => { logDateTouched = true; syncMoveChips(); });
 
         // ===== WORKOUT STATUS =====
         // A saved record is not the same as a finished workout. Done means real data was logged:
@@ -6579,6 +6715,7 @@ ${getAthleteProfileMemorySummary(profileData)}
                     const weight = parseFloat(row.querySelector('[data-field="weight"]').value) || 0;
                     const ok = reps > 0;
                     row.classList.toggle('done', ok);
+                    paintBadge(row);
                     if (ok) filled++;
 
                     const name = row.getAttribute('data-exercise');
@@ -6608,7 +6745,7 @@ ${getAthleteProfileMemorySummary(profileData)}
             else if (complete) { mood = 'cheer'; msg = rpe ? 'Great session. Nice work!' : 'Everything is logged! Rate the effort and you\u2019re done.'; }
             else if (isRun) msg = filled ? 'Nice! Add your distance and time to finish up.' : 'Log your distance and time. Pace and heart rate are a bonus.';
             else if (filled) msg = `${filled} of ${total} sets logged. Keep going!`;
-            else msg = 'Tap + to log your first set. I\u2019ll fill in your target.';
+            else msg = 'Tap a set number to log it at your target. Use + and \u2212 to adjust.';
 
             bar.style.width = (total ? Math.round((filled / total) * 100) : 0) + '%';
             const countEl = document.getElementById('log-progress-count');
