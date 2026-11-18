@@ -4183,7 +4183,8 @@ Rules:
             if (!row) return;
             const repsEl = row.querySelector('[data-field="reps"]');
             const weightEl = row.querySelector('[data-field="weight"]');
-            if (parseInt(repsEl.value) > 0) {
+            const logging = !(parseInt(repsEl.value) > 0);
+            if (!logging) {
                 repsEl.value = '';
                 weightEl.value = '';
             } else {
@@ -4198,6 +4199,7 @@ Rules:
             }
             selectSet(row);
             handleLogFormInput();
+            if (logging) nextSet(btn);
         };
 
         window.addSetRow = function(exerciseName) {
