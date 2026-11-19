@@ -5007,7 +5007,7 @@ ${getAthleteProfileMemorySummary(profileData)}
         window.openNutritionModal = function() {
             const dateInput = document.getElementById('nutrition-date');
             if (dateInput) {
-                if (!dateInput.value) dateInput.value = toLocalDateInputValue(new Date());
+                dateInput.value = toLocalDateInputValue(new Date());
                 dateInput.onchange = () => loadNutritionEntries(dateInput.value);
             }
             const previousEntryInput = document.getElementById('nutrition-previous-entry');
